@@ -1,0 +1,88 @@
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { cadenasApi } from '../lib/api'
+import { Plus, Pencil, X } from 'lucide-react'
+
+function CadenaModal({ cadena, onClose }: { cadena?: any; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [form, setForm] = useState({ nombre: cadena?.nombre ?? '', descripcion: cadena?.descripcion ?? '' })
+  const [err, setErr] = useState('')
+  const save = useMutation({
+    mutationFn: () => cadena ? cadenasApi.update(cadena.id, form) : cadenasApi.create(form),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cadenas'] }); onClose() },
+    onError: (e: any) => setErr(e.response?.data?.message ?? 'Error'),
+  })
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <h3>{cadena ? 'Editar cadena' : 'Nueva cadena productiva'}</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          <div className="form-group">
+            <label className="form-label">Nombre</label>
+            <input className="input" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Descripción</label>
+            <textarea className="input" rows={3} value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+          </div>
+          {err && <p className="form-error">{err}</p>}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
+            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function CadenasPage() {
+  const [modal, setModal] = useState<'new' | any | null>(null)
+  const { data, isLoading } = useQuery({
+    queryKey: ['cadenas'],
+    queryFn: () => cadenasApi.list().then(r => r.data),
+    staleTime: 60000,
+  })
+  const cadenas = data?.cadenas ?? data ?? []
+
+  return (
+    <div className="page animate-in">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Cadenas Productivas</h1>
+          <p className="page-subtitle">{cadenas.length} cadena{cadenas.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setModal('new')}><Plus size={15} /> Nueva cadena</button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+        {isLoading ? Array(6).fill(0).map((_, i) => (
+          <div key={i} className="card"><div className="skeleton" style={{ height: 24, marginBottom: 8 }} /><div className="skeleton" style={{ height: 40 }} /></div>
+        )) : cadenas.map((c: any) => (
+          <div key={c.id} className="card" style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{c.nombre}</div>
+                <div style={{ fontSize: 12, color: 'var(--gray-400)', lineHeight: 1.5 }}>{c.descripcion ?? 'Sin descripción'}</div>
+              </div>
+              <button className="btn btn-ghost btn-icon btn-sm" style={{ flexShrink: 0 }} onClick={() => setModal(c)}><Pencil size={13} /></button>
+            </div>
+            {c.total_beneficiarios !== undefined && (
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--gray-100)', fontSize: 12, color: 'var(--gray-500)' }}>
+                <span className="badge badge-guinda">{c.total_beneficiarios} beneficiarios</span>
+              </div>
+            )}
+          </div>
+        ))}
+        {!isLoading && cadenas.length === 0 && (
+          <div className="empty-state" style={{ gridColumn: '1/-1' }}><p>Sin cadenas productivas</p></div>
+        )}
+      </div>
+      {modal && <CadenaModal cadena={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
+    </div>
+  )
+}
