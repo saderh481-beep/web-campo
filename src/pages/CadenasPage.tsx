@@ -1,16 +1,33 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { cadenasApi } from '../lib/api'
 import { Plus, Pencil, X } from 'lucide-react'
 
-function CadenaModal({ cadena, onClose }: { cadena?: any; onClose: () => void }) {
+interface Cadena {
+  id: number
+  nombre: string
+  descripcion?: string
+  total_beneficiarios?: number
+}
+
+interface CadenasResponse {
+  cadenas?: Cadena[]
+}
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  const axiosErr = err as AxiosError<{ message?: string }>
+  return axiosErr.response?.data?.message ?? fallback
+}
+
+function CadenaModal({ cadena, onClose }: { cadena?: Cadena; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState({ nombre: cadena?.nombre ?? '', descripcion: cadena?.descripcion ?? '' })
   const [err, setErr] = useState('')
   const save = useMutation({
     mutationFn: () => cadena ? cadenasApi.update(cadena.id, form) : cadenasApi.create(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cadenas'] }); onClose() },
-    onError: (e: any) => setErr(e.response?.data?.message ?? 'Error'),
+    onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -42,13 +59,14 @@ function CadenaModal({ cadena, onClose }: { cadena?: any; onClose: () => void })
 }
 
 export default function CadenasPage() {
-  const [modal, setModal] = useState<'new' | any | null>(null)
+  const [modal, setModal] = useState<'new' | Cadena | null>(null)
   const { data, isLoading } = useQuery({
     queryKey: ['cadenas'],
     queryFn: () => cadenasApi.list().then(r => r.data),
     staleTime: 60000,
   })
-  const cadenas = data?.cadenas ?? data ?? []
+  const cadenasData = data as CadenasResponse | Cadena[] | undefined
+  const cadenas: Cadena[] = Array.isArray(cadenasData) ? cadenasData : (cadenasData?.cadenas ?? [])
 
   return (
     <div className="page animate-in">
@@ -62,7 +80,7 @@ export default function CadenasPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
         {isLoading ? Array(6).fill(0).map((_, i) => (
           <div key={i} className="card"><div className="skeleton" style={{ height: 24, marginBottom: 8 }} /><div className="skeleton" style={{ height: 40 }} /></div>
-        )) : cadenas.map((c: any) => (
+        )) : cadenas.map((c) => (
           <div key={c.id} className="card" style={{ position: 'relative' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
               <div>

@@ -1,7 +1,41 @@
-import axios from 'axios'
+import axios, { type AxiosError, type AxiosResponse } from 'axios'
+
+const rawApiUrl = import.meta.env.VITE_API_URL?.trim()
+const apiBaseUrl = (rawApiUrl && rawApiUrl.length > 0 ? rawApiUrl : '/api').replace(/\/+$/, '')
+
+function normalizePath(url?: string): string {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      return new URL(url).pathname
+    } catch {
+      return ''
+    }
+  }
+  return url.startsWith('/') ? url : `/${url}`
+}
+
+function buildApiUrl(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${apiBaseUrl}${normalizedPath}`
+}
+
+async function with404Fallback<T>(requests: Array<() => Promise<AxiosResponse<T>>>): Promise<AxiosResponse<T>> {
+  let lastError: unknown
+  for (const request of requests) {
+    try {
+      return await request()
+    } catch (error) {
+      const status = (error as AxiosError)?.response?.status
+      if (status !== 404) throw error
+      lastError = error
+    }
+  }
+  throw lastError
+}
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiBaseUrl,
   withCredentials: true,
   timeout: 15000,
 })
@@ -9,8 +43,20 @@ export const api = axios.create({
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      window.location.href = '/login'
+    const path = normalizePath(err.config?.url)
+    const isAuthAttempt =
+      path === '/auth/login' ||
+      path === '/auth/otp' ||
+      path === '/auth/request-otp' ||
+      path === '/auth/verify-otp' ||
+      path === '/auth/tecnico'
+    if (
+      err.response?.status === 401 &&
+      !isAuthAttempt &&
+      typeof window !== 'undefined' &&
+      window.location.pathname !== '/login'
+    ) {
+      window.location.assign('/login')
     }
     return Promise.reject(err)
   }
@@ -18,10 +64,19 @@ api.interceptors.response.use(
 
 // ── AUTH ──────────────────────────────────────────────────────────
 export const authApi = {
-  requestOTP: (correo: string) => api.post('/auth/otp', { correo }),
-  login: (correo: string, otp: string) => api.post('/auth/login', { correo, otp }),
+  requestOTP: (correo: string) => with404Fallback([
+    () => api.post('/auth/request-otp', { correo }),
+    () => api.post('/auth/otp', { correo }),
+  ]),
+  login: (correo: string, otp: string) => with404Fallback([
+    () => api.post('/auth/verify-otp', { correo, otp }),
+    () => api.post('/auth/login', { correo, otp }),
+  ]),
   logout: () => api.post('/auth/logout'),
-  me: () => api.get('/auth/me'),
+  me: () => with404Fallback([
+    () => api.get('/usuarios/me'),
+    () => api.get('/auth/me'),
+  ]),
   enviarCodigoTecnico: (email: string) => api.post('/auth/tecnico', { email }),
 }
 
@@ -92,14 +147,17 @@ export const bitacorasApi = {
     api.get('/bitacoras', { params }),
   get: (id: number) => api.get(`/bitacoras/${id}`),
   update: (id: number, data: unknown) => api.patch(`/bitacoras/${id}`, data),
-  pdfUrl: (id: number) => `/api/bitacoras/${id}/pdf`,
-  pdfDownloadUrl: (id: number) => `/api/bitacoras/${id}/pdf/descargar`,
+  pdfUrl: (id: number) => buildApiUrl(`/bitacoras/${id}/pdf`),
+  pdfDownloadUrl: (id: number) => buildApiUrl(`/bitacoras/${id}/pdf/descargar`),
 }
 
 // ── REPORTES ──────────────────────────────────────────────────────
 export const reportesApi = {
-  mensual: (params?: { mes?: string; anio?: number }) =>
-    api.get('/bitacoras-mensual', { params }),
+  mensual: (params?: { mes?: string; anio?: number }) => with404Fallback([
+    () => api.get('/reportes/mensual', { params }),
+    () => api.get('/bitacoras/mensual', { params }),
+    () => api.get('/bitacoras-mensual', { params }),
+  ]),
 }
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────

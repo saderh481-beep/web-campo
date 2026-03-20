@@ -9,6 +9,18 @@ import { useAuth } from '../../hooks/useAuth'
 import { notificacionesApi } from '../../lib/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
+interface Notificacion {
+  id: number | string
+  leida?: boolean
+  mensaje?: string
+  titulo?: string
+  fecha?: string
+}
+
+interface NotificacionesResponse {
+  notificaciones?: Notificacion[]
+}
+
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/tecnicos', label: 'Técnicos', icon: UserCheck },
@@ -28,9 +40,13 @@ export default function AppLayout() {
     queryKey: ['notificaciones'],
     queryFn: () => notificacionesApi.list().then((r: { data: unknown }) => r.data),
     refetchInterval: 30000,
-  }).data as Record<string, unknown> | undefined
+  }).data
 
-  const notifs: any[] = (notifData?.notificaciones as any[] | undefined) ?? (Array.isArray(notifData) ? notifData : [])
+  const notifs: Notificacion[] = Array.isArray((notifData as NotificacionesResponse | undefined)?.notificaciones)
+    ? ((notifData as NotificacionesResponse).notificaciones ?? [])
+    : Array.isArray(notifData)
+      ? (notifData as Notificacion[])
+      : []
   const unread = notifs.filter((n) => !n.leida).length
 
   const marcarTodas = useMutation({
@@ -39,7 +55,7 @@ export default function AppLayout() {
   })
 
    const marcarLeida = useMutation({
-     mutationFn: (id: number) => notificacionesApi.marcarLeida(String(id)),
+     mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
      onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
    })
 
@@ -133,7 +149,7 @@ export default function AppLayout() {
                     <div style={s.notifEmpty}>Sin notificaciones</div>
                   ) : (
                     <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                      {notifs.map((n: any) => (
+                      {notifs.map((n) => (
                         <div
                           key={n.id}
                           style={{ ...s.notifItem, ...(!n.leida ? s.notifUnread : {}) }}

@@ -3,6 +3,21 @@ import { useQuery } from '@tanstack/react-query'
 import { reportesApi } from '../lib/api'
 import { Download } from 'lucide-react'
 
+interface ReporteRow {
+  nombre?: string
+  tecnico?: string
+  total_visitas?: number
+  visitas?: number
+  beneficiarios?: number
+  avance?: number
+  porcentaje?: number
+}
+
+interface ReportesResponse {
+  tecnicos?: ReporteRow[]
+  reporte?: ReporteRow[]
+}
+
 export default function ReportesPage() {
   const hoy = new Date()
   const [mes, setMes] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`)
@@ -13,7 +28,8 @@ export default function ReportesPage() {
     staleTime: 60000,
   })
 
-  const rows: any[] = data?.tecnicos ?? data?.reporte ?? []
+  const reporteData = data as ReportesResponse | undefined
+  const rows: ReporteRow[] = reporteData?.tecnicos ?? reporteData?.reporte ?? []
   const maxVisitas = Math.max(...rows.map(r => r.total_visitas ?? r.visitas ?? 0), 1)
 
   const exportCSV = () => {
@@ -64,7 +80,7 @@ export default function ReportesPage() {
         <div className="card" style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'var(--gray-700)' }}>Visitas por técnico</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {rows.sort((a, b) => (b.total_visitas ?? 0) - (a.total_visitas ?? 0)).map((r, i) => {
+            {[...rows].sort((a, b) => (b.total_visitas ?? 0) - (a.total_visitas ?? 0)).map((r, i) => {
               const v = r.total_visitas ?? r.visitas ?? 0
               const pct = (v / maxVisitas) * 100
               return (
