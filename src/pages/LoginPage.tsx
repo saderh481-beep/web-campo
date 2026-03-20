@@ -66,7 +66,7 @@ export default function LoginPage() {
     setLoading(true); setError('')
     try {
       const r = await authApi.login(correo, code)
-      login(r.data.usuario ?? r.data)
+      login(r.data)
       nav('/')
     } catch {
       setError('Código incorrecto o expirado.')
