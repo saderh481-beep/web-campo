@@ -1,7 +1,21 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 
-const rawApiUrl = import.meta.env.VITE_API_URL?.trim()
-const apiBaseUrl = (rawApiUrl && rawApiUrl.length > 0 ? rawApiUrl : '/api').replace(/\/+$/, '')
+const DEFAULT_PROD_API_URL = 'https://campo-api-web-campo-saas.up.railway.app'
+
+function resolveApiBaseUrl(): string {
+  const rawApiUrl = import.meta.env.VITE_API_URL?.trim()
+  if (rawApiUrl && rawApiUrl.length > 0) return rawApiUrl
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    const isLocalDev = host === 'localhost' || host === '127.0.0.1'
+    if (isLocalDev) return '/api'
+  }
+
+  return DEFAULT_PROD_API_URL
+}
+
+const apiBaseUrl = resolveApiBaseUrl().replace(/\/+$/, '')
 const AUTH_TOKEN_KEY = 'campo_auth_token'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
