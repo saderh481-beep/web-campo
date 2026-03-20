@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authApi } from '../lib/api'
 
 interface User {
@@ -20,6 +20,13 @@ const Ctx = createContext<AuthCtx | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    authApi.me()
+      .then((r) => setUser(r.data))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false))
+  }, [])
 
   const login = (u: User) => setUser(u)
 

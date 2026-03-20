@@ -38,10 +38,10 @@ export default function AppLayout() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
   })
 
-  const marcarLeida = useMutation({
-    mutationFn: (id: number) => notificacionesApi.marcarLeida(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
-  })
+   const marcarLeida = useMutation({
+     mutationFn: (id: number) => notificacionesApi.marcarLeida(String(id)),
+     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
+   })
 
   // Close notif on outside click
   useEffect(() => {
