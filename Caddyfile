@@ -7,6 +7,13 @@
 	root * /srv
 	encode zstd gzip
 
+	# Proxy same-origin para evitar CORS del navegador.
+	handle_path /api/* {
+		reverse_proxy https://campo-api-web-campo-saas.up.railway.app {
+			header_up Host campo-api-web-campo-saas.up.railway.app
+		}
+	}
+
 	# No cache para evitar que clientes se queden con bundles viejos.
 	header Cache-Control "no-store"
 

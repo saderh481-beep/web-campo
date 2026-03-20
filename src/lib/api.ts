@@ -1,18 +1,25 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 
-const DEFAULT_PROD_API_URL = 'https://campo-api-web-campo-saas.up.railway.app'
-
 function resolveApiBaseUrl(): string {
   const rawApiUrl = import.meta.env.VITE_API_URL?.trim()
-  if (rawApiUrl && rawApiUrl.length > 0) return rawApiUrl
 
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    const isLocalDev = host === 'localhost' || host === '127.0.0.1'
-    if (isLocalDev) return '/api'
+    const origin = window.location.origin
+    if (rawApiUrl && rawApiUrl.length > 0) {
+      try {
+        const resolved = new URL(rawApiUrl, origin)
+        // Si apunta a otro dominio, forzamos proxy same-origin para evitar CORS.
+        if (resolved.origin !== origin) return '/api'
+      } catch {
+        return '/api'
+      }
+      return rawApiUrl
+    }
+    return '/api'
   }
 
-  return DEFAULT_PROD_API_URL
+  if (rawApiUrl && rawApiUrl.length > 0) return rawApiUrl
+  return '/api'
 }
 
 const apiBaseUrl = resolveApiBaseUrl().replace(/\/+$/, '')
