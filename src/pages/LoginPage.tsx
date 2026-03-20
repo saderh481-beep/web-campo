@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 
 export default function LoginPage() {
   const [correo, setCorreo] = useState('')
-  const [clave, setClave] = useState('')
+  const [codigoAcceso, setCodigoAcceso] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [isMobile, setIsMobile] = useState(() =>
@@ -23,9 +23,9 @@ export default function LoginPage() {
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
-    const code = clave.replace(/\D/g, '')
+    const code = codigoAcceso.replace(/\D/g, '')
     if (code.length !== 5) {
-      setError('La clave debe tener 5 dígitos.')
+      setError('El código de acceso debe tener 5 dígitos.')
       return
     }
 
@@ -36,7 +36,7 @@ export default function LoginPage() {
       login(r.data)
       nav('/')
     } catch {
-      setError('Correo o clave inválidos.')
+      setError('Correo o código de acceso inválidos.')
     } finally {
       setLoading(false)
     }
@@ -46,14 +46,11 @@ export default function LoginPage() {
     <div style={{ ...styles.wrap, ...(isMobile ? styles.wrapMobile : {}) }}>
       <div style={{ ...styles.left, ...(isMobile ? styles.leftMobile : {}) }}>
         <div style={{ ...styles.leftInner, ...(isMobile ? styles.leftInnerMobile : {}) }}>
-          <div style={styles.logoWrap}>
-            <img src="/Mesa de trabajo 3.svg" alt="CAMPO" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          </div>
           <h1 style={styles.brand}>CAMPO</h1>
           <p style={styles.brandSub}>Sistema de Gestión de Técnicos y Beneficiarios</p>
           <div style={styles.divider} />
           <p style={styles.org}>Secretaría de Desarrollo Agropecuario</p>
-          <p style={styles.gov}>Gobierno del Estado de Hidalgo 2022–2028</p>
+          <p style={styles.gov}>Gobierno del Estado de Hidalgo 2022-2028</p>
           {!isMobile && <div style={styles.decorCircle} />}
           {!isMobile && <div style={styles.decorCircle2} />}
         </div>
@@ -61,9 +58,13 @@ export default function LoginPage() {
 
       <div style={{ ...styles.right, ...(isMobile ? styles.rightMobile : {}) }}>
         <div style={{ ...styles.formCard, ...(isMobile ? styles.formCardMobile : {}) }}>
+          <div style={styles.formLogoWrap}>
+            <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={styles.formLogoImg} />
+          </div>
+
           <div style={{ marginBottom: 24 }}>
             <h2 style={styles.title}>Iniciar sesión</h2>
-            <p style={styles.subtitle}>Ingresa correo y clave de 5 dígitos</p>
+            <p style={styles.subtitle}>Ingresa tu correo y tu código de acceso en un solo paso</p>
           </div>
 
           <form onSubmit={handleLogin}>
@@ -81,12 +82,12 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Clave (5 dígitos)</label>
+              <label className="form-label">Código de acceso (5 dígitos)</label>
               <input
                 className="input"
                 type="password"
-                value={clave}
-                onChange={e => setClave(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                value={codigoAcceso}
+                onChange={e => setCodigoAcceso(e.target.value.replace(/\D/g, '').slice(0, 5))}
                 placeholder="•••••"
                 inputMode="numeric"
                 pattern="[0-9]{5}"
@@ -101,7 +102,7 @@ export default function LoginPage() {
             <button
               className="btn btn-primary"
               type="submit"
-              disabled={loading || correo.trim().length === 0 || clave.length !== 5}
+              disabled={loading || correo.trim().length === 0 || codigoAcceso.length !== 5}
               style={{ width: '100%', height: 44, fontSize: 14 }}
             >
               {loading ? <><span className="spinner" />Ingresando...</> : 'Acceder al sistema'}
@@ -123,32 +124,25 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
-  leftMobile: { width: '100%', minHeight: 240 },
+  leftMobile: { width: '100%', minHeight: 220 },
   leftInner: {
-    position: 'relative', zIndex: 1, padding: '60px 48px', color: 'white',
+    position: 'relative', zIndex: 1, padding: '56px 44px', color: 'white',
   },
-  leftInnerMobile: { padding: '28px 20px' },
-  logoWrap: {
-    width: 64, height: 64, borderRadius: 16,
-    background: 'rgba(255,255,255,0.15)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 20, fontSize: 32,
-    border: '1.5px solid rgba(212,193,156,0.4)',
-  },
+  leftInnerMobile: { padding: '24px 20px' },
   brand: {
     fontSize: 42, fontWeight: 800, letterSpacing: '-0.03em',
     color: 'white', marginBottom: 8,
   },
   brandSub: {
     fontSize: 13, color: 'rgba(212,193,156,0.9)',
-    lineHeight: 1.5, maxWidth: 240, fontWeight: 400,
+    lineHeight: 1.5, maxWidth: 260, fontWeight: 400,
   },
   divider: {
     width: 40, height: 2, background: 'var(--dorado)',
     borderRadius: 1, margin: '24px 0',
   },
   org: { fontSize: 12, fontWeight: 700, color: 'var(--dorado)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 },
-  gov: { fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 400 },
+  gov: { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 400 },
   decorCircle: {
     position: 'absolute', bottom: -80, right: -80,
     width: 300, height: 300, borderRadius: '50%',
@@ -172,7 +166,23 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: '0 4px 24px rgba(98,17,50,0.08)',
   },
   formCardMobile: { padding: '24px 16px', maxWidth: '100%' },
+  formLogoWrap: {
+    width: 88,
+    height: 88,
+    margin: '0 auto 18px',
+    borderRadius: 18,
+    border: '1.5px solid var(--dorado-light)',
+    background: 'var(--guinda-50)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formLogoImg: {
+    width: 60,
+    height: 60,
+    objectFit: 'contain',
+  },
   title: { fontSize: 22, fontWeight: 800, color: 'var(--gray-900)', marginBottom: 6 },
-  subtitle: { fontSize: 13, color: 'var(--gray-400)' },
+  subtitle: { fontSize: 13, color: 'var(--gray-500)' },
   err: { fontSize: 12, color: 'var(--danger)', marginBottom: 14, padding: '8px 12px', background: 'var(--danger-bg)', borderRadius: 6 },
 }
