@@ -3,11 +3,24 @@ import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Users, UserCheck, BookOpen,
   FileBarChart, Settings, LogOut, Bell, ChevronRight,
-  Wheat, Layers,
+  Wheat, Layers, Menu, X,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { notificacionesApi } from '../../lib/api'
+import { pickArray } from '../../lib/normalize'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
+interface Notificacion {
+  id: number | string
+  leida?: boolean
+  mensaje?: string
+  titulo?: string
+  fecha?: string
+}
+
+interface NotificacionesResponse {
+  notificaciones?: Notificacion[]
+}
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -23,14 +36,18 @@ export default function AppLayout() {
   const { user, logout } = useAuth()
   const qc = useQueryClient()
   const [notifOpen, setNotifOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 980 : false
+  )
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const notifData = useQuery({
     queryKey: ['notificaciones'],
     queryFn: () => notificacionesApi.list().then((r: { data: unknown }) => r.data),
     refetchInterval: 30000,
-  }).data as Record<string, unknown> | undefined
+  }).data
 
-  const notifs: any[] = (notifData?.notificaciones as any[] | undefined) ?? (Array.isArray(notifData) ? notifData : [])
+  const notifs = pickArray<Notificacion>(notifData as NotificacionesResponse | Notificacion[] | undefined, ['notificaciones', 'rows', 'data'])
   const unread = notifs.filter((n) => !n.leida).length
 
   const marcarTodas = useMutation({
@@ -39,7 +56,7 @@ export default function AppLayout() {
   })
 
    const marcarLeida = useMutation({
-     mutationFn: (id: number) => notificacionesApi.marcarLeida(String(id)),
+     mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
      onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
    })
 
@@ -54,10 +71,31 @@ export default function AppLayout() {
     return () => document.removeEventListener('click', h)
   }, [notifOpen])
 
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = window.innerWidth < 980
+      setIsMobile(mobile)
+      if (!mobile) setMenuOpen(false)
+    }
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   return (
     <div style={s.wrap}>
+      {isMobile && menuOpen && (
+        <div style={s.mobileOverlay} onClick={() => setMenuOpen(false)} />
+      )}
+
       {/* SIDEBAR */}
-      <aside style={s.sidebar}>
+      <aside
+        style={{
+          ...s.sidebar,
+          ...(isMobile ? s.sidebarMobile : {}),
+          ...(isMobile && !menuOpen ? s.sidebarMobileClosed : {}),
+        }}
+      >
         {/* Logo */}
         <div style={s.sidebarLogo}>
           <div style={s.logoMark}>
@@ -75,6 +113,7 @@ export default function AppLayout() {
             <NavLink
               key={to} to={to} end={end}
               style={({ isActive }) => ({ ...s.navItem, ...(isActive ? s.navActive : {}) })}
+              onClick={() => isMobile && setMenuOpen(false)}
             >
               {({ isActive }) => (
                 <>
@@ -104,10 +143,21 @@ export default function AppLayout() {
       </aside>
 
       {/* MAIN */}
-      <div style={s.main}>
+      <div style={{ ...s.main, ...(isMobile ? s.mainMobile : {}) }}>
         {/* Top bar */}
-        <header style={s.header}>
-          <div />
+        <header style={{ ...s.header, ...(isMobile ? s.headerMobile : {}) }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {isMobile && (
+              <button
+                className="btn btn-ghost btn-icon"
+                onClick={() => setMenuOpen((p) => !p)}
+                style={{ border: '1px solid var(--gray-200)' }}
+                aria-label="Abrir menú"
+              >
+                {menuOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* Notifications */}
             <div style={{ position: 'relative' }} data-notif>
@@ -120,7 +170,7 @@ export default function AppLayout() {
                 {unread > 0 && <span style={s.badge}>{unread}</span>}
               </button>
               {notifOpen && (
-                <div style={s.notifPanel} data-notif>
+                <div style={{ ...s.notifPanel, ...(isMobile ? s.notifPanelMobile : {}) }} data-notif>
                   <div style={s.notifHeader}>
                     <span style={{ fontWeight: 700, fontSize: 13 }}>Notificaciones</span>
                     {unread > 0 && (
@@ -133,7 +183,7 @@ export default function AppLayout() {
                     <div style={s.notifEmpty}>Sin notificaciones</div>
                   ) : (
                     <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                      {notifs.map((n: any) => (
+                      {notifs.map((n) => (
                         <div
                           key={n.id}
                           style={{ ...s.notifItem, ...(!n.leida ? s.notifUnread : {}) }}
@@ -167,12 +217,28 @@ export default function AppLayout() {
 
 const s: Record<string, React.CSSProperties> = {
   wrap: { display: 'flex', height: '100vh', overflow: 'hidden' },
+  mobileOverlay: {
+    position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.35)',
+    zIndex: 18,
+  },
   sidebar: {
     width: 'var(--sidebar-w)', flexShrink: 0,
     background: 'var(--guinda-deeper)',
     display: 'flex', flexDirection: 'column',
     borderRight: '1px solid rgba(212,193,156,0.1)',
     position: 'relative', zIndex: 10,
+  },
+  sidebarMobile: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    height: '100vh',
+    zIndex: 20,
+    transition: 'transform 0.2s ease',
+    boxShadow: '0 18px 40px rgba(0, 0, 0, 0.2)',
+  },
+  sidebarMobileClosed: {
+    transform: 'translateX(-100%)',
   },
   sidebarLogo: {
     display: 'flex', alignItems: 'center', gap: 10,
@@ -227,12 +293,14 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex', transition: 'color 0.15s',
   },
   main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  mainMobile: { width: '100%' },
   header: {
     height: 'var(--header-h)', background: 'white',
     borderBottom: '1px solid var(--gray-200)',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0 28px', flexShrink: 0,
   },
+  headerMobile: { padding: '0 12px' },
   content: { flex: 1, overflowY: 'auto', overflowX: 'hidden' },
   iconBtn: {
     position: 'relative', background: 'none', border: '1.5px solid var(--gray-200)',
@@ -254,6 +322,10 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 12, border: '1px solid var(--gray-200)',
     boxShadow: '0 8px 24px rgba(98,17,50,0.12)',
     zIndex: 50,
+  },
+  notifPanelMobile: {
+    width: 'min(92vw, 340px)',
+    right: -8,
   },
   notifHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',

@@ -1,7 +1,23 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { reportesApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Download } from 'lucide-react'
+
+interface ReporteRow {
+  nombre?: string
+  tecnico?: string
+  total_visitas?: number
+  visitas?: number
+  beneficiarios?: number
+  avance?: number
+  porcentaje?: number
+}
+
+interface ReportesResponse {
+  tecnicos?: ReporteRow[]
+  reporte?: ReporteRow[]
+}
 
 export default function ReportesPage() {
   const hoy = new Date()
@@ -13,7 +29,8 @@ export default function ReportesPage() {
     staleTime: 60000,
   })
 
-  const rows: any[] = data?.tecnicos ?? data?.reporte ?? []
+  const reporteData = data as ReportesResponse | undefined
+  const rows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
   const maxVisitas = Math.max(...rows.map(r => r.total_visitas ?? r.visitas ?? 0), 1)
 
   const exportCSV = () => {
@@ -64,11 +81,11 @@ export default function ReportesPage() {
         <div className="card" style={{ marginBottom: 20 }}>
           <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'var(--gray-700)' }}>Visitas por técnico</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {rows.sort((a, b) => (b.total_visitas ?? 0) - (a.total_visitas ?? 0)).map((r, i) => {
+            {[...rows].sort((a, b) => (b.total_visitas ?? 0) - (a.total_visitas ?? 0)).map((r, i) => {
               const v = r.total_visitas ?? r.visitas ?? 0
               const pct = (v / maxVisitas) * 100
               return (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 50px', alignItems: 'center', gap: 12 }}>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1.2fr) minmax(110px, 2fr) 46px', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nombre ?? r.tecnico}</span>
                   <div style={{ height: 24, background: 'var(--gray-100)', borderRadius: 4, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, var(--guinda), var(--guinda-light))`, borderRadius: 4, transition: 'width 0.6s ease', display: 'flex', alignItems: 'center', paddingLeft: 8 }}>

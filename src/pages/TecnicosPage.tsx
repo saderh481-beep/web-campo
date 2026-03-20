@@ -1,10 +1,22 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { tecnicosApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
 
 interface Tecnico { id: number; nombre: string; correo: string; municipio?: string; codigo_acceso?: string; activo?: boolean; vencimiento_codigo?: string }
 interface FormData { nombre: string; correo: string; municipio: string }
+const FORM_FIELDS: Array<{ key: keyof FormData; label: string; type: 'text' | 'email' }> = [
+  { key: 'nombre', label: 'Nombre completo', type: 'text' },
+  { key: 'correo', label: 'Correo electrónico', type: 'email' },
+  { key: 'municipio', label: 'Municipio', type: 'text' },
+]
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  const axiosErr = err as AxiosError<{ message?: string }>
+  return axiosErr.response?.data?.message ?? fallback
+}
 
 function CodigoAcceso({ codigo, id }: { codigo: string; id: number }) {
   const [copied, setCopied] = useState(false)
@@ -39,7 +51,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
   const save = useMutation({
     mutationFn: () => tecnico ? tecnicosApi.update(tecnico.id, form) : tecnicosApi.create(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
-    onError: (e: any) => setErr(e.response?.data?.message ?? 'Error al guardar'),
+    onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
 
   return (
@@ -50,12 +62,12 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
-          {['nombre', 'correo', 'municipio'].map(f => (
-            <div className="form-group" key={f}>
-              <label className="form-label">{f === 'nombre' ? 'Nombre completo' : f === 'correo' ? 'Correo electrónico' : 'Municipio'}</label>
-              <input className="input" type={f === 'correo' ? 'email' : 'text'}
-                value={(form as any)[f]}
-                onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))}
+          {FORM_FIELDS.map(({ key, label, type }) => (
+            <div className="form-group" key={key}>
+              <label className="form-label">{label}</label>
+              <input className="input" type={type}
+                value={form[key]}
+                onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
               />
             </div>
           ))}
@@ -88,7 +100,8 @@ export default function TecnicosPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
   })
 
-  const tecnicos: Tecnico[] = (data?.tecnicos ?? data ?? [])
+  const tecnicosData = pickArray<Tecnico>(data, ['tecnicos', 'rows', 'data'])
+  const tecnicos: Tecnico[] = tecnicosData
     .filter((t: Tecnico) => !q || t.nombre?.toLowerCase().includes(q.toLowerCase()) || t.correo?.toLowerCase().includes(q.toLowerCase()))
 
   return (

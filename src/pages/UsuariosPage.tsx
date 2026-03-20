@@ -1,16 +1,47 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { usuariosApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 
-function UsuarioModal({ u, onClose }: { u?: any; onClose: () => void }) {
+type Rol = 'admin' | 'coordinador'
+
+interface Usuario {
+  id: number
+  nombre: string
+  correo: string
+  rol: Rol | string
+  activo?: boolean
+}
+
+interface UsuariosResponse {
+  usuarios?: Usuario[]
+}
+
+interface UsuarioForm {
+  nombre: string
+  correo: string
+  rol: Rol
+}
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  const axiosErr = err as AxiosError<{ message?: string }>
+  return axiosErr.response?.data?.message ?? fallback
+}
+
+function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   const qc = useQueryClient()
-  const [form, setForm] = useState({ nombre: u?.nombre ?? '', correo: u?.correo ?? '', rol: u?.rol ?? 'coordinador' })
+  const [form, setForm] = useState<UsuarioForm>({
+    nombre: u?.nombre ?? '',
+    correo: u?.correo ?? '',
+    rol: u?.rol === 'admin' ? 'admin' : 'coordinador',
+  })
   const [err, setErr] = useState('')
   const save = useMutation({
     mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['usuarios'] }); onClose() },
-    onError: (e: any) => setErr(e.response?.data?.message ?? 'Error'),
+    onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -25,7 +56,7 @@ function UsuarioModal({ u, onClose }: { u?: any; onClose: () => void }) {
           <div className="form-group"><label className="form-label">Correo</label>
             <input className="input" type="email" value={form.correo} onChange={e => setForm(p => ({ ...p, correo: e.target.value }))} /></div>
           <div className="form-group"><label className="form-label">Rol</label>
-            <select className="input" value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value }))}>
+            <select className="input" value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value as Rol }))}>
               <option value="admin">Administrador</option>
               <option value="coordinador">Coordinador</option>
             </select></div>
@@ -44,7 +75,7 @@ function UsuarioModal({ u, onClose }: { u?: any; onClose: () => void }) {
 
 export default function UsuariosPage() {
   const qc = useQueryClient()
-  const [modal, setModal] = useState<'new' | any | null>(null)
+  const [modal, setModal] = useState<'new' | Usuario | null>(null)
   const { data, isLoading } = useQuery({
     queryKey: ['usuarios'],
     queryFn: () => usuariosApi.list().then(r => r.data),
@@ -54,7 +85,8 @@ export default function UsuariosPage() {
     mutationFn: (id: number) => usuariosApi.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
   })
-  const usuarios = data?.usuarios ?? data ?? []
+  const usuariosData = data as UsuariosResponse | Usuario[] | undefined
+  const usuarios = pickArray<Usuario>(usuariosData, ['usuarios', 'rows', 'data'])
 
   return (
     <div className="page animate-in">
@@ -69,7 +101,7 @@ export default function UsuariosPage() {
           <tbody>
             {isLoading ? Array(4).fill(0).map((_, i) => (
               <tr key={i}>{Array(6).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : usuarios.map((u: any, i: number) => (
+            )) : usuarios.map((u, i) => (
               <tr key={u.id}>
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{u.nombre}</td>

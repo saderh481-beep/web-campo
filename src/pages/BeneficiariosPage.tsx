@@ -1,23 +1,69 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { beneficiariosApi, cadenasApi } from '../lib/api'
+import { pickArray, pickNumber } from '../lib/normalize'
 import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 
-interface Beneficiario { id: number; nombre: string; curp?: string; municipio?: string; localidad?: string; cadenas?: any[] }
+interface Cadena {
+  id: number
+  nombre: string
+}
 
-function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas: any[]; onClose: () => void }) {
+type CadenaRef = Cadena | number
+
+interface Beneficiario {
+  id: number
+  nombre: string
+  curp?: string
+  municipio?: string
+  localidad?: string
+  cadenas?: CadenaRef[]
+}
+
+interface BeneficiariosResponse {
+  beneficiarios?: Beneficiario[]
+  total?: number
+  per_page?: number
+}
+
+interface CadenasResponse {
+  cadenas?: Cadena[]
+}
+
+interface BeneficiarioForm {
+  nombre: string
+  curp: string
+  municipio: string
+  localidad: string
+  cadenas_ids: number[]
+}
+
+const FORM_FIELDS: Array<{ key: keyof Omit<BeneficiarioForm, 'cadenas_ids'>; label: string; full?: boolean }> = [
+  { key: 'nombre', label: 'Nombre completo', full: true },
+  { key: 'curp', label: 'CURP' },
+  { key: 'municipio', label: 'Municipio' },
+  { key: 'localidad', label: 'Localidad' },
+]
+
+function toErrorMessage(err: unknown, fallback: string): string {
+  const axiosErr = err as AxiosError<{ message?: string }>
+  return axiosErr.response?.data?.message ?? fallback
+}
+
+function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas: Cadena[]; onClose: () => void }) {
   const qc = useQueryClient()
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '', curp: b?.curp ?? '',
     municipio: b?.municipio ?? '', localidad: b?.localidad ?? '',
-    cadenas_ids: (b?.cadenas ?? []).map((c: any) => c.id ?? c),
+    cadenas_ids: (b?.cadenas ?? []).map((c) => typeof c === 'number' ? c : c.id),
   })
   const [err, setErr] = useState('')
 
   const save = useMutation({
     mutationFn: () => b ? beneficiariosApi.update(b.id, form) : beneficiariosApi.create(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiarios'] }); onClose() },
-    onError: (e: any) => setErr(e.response?.data?.message ?? 'Error al guardar'),
+    onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
 
   const toggleCadena = (id: number) => setForm(p => ({
@@ -33,15 +79,10 @@ function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas:
         </div>
         <div className="modal-body">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            {[
-              { key: 'nombre', label: 'Nombre completo', full: true },
-              { key: 'curp', label: 'CURP' },
-              { key: 'municipio', label: 'Municipio' },
-              { key: 'localidad', label: 'Localidad' },
-            ].map(({ key, label, full }) => (
+            {FORM_FIELDS.map(({ key, label, full }) => (
               <div key={key} className="form-group" style={full ? { gridColumn: '1/-1' } : {}}>
                 <label className="form-label">{label}</label>
-                <input className="input" value={(form as any)[key]}
+                <input className="input" value={form[key]}
                   onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
               </div>
             ))}
@@ -50,7 +91,7 @@ function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas:
             <div className="form-group">
               <label className="form-label">Cadenas productivas</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {cadenas.map((c: any) => (
+                {cadenas.map((c) => (
                   <button key={c.id} type="button"
                     style={{
                       padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600,
@@ -95,10 +136,14 @@ export default function BeneficiariosPage() {
     staleTime: 300000,
   })
 
-  const benefs: Beneficiario[] = data?.beneficiarios ?? data ?? []
-  const total = data?.total ?? benefs.length
-  const pages = Math.ceil(total / (data?.per_page ?? 20)) || 1
-  const cadenas = cadenasData?.cadenas ?? cadenasData ?? []
+  const benefData = data as BeneficiariosResponse | Beneficiario[] | undefined
+  const benefs = pickArray<Beneficiario>(benefData, ['beneficiarios', 'rows', 'data'])
+  const total = Array.isArray(benefData) ? benefData.length : pickNumber(benefData, ['total'], benefs.length)
+  const perPage = Array.isArray(benefData) ? 20 : pickNumber(benefData, ['per_page'], 20)
+  const pages = Math.ceil(total / perPage) || 1
+
+  const rawCadenas = cadenasData as CadenasResponse | Cadena[] | undefined
+  const cadenas = pickArray<Cadena>(rawCadenas, ['cadenas', 'rows', 'data'])
 
   return (
     <div className="page animate-in">
@@ -132,15 +177,17 @@ export default function BeneficiariosPage() {
               <tr><td colSpan={7}><div className="empty-state"><p>Sin beneficiarios</p></div></td></tr>
             ) : benefs.map((b, i) => (
               <tr key={b.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{(page - 1) * (data?.per_page ?? 20) + i + 1}</td>
+                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{(page - 1) * perPage + i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{b.nombre}</td>
                 <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--gray-500)' }}>{b.curp ?? '—'}</td>
                 <td>{b.municipio ?? '—'}</td>
                 <td>{b.localidad ?? '—'}</td>
                 <td>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                    {(b.cadenas ?? []).map((c: any) => (
-                      <span key={c.id ?? c} className="badge badge-dorado">{c.nombre ?? c}</span>
+                    {(b.cadenas ?? []).map((c) => (
+                      <span key={typeof c === 'number' ? c : c.id} className="badge badge-dorado">
+                        {typeof c === 'number' ? c : c.nombre}
+                      </span>
                     ))}
                     {(!b.cadenas || b.cadenas.length === 0) && <span style={{ color: 'var(--gray-300)', fontSize: 12 }}>—</span>}
                   </div>

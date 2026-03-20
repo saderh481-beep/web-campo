@@ -10,6 +10,7 @@ import BitacorasPage from './pages/BitacorasPage'
 import CadenasPage from './pages/CadenasPage'
 import ReportesPage from './pages/ReportesPage'
 import UsuariosPage from './pages/UsuariosPage'
+import AppErrorBoundary from './components/common/AppErrorBoundary'
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -43,21 +44,23 @@ export default function App() {
   return (
     <QueryClientProvider client={qc}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-            <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-              <Route index element={<DashboardPage />} />
-              <Route path="tecnicos" element={<TecnicosPage />} />
-              <Route path="beneficiarios" element={<BeneficiariosPage />} />
-              <Route path="bitacoras" element={<BitacorasPage />} />
-              <Route path="cadenas" element={<CadenasPage />} />
-              <Route path="reportes" element={<ReportesPage />} />
-              <Route path="usuarios" element={<UsuariosPage />} />
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+        <AppErrorBoundary>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+              <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+                <Route index element={<DashboardPage />} />
+                <Route path="tecnicos" element={<TecnicosPage />} />
+                <Route path="beneficiarios" element={<BeneficiariosPage />} />
+                <Route path="bitacoras" element={<BitacorasPage />} />
+                <Route path="cadenas" element={<CadenasPage />} />
+                <Route path="reportes" element={<ReportesPage />} />
+                <Route path="usuarios" element={<UsuariosPage />} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </AppErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
   )

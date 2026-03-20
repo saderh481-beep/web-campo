@@ -1,8 +1,61 @@
 import { useQuery } from '@tanstack/react-query'
 import { reportesApi, bitacorasApi, tecnicosApi, beneficiariosApi } from '../lib/api'
+import { pickArray, pickNumber } from '../lib/normalize'
 import { FileText, Users, UserCheck, TrendingUp, Activity } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
-function StatCard({ label, value, icon: Icon, color, loading }: any) {
+interface StatCardProps {
+  label: string
+  value: string | number
+  icon: LucideIcon
+  color: string
+  loading: boolean
+}
+
+interface TecnicoSummary {
+  id: number
+}
+
+interface TecnicosResponse {
+  tecnicos?: TecnicoSummary[]
+}
+
+interface BeneficiariosResponse {
+  total?: number
+  beneficiarios?: unknown[]
+}
+
+interface BitacoraSummary {
+  id: number
+  beneficiario_nombre?: string
+  beneficiario?: string
+  tecnico_nombre?: string
+  tecnico?: string
+  fecha?: string
+  estado?: string
+}
+
+interface BitacorasResponse {
+  total?: number
+  bitacoras?: BitacoraSummary[]
+}
+
+interface ReporteRow {
+  nombre?: string
+  tecnico?: string
+  avance?: number
+  porcentaje?: number
+  total_visitas?: number
+  visitas?: number
+}
+
+interface ReporteResponse {
+  tecnicos?: ReporteRow[]
+  reporte?: ReporteRow[]
+  avance_global?: number
+}
+
+function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
   return (
     <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
       <div style={{
@@ -50,11 +103,19 @@ export default function DashboardPage() {
     staleTime: 60000,
   })
 
-  const tecs = tecnicos?.tecnicos ?? tecnicos ?? []
-  const totalBenef = benef?.total ?? benef?.beneficiarios?.length ?? 0
-  const totalBit = bitacoras?.total ?? (bitacoras?.bitacoras ?? bitacoras ?? []).length
+  const tecnicosData = tecnicos as TecnicosResponse | TecnicoSummary[] | undefined
+  const benefData = benef as BeneficiariosResponse | unknown[] | undefined
+  const bitacorasData = bitacoras as BitacorasResponse | BitacoraSummary[] | undefined
+  const reporteData = reporte as ReporteResponse | undefined
+
+  const tecs = pickArray<TecnicoSummary>(tecnicosData, ['tecnicos', 'data', 'rows'])
+  const totalBenef = Array.isArray(benefData)
+    ? benefData.length
+    : pickNumber(benefData, ['total'], pickArray(benefData, ['beneficiarios', 'rows', 'data']).length)
+  const bitacorasRows = pickArray<BitacoraSummary>(bitacorasData, ['bitacoras', 'data', 'rows'])
+  const totalBit = Array.isArray(bitacorasData) ? bitacorasData.length : pickNumber(bitacorasData, ['total'], bitacorasRows.length)
   const totalTecs = tecs.length
-  const reporteRows: any[] = reporte?.tecnicos ?? reporte?.reporte ?? []
+  const reporteRows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
 
   return (
     <div className="page animate-in">
@@ -70,11 +131,17 @@ export default function DashboardPage() {
         <StatCard label="Técnicos activos" value={totalTecs} icon={UserCheck} color="var(--guinda)" loading={tLoad} />
         <StatCard label="Beneficiarios" value={totalBenef} icon={Users} color="var(--success)" loading={bLoad} />
         <StatCard label="Bitácoras" value={totalBit} icon={FileText} color="var(--warning)" loading={biLoad} />
-        <StatCard label="Avance mensual" value={reporte?.avance_global != null ? `${reporte.avance_global}%` : (reporteRows.length > 0 ? 'Ver detalle' : '—')} icon={TrendingUp} color="var(--info)" loading={rLoad} />
+        <StatCard
+          label="Avance mensual"
+          value={reporteData?.avance_global != null ? `${reporteData.avance_global}%` : (reporteRows.length > 0 ? 'Ver detalle' : '—')}
+          icon={TrendingUp}
+          color="var(--info)"
+          loading={rLoad}
+        />
       </div>
 
       {/* Recent bitácoras + técnicos table */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         {/* Técnicos */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -89,7 +156,7 @@ export default function DashboardPage() {
             <div className="empty-state"><UserCheck size={32} /><p>Sin datos de actividad</p></div>
           ) : (
             <div style={{ padding: '8px 0' }}>
-              {reporteRows.slice(0, 8).map((row: any, i: number) => {
+              {reporteRows.slice(0, 8).map((row, i) => {
                 const pct = Math.min(100, row.avance ?? row.porcentaje ?? 0)
                 return (
                   <div key={i} style={{ padding: '10px 20px', borderBottom: '1px solid var(--gray-100)' }}>
@@ -119,7 +186,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div style={{ padding: '8px 0' }}>
-              {((bitacoras?.bitacoras ?? bitacoras ?? []) as any[]).slice(0, 8).map((b: any) => (
+              {bitacorasRows.slice(0, 8).map((b) => (
                 <div key={b.id} style={{ padding: '10px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 600 }}>{b.beneficiario_nombre ?? b.beneficiario ?? `Bitácora #${b.id}`}</div>
@@ -130,7 +197,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
               ))}
-              {((bitacoras?.bitacoras ?? bitacoras ?? []) as any[]).length === 0 && (
+              {bitacorasRows.length === 0 && (
                 <div className="empty-state"><FileText size={28} /><p>Sin bitácoras aún</p></div>
               )}
             </div>

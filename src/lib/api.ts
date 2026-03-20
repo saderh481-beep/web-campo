@@ -1,16 +1,158 @@
-import axios from 'axios'
+import axios, { type AxiosError, type AxiosResponse } from 'axios'
+
+const rawApiUrl = import.meta.env.VITE_API_URL?.trim()
+const apiBaseUrl = (rawApiUrl && rawApiUrl.length > 0 ? rawApiUrl : '/api').replace(/\/+$/, '')
+const AUTH_TOKEN_KEY = 'campo_auth_token'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function getStoredToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(AUTH_TOKEN_KEY)
+}
+
+function setStoredToken(token: string) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(AUTH_TOKEN_KEY, token)
+}
+
+function clearStoredToken() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
+function extractToken(data: unknown): string | null {
+  if (!isRecord(data)) return null
+
+  const candidates = [
+    data.token,
+    data.access_token,
+    data.accessToken,
+    data.jwt,
+    isRecord(data.data) ? data.data.token : null,
+    isRecord(data.data) ? data.data.access_token : null,
+    isRecord(data.data) ? data.data.accessToken : null,
+  ]
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate
+    }
+  }
+  return null
+}
+
+function saveTokenFromResponse(data: unknown) {
+  const token = extractToken(data)
+  if (token) setStoredToken(token)
+}
+
+function withEmailAlias(payload: unknown): unknown {
+  if (!isRecord(payload)) return payload
+  const correo = payload.correo
+  const email = payload.email
+  return {
+    ...payload,
+    correo: typeof correo === 'string' ? correo : email,
+    email: typeof email === 'string' ? email : correo,
+  }
+}
+
+function withRoleAlias(payload: unknown): unknown {
+  if (!isRecord(payload)) return payload
+  const rol = payload.rol
+  const role = payload.role
+  return {
+    ...payload,
+    rol: typeof rol === 'string' ? rol : role,
+    role: typeof role === 'string' ? role : rol,
+  }
+}
+
+function withNameAlias(payload: unknown): unknown {
+  if (!isRecord(payload)) return payload
+  const nombre = payload.nombre
+  const name = payload.name
+  return {
+    ...payload,
+    nombre: typeof nombre === 'string' ? nombre : name,
+    name: typeof name === 'string' ? name : nombre,
+  }
+}
+
+function normalizePath(url?: string): string {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    try {
+      return new URL(url).pathname
+    } catch {
+      return ''
+    }
+  }
+  return url.startsWith('/') ? url : `/${url}`
+}
+
+function buildApiUrl(path: string): string {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${apiBaseUrl}${normalizedPath}`
+}
+
+async function with404Fallback<T>(requests: Array<() => Promise<AxiosResponse<T>>>): Promise<AxiosResponse<T>> {
+  return withFallback(requests, [404])
+}
+
+async function withFallback<T>(
+  requests: Array<() => Promise<AxiosResponse<T>>>,
+  fallbackStatuses: number[]
+): Promise<AxiosResponse<T>> {
+  let lastError: unknown
+  for (const request of requests) {
+    try {
+      return await request()
+    } catch (error) {
+      const status = (error as AxiosError)?.response?.status
+      if (!status || !fallbackStatuses.includes(status)) throw error
+      lastError = error
+    }
+  }
+  throw lastError
+}
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: apiBaseUrl,
   withCredentials: true,
   timeout: 15000,
+})
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken()
+  if (token) {
+    config.headers = config.headers ?? {}
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      window.location.href = '/login'
+    const path = normalizePath(err.config?.url)
+    const isAuthAttempt =
+      path === '/auth/login' ||
+      path === '/auth/otp' ||
+      path === '/auth/request-otp' ||
+      path === '/auth/verify-otp' ||
+      path === '/auth/tecnico'
+    if (
+      err.response?.status === 401 &&
+      !isAuthAttempt &&
+      typeof window !== 'undefined' &&
+      window.location.pathname !== '/login'
+    ) {
+      clearStoredToken()
+      window.location.assign('/login')
     }
     return Promise.reject(err)
   }
@@ -18,19 +160,55 @@ api.interceptors.response.use(
 
 // ── AUTH ──────────────────────────────────────────────────────────
 export const authApi = {
-  requestOTP: (correo: string) => api.post('/auth/otp', { correo }),
-  login: (correo: string, otp: string) => api.post('/auth/login', { correo, otp }),
-  logout: () => api.post('/auth/logout'),
-  me: () => api.get('/auth/me'),
+  requestOTP: (correo: string) => with404Fallback([
+    () => api.post('/auth/request-otp', { correo, email: correo }),
+    () => api.post('/auth/otp', { correo, email: correo }),
+    () => api.post('/auth/tecnico', { correo, email: correo }),
+  ]),
+  login: async (correo: string, clave: string) => {
+    const payload = {
+      correo,
+      email: correo,
+      clave,
+      codigo: clave,
+      code: clave,
+      otp: clave,
+      pin: clave,
+    }
+    const response = await withFallback([
+      () => api.post('/auth/tecnico', payload),
+      () => api.post('/auth/verify-otp', payload),
+      () => api.post('/auth/login', payload),
+    ], [404, 405])
+    saveTokenFromResponse(response.data)
+    return response
+  },
+  logout: async () => {
+    try {
+      await api.post('/auth/logout')
+    } finally {
+      clearStoredToken()
+    }
+  },
+  me: () => with404Fallback([
+    () => api.get('/usuarios/me'),
+    () => api.get('/usuarios/perfil'),
+    () => api.get('/auth/me'),
+    () => api.get('/me'),
+  ]),
   enviarCodigoTecnico: (email: string) => api.post('/auth/tecnico', { email }),
 }
 
 // ── USUARIOS ──────────────────────────────────────────────────────
 export const usuariosApi = {
   list: () => api.get('/usuarios'),
-  create: (data: unknown) => api.post('/usuarios', data),
-  update: (id: number, data: unknown) => api.patch(`/usuarios/${id}`, data),
-  remove: (id: number) => api.delete(`/usuarios/${id}`),
+  create: (data: unknown) => api.post('/usuarios', withRoleAlias(withNameAlias(withEmailAlias(data)))),
+  update: (id: number, data: unknown) => api.patch(`/usuarios/${id}`, withRoleAlias(withNameAlias(withEmailAlias(data)))),
+  remove: (id: number) => withFallback([
+    () => api.delete(`/usuarios/${id}`),
+    () => api.patch(`/usuarios/${id}/desactivar`),
+    () => api.post(`/usuarios/${id}/desactivar`),
+  ], [404, 405]),
   perfil: () => api.get('/usuarios/perfil'),
   actualizarPerfil: (data: unknown) => api.patch('/usuarios/perfil', data),
 }
@@ -39,11 +217,15 @@ export const usuariosApi = {
 export const tecnicosApi = {
   list: () => api.get('/tecnicos'),
   getById: (id: string) => api.get(`/tecnicos/${id}`),
-  create: (data: unknown) => api.post('/tecnicos', data),
-  update: (id: number, data: unknown) => api.patch(`/tecnicos/${id}`, data),
+  create: (data: unknown) => api.post('/tecnicos', withNameAlias(withEmailAlias(data))),
+  update: (id: number, data: unknown) => api.patch(`/tecnicos/${id}`, withNameAlias(withEmailAlias(data))),
   regenerarCodigo: (id: number) => api.post(`/tecnicos/${id}/regenerar-codigo`),
   generarCodigoAcceso: (id: number) => api.post(`/tecnicos/${id}/codigo`),
-  remove: (id: number) => api.delete(`/tecnicos/${id}`),
+  remove: (id: number) => withFallback([
+    () => api.delete(`/tecnicos/${id}`),
+    () => api.patch(`/tecnicos/${id}/desactivar`),
+    () => api.post(`/tecnicos/${id}/desactivar`),
+  ], [404, 405]),
 }
 
 // ── CADENAS PRODUCTIVAS ───────────────────────────────────────────
@@ -56,7 +238,11 @@ export const cadenasApi = {
 
 // ── ACTIVIDADES ───────────────────────────────────────────────────
 export const actividadesApi = {
-  list: () => api.get('/actividades'),
+  list: () => with404Fallback([
+    () => api.get('/actividades'),
+    () => api.get('/mis-actividades'),
+    () => api.get('/datos/mis-actividades'),
+  ]),
   create: (data: unknown) => api.post('/actividades', data),
   update: (id: number, data: unknown) => api.patch(`/actividades/${id}`, data),
   remove: (id: number) => api.delete(`/actividades/${id}`),
@@ -74,13 +260,24 @@ export const asignacionesApi = {
 
 // ── BENEFICIARIOS ─────────────────────────────────────────────────
 export const beneficiariosApi = {
-  list: (params?: { page?: number; q?: string; cadena?: number }) =>
-    api.get('/beneficiarios', { params }),
+  list: (params?: { page?: number; q?: string; cadena?: number }) => {
+    const normalizedParams = params ? {
+      ...params,
+      query: params.q,
+      search: params.q,
+      cadena_id: params.cadena,
+    } : params
+    return with404Fallback([
+      () => api.get('/beneficiarios', { params: normalizedParams }),
+      () => api.get('/mis-beneficiarios', { params: normalizedParams }),
+      () => api.get('/datos/mis-beneficiarios', { params: normalizedParams }),
+    ])
+  },
   getById: (id: string) => api.get(`/beneficiarios/${id}`),
-  create: (data: unknown) => api.post('/beneficiarios', data),
-  update: (id: number, data: unknown) => api.patch(`/beneficiarios/${id}`, data),
+  create: (data: unknown) => api.post('/beneficiarios', withNameAlias(data)),
+  update: (id: number, data: unknown) => api.patch(`/beneficiarios/${id}`, withNameAlias(data)),
   asignarCadenas: (id: string, cadenaIds: string[]) => 
-    api.post(`/beneficiarios/${id}/cadenas`, { cadena_ids: cadenaIds }),
+    api.post(`/beneficiarios/${id}/cadenas`, { cadena_ids: cadenaIds, cadenas_ids: cadenaIds }),
   subirDocumento: (id: string, formData: FormData) => 
     api.post(`/beneficiarios/${id}/documentos`, formData),
   getDocumentos: (id: string) => api.get(`/beneficiarios/${id}/documentos`),
@@ -92,14 +289,17 @@ export const bitacorasApi = {
     api.get('/bitacoras', { params }),
   get: (id: number) => api.get(`/bitacoras/${id}`),
   update: (id: number, data: unknown) => api.patch(`/bitacoras/${id}`, data),
-  pdfUrl: (id: number) => `/bitacoras/${id}/pdf`,
-  pdfDownloadUrl: (id: number) => `/bitacoras/${id}/pdf/descargar`,
+  pdfUrl: (id: number) => `/api/bitacoras/${id}/pdf`,
+  pdfDownloadUrl: (id: number) => `/api/bitacoras/${id}/pdf/descargar`,
 }
 
 // ── REPORTES ──────────────────────────────────────────────────────
 export const reportesApi = {
-  mensual: (params?: { mes?: string; anio?: number }) =>
-    api.get('/bitacoras-mensual', { params }),
+  mensual: (params?: { mes?: string; anio?: number }) => with404Fallback([
+    () => api.get('/reportes/mensual', { params }),
+    () => api.get('/bitacoras/mensual', { params }),
+    () => api.get('/bitacoras-mensual', { params }),
+  ]),
 }
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────
