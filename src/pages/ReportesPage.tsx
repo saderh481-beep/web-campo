@@ -18,6 +18,18 @@ interface ReportesResponse {
   reporte?: ReporteRow[]
 }
 
+function pickArray<T>(source: unknown, keys: string[]): T[] {
+  if (Array.isArray(source)) return source as T[]
+  if (!source || typeof source !== 'object') return []
+
+  const record = source as Record<string, unknown>
+  for (const key of keys) {
+    const value = record[key]
+    if (Array.isArray(value)) return value as T[]
+  }
+  return []
+}
+
 export default function ReportesPage() {
   const hoy = new Date()
   const [mes, setMes] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`)
@@ -29,7 +41,7 @@ export default function ReportesPage() {
   })
 
   const reporteData = data as ReportesResponse | undefined
-  const rows: ReporteRow[] = reporteData?.tecnicos ?? reporteData?.reporte ?? []
+  const rows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
   const maxVisitas = Math.max(...rows.map(r => r.total_visitas ?? r.visitas ?? 0), 1)
 
   const exportCSV = () => {

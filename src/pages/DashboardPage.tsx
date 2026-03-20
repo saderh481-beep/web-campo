@@ -54,6 +54,18 @@ interface ReporteResponse {
   avance_global?: number
 }
 
+function pickArray<T>(source: unknown, keys: string[]): T[] {
+  if (Array.isArray(source)) return source as T[]
+  if (!source || typeof source !== 'object') return []
+
+  const record = source as Record<string, unknown>
+  for (const key of keys) {
+    const value = record[key]
+    if (Array.isArray(value)) return value as T[]
+  }
+  return []
+}
+
 function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
   return (
     <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -107,14 +119,12 @@ export default function DashboardPage() {
   const bitacorasData = bitacoras as BitacorasResponse | BitacoraSummary[] | undefined
   const reporteData = reporte as ReporteResponse | undefined
 
-  const tecs = Array.isArray(tecnicosData) ? tecnicosData : (tecnicosData?.tecnicos ?? [])
+  const tecs = pickArray<TecnicoSummary>(tecnicosData, ['tecnicos', 'data', 'rows'])
   const totalBenef = Array.isArray(benefData) ? benefData.length : (benefData?.total ?? benefData?.beneficiarios?.length ?? 0)
-  const bitacorasRows: BitacoraSummary[] = Array.isArray(bitacorasData)
-    ? bitacorasData
-    : (bitacorasData?.bitacoras ?? [])
+  const bitacorasRows = pickArray<BitacoraSummary>(bitacorasData, ['bitacoras', 'data', 'rows'])
   const totalBit = Array.isArray(bitacorasData) ? bitacorasData.length : (bitacorasData?.total ?? bitacorasRows.length)
   const totalTecs = tecs.length
-  const reporteRows: ReporteRow[] = reporteData?.tecnicos ?? reporteData?.reporte ?? []
+  const reporteRows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
 
   return (
     <div className="page animate-in">
