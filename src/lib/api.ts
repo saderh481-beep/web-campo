@@ -115,11 +115,6 @@ function normalizePath(url?: string): string {
   return url.startsWith('/') ? url : `/${url}`
 }
 
-function buildApiUrl(path: string): string {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return `${apiBaseUrl}${normalizedPath}`
-}
-
 async function with404Fallback<T>(requests: Array<() => Promise<AxiosResponse<T>>>): Promise<AxiosResponse<T>> {
   return withFallback(requests, [404])
 }
