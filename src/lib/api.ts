@@ -92,8 +92,8 @@ export const bitacorasApi = {
     api.get('/bitacoras', { params }),
   get: (id: number) => api.get(`/bitacoras/${id}`),
   update: (id: number, data: unknown) => api.patch(`/bitacoras/${id}`, data),
-  pdfUrl: (id: number) => `/api/bitacoras/${id}/pdf`,
-  pdfDownloadUrl: (id: number) => `/api/bitacoras/${id}/pdf/descargar`,
+  pdfUrl: (id: number) => `/bitacoras/${id}/pdf`,
+  pdfDownloadUrl: (id: number) => `/bitacoras/${id}/pdf/descargar`,
 }
 
 // ── REPORTES ──────────────────────────────────────────────────────
