@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { tecnicosApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
 
 interface Tecnico { id: number; nombre: string; correo: string; municipio?: string; codigo_acceso?: string; activo?: boolean; vencimiento_codigo?: string }
@@ -99,7 +100,8 @@ export default function TecnicosPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
   })
 
-  const tecnicos: Tecnico[] = (data?.tecnicos ?? data ?? [])
+  const tecnicosData = pickArray<Tecnico>(data, ['tecnicos', 'rows', 'data'])
+  const tecnicos: Tecnico[] = tecnicosData
     .filter((t: Tecnico) => !q || t.nombre?.toLowerCase().includes(q.toLowerCase()) || t.correo?.toLowerCase().includes(q.toLowerCase()))
 
   return (

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { reportesApi, bitacorasApi, tecnicosApi, beneficiariosApi } from '../lib/api'
+import { pickArray, pickNumber } from '../lib/normalize'
 import { FileText, Users, UserCheck, TrendingUp, Activity } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -52,18 +53,6 @@ interface ReporteResponse {
   tecnicos?: ReporteRow[]
   reporte?: ReporteRow[]
   avance_global?: number
-}
-
-function pickArray<T>(source: unknown, keys: string[]): T[] {
-  if (Array.isArray(source)) return source as T[]
-  if (!source || typeof source !== 'object') return []
-
-  const record = source as Record<string, unknown>
-  for (const key of keys) {
-    const value = record[key]
-    if (Array.isArray(value)) return value as T[]
-  }
-  return []
 }
 
 function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
@@ -120,9 +109,11 @@ export default function DashboardPage() {
   const reporteData = reporte as ReporteResponse | undefined
 
   const tecs = pickArray<TecnicoSummary>(tecnicosData, ['tecnicos', 'data', 'rows'])
-  const totalBenef = Array.isArray(benefData) ? benefData.length : (benefData?.total ?? benefData?.beneficiarios?.length ?? 0)
+  const totalBenef = Array.isArray(benefData)
+    ? benefData.length
+    : pickNumber(benefData, ['total'], pickArray(benefData, ['beneficiarios', 'rows', 'data']).length)
   const bitacorasRows = pickArray<BitacoraSummary>(bitacorasData, ['bitacoras', 'data', 'rows'])
-  const totalBit = Array.isArray(bitacorasData) ? bitacorasData.length : (bitacorasData?.total ?? bitacorasRows.length)
+  const totalBit = Array.isArray(bitacorasData) ? bitacorasData.length : pickNumber(bitacorasData, ['total'], bitacorasRows.length)
   const totalTecs = tecs.length
   const reporteRows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
 
@@ -150,7 +141,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent bitácoras + técnicos table */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
         {/* Técnicos */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: 8 }}>

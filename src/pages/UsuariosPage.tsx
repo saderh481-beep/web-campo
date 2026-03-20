@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { usuariosApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 
 type Rol = 'admin' | 'coordinador'
@@ -85,7 +86,7 @@ export default function UsuariosPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
-  const usuarios: Usuario[] = Array.isArray(usuariosData) ? usuariosData : (usuariosData?.usuarios ?? [])
+  const usuarios = pickArray<Usuario>(usuariosData, ['usuarios', 'rows', 'data'])
 
   return (
     <div className="page animate-in">

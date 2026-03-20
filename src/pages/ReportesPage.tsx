@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { reportesApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Download } from 'lucide-react'
 
 interface ReporteRow {
@@ -16,18 +17,6 @@ interface ReporteRow {
 interface ReportesResponse {
   tecnicos?: ReporteRow[]
   reporte?: ReporteRow[]
-}
-
-function pickArray<T>(source: unknown, keys: string[]): T[] {
-  if (Array.isArray(source)) return source as T[]
-  if (!source || typeof source !== 'object') return []
-
-  const record = source as Record<string, unknown>
-  for (const key of keys) {
-    const value = record[key]
-    if (Array.isArray(value)) return value as T[]
-  }
-  return []
 }
 
 export default function ReportesPage() {
@@ -96,7 +85,7 @@ export default function ReportesPage() {
               const v = r.total_visitas ?? r.visitas ?? 0
               const pct = (v / maxVisitas) * 100
               return (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 50px', alignItems: 'center', gap: 12 }}>
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(110px, 1.2fr) minmax(110px, 2fr) 46px', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.nombre ?? r.tecnico}</span>
                   <div style={{ height: 24, background: 'var(--gray-100)', borderRadius: 4, overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${pct}%`, background: `linear-gradient(90deg, var(--guinda), var(--guinda-light))`, borderRadius: 4, transition: 'width 0.6s ease', display: 'flex', alignItems: 'center', paddingLeft: 8 }}>

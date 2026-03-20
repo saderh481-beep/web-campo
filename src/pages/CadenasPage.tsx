@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { cadenasApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, X } from 'lucide-react'
 
 interface Cadena {
@@ -66,7 +67,7 @@ export default function CadenasPage() {
     staleTime: 60000,
   })
   const cadenasData = data as CadenasResponse | Cadena[] | undefined
-  const cadenas: Cadena[] = Array.isArray(cadenasData) ? cadenasData : (cadenasData?.cadenas ?? [])
+  const cadenas = pickArray<Cadena>(cadenasData, ['cadenas', 'rows', 'data'])
 
   return (
     <div className="page animate-in">

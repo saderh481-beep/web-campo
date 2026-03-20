@@ -1,4 +1,4 @@
-import { useState, useRef, type FormEvent, type KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
@@ -12,8 +12,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const otpRefs = useRef<(HTMLInputElement | null)[]>([])
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 920 : false
+  )
   const { login } = useAuth()
   const nav = useNavigate()
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 920)
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const handleEmail = async (e: FormEvent) => {
     e.preventDefault()
@@ -66,10 +76,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={styles.wrap}>
+    <div style={{ ...styles.wrap, ...(isMobile ? styles.wrapMobile : {}) }}>
       {/* Left panel */}
-      <div style={styles.left}>
-        <div style={styles.leftInner}>
+      <div style={{ ...styles.left, ...(isMobile ? styles.leftMobile : {}) }}>
+        <div style={{ ...styles.leftInner, ...(isMobile ? styles.leftInnerMobile : {}) }}>
            <div style={styles.logoWrap}>
              <img src="/Mesa de trabajo 3.svg" alt="Mesa de trabajo 3" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
            </div>
@@ -78,14 +88,14 @@ export default function LoginPage() {
           <div style={styles.divider} />
           <p style={styles.org}>Secretaría de Desarrollo Agropecuario</p>
           <p style={styles.gov}>Gobierno del Estado de Hidalgo 2022–2028</p>
-          <div style={styles.decorCircle} />
-          <div style={styles.decorCircle2} />
+          {!isMobile && <div style={styles.decorCircle} />}
+          {!isMobile && <div style={styles.decorCircle2} />}
         </div>
       </div>
 
       {/* Right panel */}
-      <div style={styles.right}>
-        <div style={styles.formCard}>
+      <div style={{ ...styles.right, ...(isMobile ? styles.rightMobile : {}) }}>
+        <div style={{ ...styles.formCard, ...(isMobile ? styles.formCardMobile : {}) }}>
           <div style={{ marginBottom: 28 }}>
             <h2 style={styles.title}>
               {step === 'email' ? 'Iniciar sesión' : 'Verificar código'}
@@ -119,12 +129,12 @@ export default function LoginPage() {
             <form onSubmit={handleLogin}>
               <div className="form-group">
                 <label className="form-label">Código de 6 dígitos</label>
-                <div style={styles.otpRow} onPaste={handleOtpPaste}>
+                <div style={{ ...styles.otpRow, ...(isMobile ? styles.otpRowMobile : {}) }} onPaste={handleOtpPaste}>
                   {otp.map((d, i) => (
                     <input
                       key={i}
                       ref={el => { otpRefs.current[i] = el }}
-                      style={{ ...styles.otpInput, ...(d ? styles.otpFilled : {}) }}
+                      style={{ ...styles.otpInput, ...(isMobile ? styles.otpInputMobile : {}), ...(d ? styles.otpFilled : {}) }}
                       value={d}
                       onChange={e => handleOtpChange(i, e.target.value)}
                       onKeyDown={e => handleOtpKey(i, e)}
@@ -158,14 +168,17 @@ const styles: Record<string, React.CSSProperties> = {
   wrap: {
     display: 'flex', minHeight: '100vh', fontFamily: 'Montserrat, sans-serif',
   },
+  wrapMobile: { flexDirection: 'column' },
   left: {
     width: '42%', background: 'var(--guinda)',
     position: 'relative', overflow: 'hidden',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
+  leftMobile: { width: '100%', minHeight: 240 },
   leftInner: {
     position: 'relative', zIndex: 1, padding: '60px 48px', color: 'white',
   },
+  leftInnerMobile: { padding: '28px 20px' },
   logoWrap: {
     width: 64, height: 64, borderRadius: 16,
     background: 'rgba(255,255,255,0.15)',
@@ -203,15 +216,18 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: 'var(--gray-50)', padding: 24,
   },
+  rightMobile: { padding: 14 },
   formCard: {
     background: 'white', borderRadius: 16, padding: '40px 36px',
     width: '100%', maxWidth: 420,
     border: '1px solid var(--gray-200)',
     boxShadow: '0 4px 24px rgba(98,17,50,0.08)',
   },
+  formCardMobile: { padding: '24px 16px', maxWidth: '100%' },
   title: { fontSize: 22, fontWeight: 800, color: 'var(--gray-900)', marginBottom: 6 },
   subtitle: { fontSize: 13, color: 'var(--gray-400)' },
   otpRow: { display: 'flex', gap: 8 },
+  otpRowMobile: { gap: 6 },
   otpInput: {
     flex: 1, height: 56, borderRadius: 10, border: '2px solid var(--gray-200)',
     textAlign: 'center', fontSize: 22, fontWeight: 700,
@@ -219,6 +235,7 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none', transition: 'all 0.15s',
     background: 'var(--guinda-50)',
   },
+  otpInputMobile: { height: 50, fontSize: 20 },
   otpFilled: { borderColor: 'var(--guinda)', background: 'var(--guinda-100)' },
   err: { fontSize: 12, color: 'var(--danger)', marginBottom: 14, padding: '8px 12px', background: 'var(--danger-bg)', borderRadius: 6 },
 }

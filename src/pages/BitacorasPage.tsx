@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bitacorasApi } from '../lib/api'
+import { pickArray } from '../lib/normalize'
 import { FileText, Download, Eye, X, Pencil, Save } from 'lucide-react'
 
 interface Bitacora {
@@ -104,7 +105,7 @@ export default function BitacorasPage() {
     staleTime: 30000,
   })
 
-  const bitacoras: Bitacora[] = data?.bitacoras ?? data ?? []
+  const bitacoras = pickArray<Bitacora>(data, ['bitacoras', 'rows', 'data'])
 
   const estadoColor: Record<string, string> = {
     firmada: 'green', borrador: 'amber', cancelada: 'red', pendiente: 'gray',

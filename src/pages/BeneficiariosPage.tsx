@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { beneficiariosApi, cadenasApi } from '../lib/api'
+import { pickArray, pickNumber } from '../lib/normalize'
 import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
 
 interface Cadena {
@@ -136,13 +137,13 @@ export default function BeneficiariosPage() {
   })
 
   const benefData = data as BeneficiariosResponse | Beneficiario[] | undefined
-  const benefs: Beneficiario[] = Array.isArray(benefData) ? benefData : (benefData?.beneficiarios ?? [])
-  const total = Array.isArray(benefData) ? benefData.length : (benefData?.total ?? benefs.length)
-  const perPage = Array.isArray(benefData) ? 20 : (benefData?.per_page ?? 20)
+  const benefs = pickArray<Beneficiario>(benefData, ['beneficiarios', 'rows', 'data'])
+  const total = Array.isArray(benefData) ? benefData.length : pickNumber(benefData, ['total'], benefs.length)
+  const perPage = Array.isArray(benefData) ? 20 : pickNumber(benefData, ['per_page'], 20)
   const pages = Math.ceil(total / perPage) || 1
 
   const rawCadenas = cadenasData as CadenasResponse | Cadena[] | undefined
-  const cadenas: Cadena[] = Array.isArray(rawCadenas) ? rawCadenas : (rawCadenas?.cadenas ?? [])
+  const cadenas = pickArray<Cadena>(rawCadenas, ['cadenas', 'rows', 'data'])
 
   return (
     <div className="page animate-in">
