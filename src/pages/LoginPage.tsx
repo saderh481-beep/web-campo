@@ -24,8 +24,8 @@ export default function LoginPage() {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     const code = codigoAcceso.replace(/\D/g, '')
-    if (code.length !== 5) {
-      setError('El código de acceso debe tener 5 dígitos.')
+    if (code.length !== 6) {
+      setError('El código de acceso debe tener 6 dígitos.')
       return
     }
 
@@ -82,16 +82,16 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Código de acceso (5 dígitos)</label>
+              <label className="form-label">Código de acceso (6 dígitos)</label>
               <input
                 className="input"
                 type="password"
                 value={codigoAcceso}
-                onChange={e => setCodigoAcceso(e.target.value.replace(/\D/g, '').slice(0, 5))}
-                placeholder="•••••"
+                onChange={e => setCodigoAcceso(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="••••••"
                 inputMode="numeric"
-                pattern="[0-9]{5}"
-                maxLength={5}
+                pattern="[0-9]{6}"
+                maxLength={6}
                 autoComplete="current-password"
                 required
               />
@@ -102,7 +102,7 @@ export default function LoginPage() {
             <button
               className="btn btn-primary"
               type="submit"
-              disabled={loading || correo.trim().length === 0 || codigoAcceso.length !== 5}
+              disabled={loading || correo.trim().length === 0 || codigoAcceso.length !== 6}
               style={{ width: '100%', height: 44, fontSize: 14 }}
             >
               {loading ? <><span className="spinner" />Ingresando...</> : 'Acceder al sistema'}
