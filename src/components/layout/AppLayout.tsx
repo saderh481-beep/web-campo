@@ -23,7 +23,7 @@ interface NotificacionesResponse {
 }
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/tecnicos', label: 'Técnicos', icon: UserCheck },
   { to: '/beneficiarios', label: 'Beneficiarios', icon: Users },
   { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen },

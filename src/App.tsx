@@ -22,22 +22,51 @@ const qc = new QueryClient({
   },
 })
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  if (loading) return (
+function getRoleHomePath(role?: string | null) {
+  const normalizedRole = role?.trim().toLowerCase()
+
+  switch (normalizedRole) {
+    case 'admin':
+    case 'administrador':
+      return '/usuarios'
+    case 'tecnico':
+    case 'técnico':
+      return '/bitacoras'
+    case 'coordinador':
+    default:
+      return '/dashboard'
+  }
+}
+
+function FullScreenLoader() {
+  return (
     <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: 'var(--guinda-deeper)' }}>
       <div style={{ fontSize: 32 }}>🌾</div>
       <div style={{ width: 32, height: 32, border: '3px solid rgba(212,193,156,0.2)', borderTopColor: 'var(--dorado)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       <span style={{ color: 'rgba(212,193,156,0.6)', fontSize: 12, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cargando...</span>
     </div>
   )
+}
+
+function RoleHomeRedirect() {
+  const { user, loading } = useAuth()
+
+  if (loading) return <FullScreenLoader />
+  if (!user) return <Navigate to="/login" replace />
+
+  return <Navigate to={getRoleHomePath(user.rol)} replace />
+}
+
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <FullScreenLoader />
   return user ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
-  if (loading) return null
-  return user ? <Navigate to="/" replace /> : <>{children}</>
+  if (loading) return <FullScreenLoader />
+  return user ? <Navigate to={getRoleHomePath(user.rol)} replace /> : <>{children}</>
 }
 
 export default function App() {
@@ -49,7 +78,8 @@ export default function App() {
             <Routes>
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
               <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-                <Route index element={<DashboardPage />} />
+                <Route index element={<RoleHomeRedirect />} />
+                <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="tecnicos" element={<TecnicosPage />} />
                 <Route path="beneficiarios" element={<BeneficiariosPage />} />
                 <Route path="bitacoras" element={<BitacorasPage />} />
@@ -57,7 +87,7 @@ export default function App() {
                 <Route path="reportes" element={<ReportesPage />} />
                 <Route path="usuarios" element={<UsuariosPage />} />
               </Route>
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<RoleHomeRedirect />} />
             </Routes>
           </BrowserRouter>
         </AppErrorBoundary>
