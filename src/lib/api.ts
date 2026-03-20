@@ -165,12 +165,21 @@ export const authApi = {
     () => api.post('/auth/otp', { correo, email: correo }),
     () => api.post('/auth/tecnico', { correo, email: correo }),
   ]),
-  login: async (correo: string, otp: string) => {
-    const response = await with404Fallback([
-      () => api.post('/auth/verify-otp', { correo, email: correo, otp, codigo: otp, code: otp }),
-      () => api.post('/auth/login', { correo, email: correo, otp, codigo: otp, code: otp }),
-      () => api.post('/auth/tecnico', { correo, email: correo, otp, codigo: otp, code: otp }),
-    ])
+  login: async (correo: string, clave: string) => {
+    const payload = {
+      correo,
+      email: correo,
+      clave,
+      codigo: clave,
+      code: clave,
+      otp: clave,
+      pin: clave,
+    }
+    const response = await withFallback([
+      () => api.post('/auth/tecnico', payload),
+      () => api.post('/auth/verify-otp', payload),
+      () => api.post('/auth/login', payload),
+    ], [404, 405])
     saveTokenFromResponse(response.data)
     return response
   },
