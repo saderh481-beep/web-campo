@@ -1,0 +1,15 @@
+{
+	auto_https off
+	admin off
+}
+
+:{$PORT} {
+	root * /srv
+	encode zstd gzip
+
+	# No cache para evitar que clientes se queden con bundles viejos.
+	header Cache-Control "no-store"
+
+	try_files {path} /index.html
+	file_server
+}

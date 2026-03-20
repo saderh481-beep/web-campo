@@ -8,15 +8,11 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:20-alpine
+FROM caddy:2.8-alpine
 
 ENV PORT=8080
 
-RUN npm i -g serve@14.2.4
-
-WORKDIR /app
-COPY --from=build /app/dist ./dist
+COPY Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv
 
 EXPOSE 8080
-
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-8080} -c 0 --no-clipboard"]
