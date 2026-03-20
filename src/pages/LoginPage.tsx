@@ -70,9 +70,9 @@ export default function LoginPage() {
       {/* Left panel */}
       <div style={styles.left}>
         <div style={styles.leftInner}>
-          <div style={styles.logoWrap}>
-            <div style={styles.logoIcon}>🌾</div>
-          </div>
+           <div style={styles.logoWrap}>
+             <img src="/Mesa de trabajo 3.svg" alt="Mesa de trabajo 3" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+           </div>
           <h1 style={styles.brand}>CAMPO</h1>
           <p style={styles.brandSub}>Sistema de Gestión de Técnicos y Beneficiarios</p>
           <div style={styles.divider} />
