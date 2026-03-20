@@ -163,11 +163,13 @@ export const authApi = {
   requestOTP: (correo: string) => with404Fallback([
     () => api.post('/auth/request-otp', { correo, email: correo }),
     () => api.post('/auth/otp', { correo, email: correo }),
+    () => api.post('/auth/tecnico', { correo, email: correo }),
   ]),
   login: async (correo: string, otp: string) => {
     const response = await with404Fallback([
       () => api.post('/auth/verify-otp', { correo, email: correo, otp, codigo: otp, code: otp }),
       () => api.post('/auth/login', { correo, email: correo, otp, codigo: otp, code: otp }),
+      () => api.post('/auth/tecnico', { correo, email: correo, otp, codigo: otp, code: otp }),
     ])
     saveTokenFromResponse(response.data)
     return response
@@ -183,6 +185,7 @@ export const authApi = {
     () => api.get('/usuarios/me'),
     () => api.get('/usuarios/perfil'),
     () => api.get('/auth/me'),
+    () => api.get('/me'),
   ]),
   enviarCodigoTecnico: (email: string) => api.post('/auth/tecnico', { email }),
 }
@@ -226,7 +229,11 @@ export const cadenasApi = {
 
 // ── ACTIVIDADES ───────────────────────────────────────────────────
 export const actividadesApi = {
-  list: () => api.get('/actividades'),
+  list: () => with404Fallback([
+    () => api.get('/actividades'),
+    () => api.get('/mis-actividades'),
+    () => api.get('/datos/mis-actividades'),
+  ]),
   create: (data: unknown) => api.post('/actividades', data),
   update: (id: number, data: unknown) => api.patch(`/actividades/${id}`, data),
   remove: (id: number) => api.delete(`/actividades/${id}`),
@@ -251,7 +258,11 @@ export const beneficiariosApi = {
       search: params.q,
       cadena_id: params.cadena,
     } : params
-    return api.get('/beneficiarios', { params: normalizedParams })
+    return with404Fallback([
+      () => api.get('/beneficiarios', { params: normalizedParams }),
+      () => api.get('/mis-beneficiarios', { params: normalizedParams }),
+      () => api.get('/datos/mis-beneficiarios', { params: normalizedParams }),
+    ])
   },
   getById: (id: string) => api.get(`/beneficiarios/${id}`),
   create: (data: unknown) => api.post('/beneficiarios', withNameAlias(data)),
