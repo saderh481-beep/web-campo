@@ -67,12 +67,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Decorative elements */}
+        {/* Decorative circles */}
         {!isMobile && (
           <>
-            <div style={styles.decorLine1} />
-            <div style={styles.decorLine2} />
-            <div style={styles.decorCircle} />
+            <div style={styles.decorCircle1} />
+            <div style={styles.decorCircle2} />
+            <div style={styles.decorCircle3} />
+            <div style={styles.decorCircle4} />
+            <div style={styles.decorCircle5} />
+            <div style={styles.decorCircle6} />
           </>
         )}
       </div>
@@ -193,23 +196,24 @@ const styles: Record<string, React.CSSProperties> = {
   
   // Logo
   logoContainer: {
-    marginBottom: 40,
-    padding: 24,
-    background: 'rgba(255,255,255,0.08)',
-    borderRadius: 24,
-    backdropFilter: 'blur(10px)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    marginBottom: 48,
+    padding: 32,
+    background: 'rgba(255,255,255,0.06)',
+    borderRadius: 32,
+    backdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.08)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
   },
   logo: {
-    width: 180,
-    height: 180,
+    width: 220,
+    height: 220,
     objectFit: 'contain',
     filter: 'brightness(0) invert(1)',
     opacity: 0.95,
   },
   logoMobile: {
-    width: 120,
-    height: 120,
+    width: 140,
+    height: 140,
   },
   
   // Brand text
@@ -261,33 +265,60 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.5,
   },
   
-  // Decorative elements
-  decorLine1: {
+  // Decorative circles
+  decorCircle1: {
     position: 'absolute',
-    bottom: 80,
-    left: -100,
-    width: 400,
-    height: 1,
-    background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.2), transparent)',
-    transform: 'rotate(-15deg)',
-  },
-  decorLine2: {
-    position: 'absolute',
-    top: 120,
-    right: -150,
-    width: 500,
-    height: 1,
-    background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.15), transparent)',
-    transform: 'rotate(25deg)',
-  },
-  decorCircle: {
-    position: 'absolute',
-    bottom: -80,
-    right: -80,
-    width: 200,
-    height: 200,
+    top: '10%',
+    left: '5%',
+    width: 120,
+    height: 120,
     borderRadius: '50%',
-    border: '1px solid rgba(201,169,98,0.1)',
+    border: '1px solid rgba(201,169,98,0.15)',
+  },
+  decorCircle2: {
+    position: 'absolute',
+    top: '20%',
+    right: '8%',
+    width: 80,
+    height: 80,
+    borderRadius: '50%',
+    background: 'rgba(201,169,98,0.08)',
+  },
+  decorCircle3: {
+    position: 'absolute',
+    bottom: '25%',
+    left: '10%',
+    width: 60,
+    height: 60,
+    borderRadius: '50%',
+    border: '1px solid rgba(255,255,255,0.08)',
+  },
+  decorCircle4: {
+    position: 'absolute',
+    bottom: '10%',
+    right: '15%',
+    width: 140,
+    height: 140,
+    borderRadius: '50%',
+    border: '1px solid rgba(201,169,98,0.12)',
+  },
+  decorCircle5: {
+    position: 'absolute',
+    top: '50%',
+    left: '-30px',
+    width: 100,
+    height: 100,
+    borderRadius: '50%',
+    background: 'rgba(201,169,98,0.06)',
+  },
+  decorCircle6: {
+    position: 'absolute',
+    bottom: '5%',
+    left: '30%',
+    width: 50,
+    height: 50,
+    borderRadius: '50%',
+    border: '1px solid rgba(255,255,255,0.1)',
   },
   
   // Right Panel
