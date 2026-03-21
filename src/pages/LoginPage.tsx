@@ -129,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   leftInnerMobile: {},
   leftLogo: {
-    width: 80, height: 80,
+    width: 120, height: 120,
     objectFit: 'contain',
     marginBottom: 24,
   },
