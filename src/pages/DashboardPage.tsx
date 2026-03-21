@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { reportesApi, bitacorasApi, tecnicosApi, beneficiariosApi } from '../lib/api'
 import { pickArray, pickNumber } from '../lib/normalize'
-import { FileText, Users, UserCheck, TrendingUp, Activity } from 'lucide-react'
+import { FileText, Users, UserCheck, TrendingUp, Activity, ArrowUpRight } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 interface StatCardProps {
@@ -9,6 +9,7 @@ interface StatCardProps {
   value: string | number
   icon: LucideIcon
   color: string
+  bgColor: string
   loading: boolean
 }
 
@@ -55,21 +56,22 @@ interface ReporteResponse {
   avance_global?: number
 }
 
-function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
+function StatCard({ label, value, icon: Icon, color, bgColor, loading }: StatCardProps) {
   return (
-    <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-      <div style={{
-        width: 44, height: 44, borderRadius: 10, flexShrink: 0,
-        background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Icon size={20} style={{ color }} />
+    <div style={styles.statCard}>
+      <div style={{ ...styles.statIcon, background: bgColor }}>
+        <Icon size={22} style={{ color }} />
       </div>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</div>
-        {loading
-          ? <div className="skeleton" style={{ width: 60, height: 28 }} />
-          : <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--gray-900)', lineHeight: 1 }}>{value ?? '—'}</div>
-        }
+      <div style={styles.statContent}>
+        <div style={styles.statLabel}>{label}</div>
+        {loading ? (
+          <div className="skeleton" style={{ width: 70, height: 32, borderRadius: 6 }} />
+        ) : (
+          <div style={styles.statValue}>{value ?? '—'}</div>
+        )}
+      </div>
+      <div style={styles.statArrow}>
+        <ArrowUpRight size={16} style={{ opacity: 0.3 }} />
       </div>
     </div>
   )
@@ -122,50 +124,93 @@ export default function DashboardPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle">Resumen operativo — {hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</p>
+          <p className="page-subtitle">
+            Resumen operativo — {hoy.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}
+          </p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
-        <StatCard label="Técnicos activos" value={totalTecs} icon={UserCheck} color="var(--guinda)" loading={tLoad} />
-        <StatCard label="Beneficiarios" value={totalBenef} icon={Users} color="var(--success)" loading={bLoad} />
-        <StatCard label="Bitácoras" value={totalBit} icon={FileText} color="var(--warning)" loading={biLoad} />
+      {/* Stats Grid */}
+      <div style={styles.statsGrid}>
+        <StatCard 
+          label="Tecnicos activos" 
+          value={totalTecs} 
+          icon={UserCheck} 
+          color="var(--primary)" 
+          bgColor="var(--primary-50)"
+          loading={tLoad} 
+        />
+        <StatCard 
+          label="Beneficiarios" 
+          value={totalBenef} 
+          icon={Users} 
+          color="var(--success)" 
+          bgColor="var(--success-bg)"
+          loading={bLoad} 
+        />
+        <StatCard 
+          label="Bitacoras" 
+          value={totalBit} 
+          icon={FileText} 
+          color="var(--warning)" 
+          bgColor="var(--warning-bg)"
+          loading={biLoad} 
+        />
         <StatCard
           label="Avance mensual"
           value={reporteData?.avance_global != null ? `${reporteData.avance_global}%` : (reporteRows.length > 0 ? 'Ver detalle' : '—')}
           icon={TrendingUp}
           color="var(--info)"
+          bgColor="var(--info-bg)"
           loading={rLoad}
         />
       </div>
 
-      {/* Recent bitácoras + técnicos table */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-        {/* Técnicos */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Activity size={16} style={{ color: 'var(--guinda)' }} />
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Actividad por técnico</span>
+      {/* Activity Grid */}
+      <div style={styles.activityGrid}>
+        {/* Tecnicos Activity */}
+        <div style={styles.activityCard}>
+          <div style={styles.cardHeader}>
+            <div style={styles.cardHeaderIcon}>
+              <Activity size={18} />
+            </div>
+            <span style={styles.cardTitle}>Actividad por tecnico</span>
           </div>
+          
           {rLoad ? (
-            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 40, borderRadius: 6 }} />)}
+            <div style={styles.loadingContainer}>
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="skeleton" style={{ height: 52, borderRadius: 10 }} />
+              ))}
             </div>
           ) : reporteRows.length === 0 ? (
-            <div className="empty-state"><UserCheck size={32} /><p>Sin datos de actividad</p></div>
+            <div className="empty-state" style={{ padding: '48px 20px' }}>
+              <UserCheck size={32} />
+              <p>Sin datos de actividad</p>
+            </div>
           ) : (
-            <div style={{ padding: '8px 0' }}>
-              {reporteRows.slice(0, 8).map((row, i) => {
+            <div style={styles.activityList}>
+              {reporteRows.slice(0, 6).map((row, i) => {
                 const pct = Math.min(100, row.avance ?? row.porcentaje ?? 0)
                 return (
-                  <div key={i} style={{ padding: '10px 20px', borderBottom: '1px solid var(--gray-100)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>{row.nombre ?? row.tecnico}</span>
-                      <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{row.total_visitas ?? row.visitas ?? 0} visitas</span>
+                  <div key={i} style={styles.activityItem}>
+                    <div style={styles.activityItemHeader}>
+                      <div style={styles.activityAvatar}>
+                        {(row.nombre ?? row.tecnico)?.[0]?.toUpperCase() ?? 'T'}
+                      </div>
+                      <div style={styles.activityInfo}>
+                        <span style={styles.activityName}>{row.nombre ?? row.tecnico}</span>
+                        <span style={styles.activityMeta}>{row.total_visitas ?? row.visitas ?? 0} visitas</span>
+                      </div>
+                      <span style={styles.activityPct}>{pct}%</span>
                     </div>
-                    <div style={{ height: 4, background: 'var(--gray-100)', borderRadius: 2 }}>
-                      <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--guinda-light), var(--guinda))', borderRadius: 2, transition: 'width 0.5s ease' }} />
+                    <div style={styles.progressBar}>
+                      <div 
+                        style={{ 
+                          ...styles.progressFill, 
+                          width: `${pct}%`,
+                        }} 
+                      />
                     </div>
                   </div>
                 )
@@ -174,36 +219,229 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Bitácoras recientes */}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileText size={16} style={{ color: 'var(--guinda)' }} />
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Bitácoras recientes</span>
+        {/* Recent Bitacoras */}
+        <div style={styles.activityCard}>
+          <div style={styles.cardHeader}>
+            <div style={styles.cardHeaderIcon}>
+              <FileText size={18} />
+            </div>
+            <span style={styles.cardTitle}>Bitacoras recientes</span>
           </div>
+          
           {biLoad ? (
-            <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 40, borderRadius: 6 }} />)}
+            <div style={styles.loadingContainer}>
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="skeleton" style={{ height: 52, borderRadius: 10 }} />
+              ))}
+            </div>
+          ) : bitacorasRows.length === 0 ? (
+            <div className="empty-state" style={{ padding: '48px 20px' }}>
+              <FileText size={32} />
+              <p>Sin bitacoras aun</p>
             </div>
           ) : (
-            <div style={{ padding: '8px 0' }}>
-              {bitacorasRows.slice(0, 8).map((b) => (
-                <div key={b.id} style={{ padding: '10px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 600 }}>{b.beneficiario_nombre ?? b.beneficiario ?? `Bitácora #${b.id}`}</div>
-                    <div style={{ fontSize: 11, color: 'var(--gray-400)' }}>{b.tecnico_nombre ?? b.tecnico} · {b.fecha ? new Date(b.fecha).toLocaleDateString('es-MX') : ''}</div>
+            <div style={styles.activityList}>
+              {bitacorasRows.slice(0, 6).map((b) => (
+                <div key={b.id} style={styles.bitacoraItem}>
+                  <div style={styles.bitacoraContent}>
+                    <div style={styles.bitacoraTitle}>
+                      {b.beneficiario_nombre ?? b.beneficiario ?? `Bitacora #${b.id}`}
+                    </div>
+                    <div style={styles.bitacoraMeta}>
+                      {b.tecnico_nombre ?? b.tecnico} • {b.fecha ? new Date(b.fecha).toLocaleDateString('es-MX') : ''}
+                    </div>
                   </div>
-                  <span className={`badge badge-${b.estado === 'firmada' ? 'green' : b.estado === 'borrador' ? 'amber' : 'gray'}`}>
+                  <span 
+                    className={`badge badge-${b.estado === 'firmada' ? 'green' : b.estado === 'borrador' ? 'amber' : 'gray'}`}
+                  >
                     {b.estado ?? 'borrador'}
                   </span>
                 </div>
               ))}
-              {bitacorasRows.length === 0 && (
-                <div className="empty-state"><FileText size={28} /><p>Sin bitácoras aún</p></div>
-              )}
             </div>
           )}
         </div>
       </div>
     </div>
   )
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+    gap: 20,
+    marginBottom: 28,
+  },
+  
+  statCard: {
+    background: 'white',
+    borderRadius: 14,
+    padding: '22px 24px',
+    border: '1px solid var(--gray-200)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+    transition: 'all 0.2s ease',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+  },
+  statIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  statContent: {
+    flex: 1,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: 500,
+    color: 'var(--gray-500)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 28,
+    fontWeight: 700,
+    color: 'var(--gray-900)',
+    letterSpacing: '-0.02em',
+    lineHeight: 1,
+  },
+  statArrow: {
+    alignSelf: 'flex-start',
+  },
+  
+  activityGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+    gap: 20,
+  },
+  
+  activityCard: {
+    background: 'white',
+    borderRadius: 14,
+    border: '1px solid var(--gray-200)',
+    overflow: 'hidden',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+  },
+  
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '18px 24px',
+    borderBottom: '1px solid var(--gray-100)',
+  },
+  cardHeaderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    background: 'var(--primary-50)',
+    color: 'var(--primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontWeight: 600,
+    fontSize: 15,
+    color: 'var(--gray-900)',
+  },
+  
+  loadingContainer: {
+    padding: 20,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  
+  activityList: {
+    padding: '12px 16px',
+  },
+  
+  activityItem: {
+    padding: '14px 8px',
+    borderBottom: '1px solid var(--gray-100)',
+  },
+  activityItemHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 10,
+  },
+  activityAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    background: 'var(--gray-100)',
+    color: 'var(--gray-600)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 13,
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  activityInfo: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  activityName: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--gray-900)',
+  },
+  activityMeta: {
+    fontSize: 12,
+    color: 'var(--gray-400)',
+  },
+  activityPct: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--primary)',
+  },
+  progressBar: {
+    height: 6,
+    background: 'var(--gray-100)',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    background: 'var(--primary)',
+    borderRadius: 3,
+    transition: 'width 0.5s ease',
+  },
+  
+  bitacoraItem: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '14px 8px',
+    borderBottom: '1px solid var(--gray-100)',
+  },
+  bitacoraContent: {
+    flex: 1,
+    minWidth: 0,
+  },
+  bitacoraTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--gray-900)',
+    marginBottom: 3,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+  },
+  bitacoraMeta: {
+    fontSize: 12,
+    color: 'var(--gray-400)',
+  },
 }

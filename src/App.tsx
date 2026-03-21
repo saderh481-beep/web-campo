@@ -40,10 +40,53 @@ function getRoleHomePath(role?: string | null) {
 
 function FullScreenLoader() {
   return (
-    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: 'var(--guinda-deeper)' }}>
-      <div style={{ fontSize: 32 }}>🌾</div>
-      <div style={{ width: 32, height: 32, border: '3px solid rgba(212,193,156,0.2)', borderTopColor: 'var(--dorado)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-      <span style={{ color: 'rgba(212,193,156,0.6)', fontSize: 12, fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cargando...</span>
+    <div style={{ 
+      height: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      flexDirection: 'column', 
+      gap: 20, 
+      background: 'var(--primary)',
+    }}>
+      <div style={{
+        width: 64,
+        height: 64,
+        borderRadius: 16,
+        background: 'rgba(255,255,255,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(10px)',
+      }}>
+        <img 
+          src="/Mesa de trabajo 3.svg" 
+          alt="CAMPO" 
+          style={{ 
+            width: 40, 
+            height: 40, 
+            filter: 'brightness(0) invert(1)', 
+            opacity: 0.9,
+          }} 
+        />
+      </div>
+      <div style={{ 
+        width: 28, 
+        height: 28, 
+        border: '2.5px solid rgba(255,255,255,0.15)', 
+        borderTopColor: 'rgba(255,255,255,0.8)', 
+        borderRadius: '50%', 
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      <span style={{ 
+        color: 'rgba(255,255,255,0.6)', 
+        fontSize: 11, 
+        fontWeight: 500, 
+        letterSpacing: '0.12em', 
+        textTransform: 'uppercase',
+      }}>
+        Cargando...
+      </span>
     </div>
   )
 }

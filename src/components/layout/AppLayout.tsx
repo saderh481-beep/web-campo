@@ -20,9 +20,9 @@ interface NotificacionesResponse {
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/tecnicos', label: 'Técnicos', icon: UserCheck },
+  { to: '/tecnicos', label: 'Tecnicos', icon: UserCheck },
   { to: '/beneficiarios', label: 'Beneficiarios', icon: Users },
-  { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen },
+  { to: '/bitacoras', label: 'Bitacoras', icon: BookOpen },
   { to: '/cadenas', label: 'Cadenas Productivas', icon: Layers },
   { to: '/reportes', label: 'Reportes', icon: FileBarChart },
   { to: '/usuarios', label: 'Usuarios', icon: Settings },
@@ -51,10 +51,10 @@ export default function AppLayout() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
   })
 
-   const marcarLeida = useMutation({
-     mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
-     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
-   })
+  const marcarLeida = useMutation({
+    mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
+  })
 
   useEffect(() => {
     if (!notifOpen) return
@@ -90,85 +90,110 @@ export default function AppLayout() {
           ...(isMobile && !menuOpen ? s.sidebarMobileClosed : {}),
         }}
       >
+        {/* Logo Section - Larger and more prominent */}
         <div style={s.sidebarLogo}>
-          <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={s.logoImg} />
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={s.logoWrapper}>
+            <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={s.logoImg} />
+          </div>
+          <div style={s.logoText}>
             <div style={s.logoName}>CAMPO</div>
-            <div style={s.logoSub}>Sistema de gestión</div>
+            <div style={s.logoSub}>Sistema de gestion</div>
           </div>
         </div>
 
+        {/* Navigation */}
         <nav style={s.nav}>
+          <div style={s.navSection}>
+            <span style={s.navSectionLabel}>Menu principal</span>
+          </div>
           {NAV.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to} to={to} end={end}
-              style={({ isActive }) => ({ ...s.navItem, ...(isActive ? s.navActive : {}) })}
+              style={({ isActive }) => ({ 
+                ...s.navItem, 
+                ...(isActive ? s.navActive : {}) 
+              })}
               onClick={() => isMobile && setMenuOpen(false)}
             >
               {({ isActive }) => (
                 <>
-                  {isActive && <span style={s.activeLine} />}
-                  <Icon size={18} style={{ flexShrink: 0 }} />
-                  <span>{label}</span>
-                  {isActive && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.4 }} />}
+                  <div style={{ 
+                    ...s.navIconWrap,
+                    ...(isActive ? s.navIconWrapActive : {})
+                  }}>
+                    <Icon size={18} />
+                  </div>
+                  <span style={s.navLabel}>{label}</span>
+                  {isActive && <ChevronRight size={14} style={s.navChevron} />}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
+        {/* User Section */}
         <div style={s.sidebarUser}>
           <div style={s.avatarCircle}>
             {user?.nombre?.[0]?.toUpperCase() ?? 'U'}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={s.userInfo}>
             <div style={s.userName}>{user?.nombre}</div>
             <div style={s.userRole}>{user?.rol}</div>
           </div>
-          <button style={s.logoutBtn} onClick={logout} title="Cerrar sesión">
+          <button style={s.logoutBtn} onClick={logout} title="Cerrar sesion">
             <LogOut size={16} />
           </button>
         </div>
       </aside>
 
       <div style={{ ...s.main, ...(isMobile ? s.mainMobile : {}) }}>
+        {/* Header */}
         <header style={{ ...s.header, ...(isMobile ? s.headerMobile : {}) }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={s.headerLeft}>
             {isMobile && (
               <button
-                className="btn btn-ghost btn-icon"
+                style={s.menuBtn}
                 onClick={() => setMenuOpen((p) => !p)}
-                style={{ border: '1px solid var(--gray-200)' }}
-                aria-label="Abrir menú"
+                aria-label="Abrir menu"
               >
-                {menuOpen ? <X size={18} /> : <Menu size={18} />}
+                {menuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+
+          <div style={s.headerRight}>
+            {/* Notifications */}
             <div style={{ position: 'relative' }} data-notif>
               <button
                 data-notif
-                style={{ ...s.iconBtn, ...(unread > 0 ? s.iconBtnActive : {}) }}
+                style={{ 
+                  ...s.notifBtn, 
+                  ...(unread > 0 ? s.notifBtnActive : {}),
+                  ...(notifOpen ? s.notifBtnOpen : {})
+                }}
                 onClick={() => setNotifOpen(o => !o)}
               >
                 <Bell size={18} />
                 {unread > 0 && <span style={s.badge}>{unread}</span>}
               </button>
+
               {notifOpen && (
                 <div style={{ ...s.notifPanel, ...(isMobile ? s.notifPanelMobile : {}) }} data-notif>
                   <div style={s.notifHeader}>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>Notificaciones</span>
+                    <span style={s.notifTitle}>Notificaciones</span>
                     {unread > 0 && (
                       <button style={s.notifMark} onClick={() => marcarTodas.mutate()}>
-                        Marcar todas leídas
+                        Marcar todas leidas
                       </button>
                     )}
                   </div>
                   {notifs.length === 0 ? (
-                    <div style={s.notifEmpty}>Sin notificaciones</div>
+                    <div style={s.notifEmpty}>
+                      <Bell size={24} style={{ opacity: 0.3 }} />
+                      <span>Sin notificaciones</span>
+                    </div>
                   ) : (
-                    <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                    <div style={s.notifList}>
                       {notifs.map((n) => (
                         <div
                           key={n.id}
@@ -176,9 +201,9 @@ export default function AppLayout() {
                           onClick={() => !n.leida && marcarLeida.mutate(n.id)}
                         >
                           {!n.leida && <span style={s.dot} />}
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 500 }}>{n.mensaje ?? n.titulo}</div>
-                            <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
+                          <div style={s.notifContent}>
+                            <div style={s.notifMessage}>{n.mensaje ?? n.titulo}</div>
+                            <div style={s.notifDate}>
                               {n.fecha ? new Date(n.fecha).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : ''}
                             </div>
                           </div>
@@ -189,6 +214,13 @@ export default function AppLayout() {
                 </div>
               )}
             </div>
+
+            {/* User avatar in header (mobile) */}
+            {isMobile && (
+              <div style={s.headerAvatar}>
+                {user?.nombre?.[0]?.toUpperCase() ?? 'U'}
+              </div>
+            )}
           </div>
         </header>
 
@@ -201,17 +233,31 @@ export default function AppLayout() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  wrap: { display: 'flex', height: '100vh', overflow: 'hidden' },
+  wrap: { 
+    display: 'flex', 
+    height: '100vh', 
+    overflow: 'hidden',
+    background: 'var(--gray-50)',
+  },
+  
   mobileOverlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.4)',
+    position: 'fixed', 
+    inset: 0, 
+    background: 'rgba(0, 0, 0, 0.5)',
+    backdropFilter: 'blur(4px)',
     zIndex: 18,
   },
+  
+  // Sidebar
   sidebar: {
-    width: 'var(--sidebar-w)', flexShrink: 0,
+    width: 'var(--sidebar-w)', 
+    flexShrink: 0,
     background: 'white',
-    display: 'flex', flexDirection: 'column',
+    display: 'flex', 
+    flexDirection: 'column',
     borderRight: '1px solid var(--gray-200)',
-    position: 'relative', zIndex: 10,
+    position: 'relative', 
+    zIndex: 10,
   },
   sidebarMobile: {
     position: 'fixed',
@@ -219,108 +265,364 @@ const s: Record<string, React.CSSProperties> = {
     left: 0,
     height: '100vh',
     zIndex: 20,
-    transition: 'transform 0.2s ease',
-    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+    transition: 'transform 0.25s ease',
+    boxShadow: 'var(--shadow-xl)',
   },
   sidebarMobileClosed: {
     transform: 'translateX(-100%)',
   },
+  
+  // Logo section - Larger and more prominent
   sidebarLogo: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '20px 24px',
-    borderBottom: '1px solid var(--gray-200)',
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 14,
+    padding: '24px 24px 20px',
+    borderBottom: '1px solid var(--gray-100)',
+  },
+  logoWrapper: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    background: 'var(--primary)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    boxShadow: '0 2px 8px rgba(26,26,46,0.15)',
   },
   logoImg: {
-    width: 48, height: 48,
+    width: 32,
+    height: 32,
     objectFit: 'contain',
-    flexShrink: 0,
+    filter: 'brightness(0) invert(1)',
   },
-  logoName: { fontSize: 18, fontWeight: 600, color: 'var(--gray-900)', letterSpacing: '-0.01em' },
-  logoSub: { fontSize: 11, color: 'var(--gray-500)', fontWeight: 400, letterSpacing: '0.01em' },
-  nav: { flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 2 },
+  logoText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  logoName: { 
+    fontSize: 20, 
+    fontWeight: 700, 
+    color: 'var(--gray-900)', 
+    letterSpacing: '-0.02em',
+    lineHeight: 1.2,
+  },
+  logoSub: { 
+    fontSize: 12, 
+    color: 'var(--gray-500)', 
+    fontWeight: 400, 
+    letterSpacing: '0.01em',
+    marginTop: 2,
+  },
+  
+  // Navigation
+  nav: { 
+    flex: 1, 
+    overflowY: 'auto', 
+    padding: '20px 16px', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: 4,
+  },
+  navSection: {
+    padding: '0 12px',
+    marginBottom: 8,
+  },
+  navSectionLabel: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--gray-400)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+  },
   navItem: {
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '10px 14px', borderRadius: 4, fontSize: 13,
-    fontWeight: 500, color: 'var(--gray-600)',
-    textDecoration: 'none', transition: 'all 0.15s',
-    position: 'relative', cursor: 'pointer',
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 12,
+    padding: '11px 12px', 
+    borderRadius: 10, 
+    fontSize: 14,
+    fontWeight: 500, 
+    color: 'var(--gray-600)',
+    textDecoration: 'none', 
+    transition: 'all 0.15s ease',
+    position: 'relative', 
+    cursor: 'pointer',
   },
   navActive: {
-    color: 'var(--guinda)', background: 'var(--gray-50)',
-    fontWeight: 500,
+    color: 'var(--primary)', 
+    background: 'var(--primary-50)',
+    fontWeight: 600,
   },
-  activeLine: {
-    position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-    width: 3, height: 20, background: 'var(--guinda)',
-    borderRadius: '0 2px 2px 0',
+  navIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    background: 'var(--gray-100)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    transition: 'all 0.15s ease',
   },
+  navIconWrapActive: {
+    background: 'var(--primary)',
+    color: 'white',
+    boxShadow: '0 2px 6px rgba(26,26,46,0.2)',
+  },
+  navLabel: {
+    flex: 1,
+  },
+  navChevron: {
+    opacity: 0.5,
+  },
+  
+  // User section
   sidebarUser: {
-    display: 'flex', alignItems: 'center', gap: 12,
-    padding: '16px 20px',
-    borderTop: '1px solid var(--gray-200)',
-    margin: '0',
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: 12,
+    padding: '20px 20px',
+    borderTop: '1px solid var(--gray-100)',
+    background: 'var(--gray-50)',
   },
   avatarCircle: {
-    width: 36, height: 36, borderRadius: '50%',
-    background: 'var(--gray-100)',
-    border: '1px solid var(--gray-200)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 13, fontWeight: 600, color: 'var(--gray-700)',
+    width: 40, 
+    height: 40, 
+    borderRadius: 10,
+    background: 'var(--primary)',
+    color: 'white',
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    fontSize: 14, 
+    fontWeight: 600,
     flexShrink: 0,
   },
-  userName: { fontSize: 13, fontWeight: 500, color: 'var(--gray-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  userRole: { fontSize: 11, color: 'var(--gray-500)', textTransform: 'capitalize', letterSpacing: '0.01em' },
+  userInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  userName: { 
+    fontSize: 14, 
+    fontWeight: 600, 
+    color: 'var(--gray-900)', 
+    overflow: 'hidden', 
+    textOverflow: 'ellipsis', 
+    whiteSpace: 'nowrap',
+  },
+  userRole: { 
+    fontSize: 12, 
+    color: 'var(--gray-500)', 
+    textTransform: 'capitalize', 
+    letterSpacing: '0.01em',
+    marginTop: 1,
+  },
   logoutBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    color: 'var(--gray-400)', padding: 6, borderRadius: 4,
-    display: 'flex', transition: 'color 0.15s',
+    background: 'white', 
+    border: '1px solid var(--gray-200)', 
+    cursor: 'pointer',
+    color: 'var(--gray-500)', 
+    padding: 8, 
+    borderRadius: 8,
+    display: 'flex', 
+    transition: 'all 0.15s ease',
   },
-  main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  mainMobile: { width: '100%' },
+  
+  // Main content area
+  main: { 
+    flex: 1, 
+    display: 'flex', 
+    flexDirection: 'column', 
+    overflow: 'hidden',
+  },
+  mainMobile: { 
+    width: '100%',
+  },
+  
+  // Header
   header: {
-    height: 'var(--header-h)', background: 'white',
+    height: 'var(--header-h)', 
+    background: 'white',
     borderBottom: '1px solid var(--gray-200)',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '0 32px', flexShrink: 0,
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    padding: '0 32px', 
+    flexShrink: 0,
   },
-  headerMobile: { padding: '0 16px' },
-  content: { flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--gray-50)' },
-  iconBtn: {
-    position: 'relative', background: 'white', border: '1px solid var(--gray-200)',
-    borderRadius: 4, padding: '8px 10px', cursor: 'pointer',
-    color: 'var(--gray-600)', display: 'flex', alignItems: 'center',
-    transition: 'all 0.15s',
+  headerMobile: { 
+    padding: '0 16px',
   },
-  iconBtnActive: { borderColor: 'var(--guinda)', color: 'var(--guinda)', background: 'var(--guinda-50)' },
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+    background: 'var(--gray-50)',
+    border: '1px solid var(--gray-200)',
+    borderRadius: 10,
+    color: 'var(--gray-600)',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
+  },
+  headerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    background: 'var(--primary)',
+    color: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  
+  // Main content
+  content: { 
+    flex: 1, 
+    overflowY: 'auto', 
+    overflowX: 'hidden', 
+    background: 'var(--gray-50)',
+  },
+  
+  // Notifications
+  notifBtn: {
+    position: 'relative', 
+    background: 'var(--gray-50)', 
+    border: '1px solid var(--gray-200)',
+    borderRadius: 10, 
+    padding: '10px 12px', 
+    cursor: 'pointer',
+    color: 'var(--gray-600)', 
+    display: 'flex', 
+    alignItems: 'center',
+    transition: 'all 0.15s ease',
+  },
+  notifBtnActive: { 
+    borderColor: 'var(--primary)', 
+    color: 'var(--primary)', 
+    background: 'var(--primary-50)',
+  },
+  notifBtnOpen: {
+    background: 'var(--gray-100)',
+  },
   badge: {
-    position: 'absolute', top: -6, right: -6,
-    background: 'var(--guinda)', color: 'white',
-    fontSize: 10, fontWeight: 600, minWidth: 16, height: 16,
-    borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: '0 4px',
+    position: 'absolute', 
+    top: -5, 
+    right: -5,
+    background: 'var(--danger)', 
+    color: 'white',
+    fontSize: 10, 
+    fontWeight: 600, 
+    minWidth: 18, 
+    height: 18,
+    borderRadius: 9, 
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    padding: '0 5px',
+    border: '2px solid white',
   },
   notifPanel: {
-    position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-    width: 340, background: 'white',
-    borderRadius: 6, border: '1px solid var(--gray-200)',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    position: 'absolute', 
+    right: 0, 
+    top: 'calc(100% + 10px)',
+    width: 360, 
+    background: 'white',
+    borderRadius: 14, 
+    border: '1px solid var(--gray-200)',
+    boxShadow: 'var(--shadow-lg)',
     zIndex: 50,
+    overflow: 'hidden',
   },
   notifPanelMobile: {
-    width: 'min(92vw, 340px)',
+    width: 'min(92vw, 360px)',
     right: -8,
   },
   notifHeader: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 16px', borderBottom: '1px solid var(--gray-200)',
+    display: 'flex', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    padding: '16px 20px', 
+    borderBottom: '1px solid var(--gray-100)',
+    background: 'var(--gray-50)',
   },
-  notifMark: { fontSize: 11, color: 'var(--guinda)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' },
-  notifEmpty: { padding: '24px', textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 },
+  notifTitle: {
+    fontWeight: 600,
+    fontSize: 14,
+    color: 'var(--gray-900)',
+  },
+  notifMark: { 
+    fontSize: 12, 
+    color: 'var(--primary)', 
+    fontWeight: 500, 
+    background: 'none', 
+    border: 'none', 
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: 6,
+    transition: 'background 0.15s ease',
+  },
+  notifEmpty: { 
+    padding: '40px 20px', 
+    textAlign: 'center', 
+    color: 'var(--gray-400)', 
+    fontSize: 13,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 10,
+  },
+  notifList: {
+    maxHeight: 360,
+    overflowY: 'auto',
+  },
   notifItem: {
-    display: 'flex', gap: 10, padding: '12px 16px',
-    borderBottom: '1px solid var(--gray-100)', cursor: 'pointer',
-    transition: 'background 0.1s', alignItems: 'flex-start',
+    display: 'flex', 
+    gap: 12, 
+    padding: '14px 20px',
+    borderBottom: '1px solid var(--gray-50)', 
+    cursor: 'pointer',
+    transition: 'background 0.15s ease', 
+    alignItems: 'flex-start',
   },
-  notifUnread: { background: 'var(--gray-50)' },
-  dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--guinda)', flexShrink: 0, marginTop: 4 },
+  notifUnread: { 
+    background: 'var(--primary-50)',
+  },
+  notifContent: {
+    flex: 1,
+  },
+  notifMessage: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: 'var(--gray-700)',
+    lineHeight: 1.4,
+  },
+  notifDate: {
+    fontSize: 11,
+    color: 'var(--gray-400)',
+    marginTop: 4,
+  },
+  dot: { 
+    width: 8, 
+    height: 8, 
+    borderRadius: '50%', 
+    background: 'var(--primary)', 
+    flexShrink: 0, 
+    marginTop: 5,
+  },
 }

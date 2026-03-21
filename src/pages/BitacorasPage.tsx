@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bitacorasApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
-import { FileText, Download, Eye, X, Pencil, Save } from 'lucide-react'
+import { FileText, Download, Eye, X, Pencil, Save, Calendar, Filter } from 'lucide-react'
 
 interface Bitacora {
   id: number; beneficiario_nombre?: string; beneficiario?: string;
@@ -27,17 +27,31 @@ function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 620 }}>
+      <div className="modal" style={{ maxWidth: 640 }}>
         <div className="modal-header">
-          <h3>Bitácora #{id}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: 'var(--primary-50)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--primary)',
+            }}>
+              <FileText size={20} />
+            </div>
+            <h3>Bitacora #{id}</h3>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href={bitacorasApi.pdfUrl(id)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
-              <Eye size={13} /> Ver PDF
+              <Eye size={14} /> Ver PDF
             </a>
             <a href={bitacorasApi.pdfDownloadUrl(id)} download className="btn btn-primary btn-sm">
-              <Download size={13} /> Descargar
+              <Download size={14} /> Descargar
             </a>
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={18} /></button>
           </div>
         </div>
         <div className="modal-body">
@@ -121,14 +135,31 @@ export default function BitacorasPage() {
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label className="form-label">Mes</label>
+      <div style={{ 
+        marginBottom: 20, 
+        padding: '16px 20px',
+        background: 'white',
+        borderRadius: 12,
+        border: '1px solid var(--gray-200)',
+        display: 'flex', 
+        gap: 16, 
+        flexWrap: 'wrap', 
+        alignItems: 'flex-end',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray-500)', fontSize: 13, fontWeight: 500 }}>
+          <Filter size={16} />
+          Filtros:
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Calendar size={12} style={{ opacity: 0.5 }} />
+            Mes
+          </label>
           <input className="input" type="month" style={{ width: 160 }}
             value={filtros.mes ?? ''}
             onChange={e => setFiltros(p => ({ ...p, mes: e.target.value || undefined }))} />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label className="form-label">Estado</label>
           <select className="input" style={{ width: 140 }}
             value={filtros.estado ?? ''}
@@ -139,7 +170,7 @@ export default function BitacorasPage() {
             <option value="cancelada">Cancelada</option>
           </select>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <label className="form-label">Tipo</label>
           <select className="input" style={{ width: 140 }}
             value={filtros.tipo ?? ''}
@@ -151,7 +182,7 @@ export default function BitacorasPage() {
         </div>
         {(filtros.mes || filtros.estado || filtros.tipo) && (
           <button className="btn btn-ghost btn-sm" onClick={() => setFiltros({})}>
-            <X size={13} /> Limpiar filtros
+            <X size={14} /> Limpiar
           </button>
         )}
       </div>

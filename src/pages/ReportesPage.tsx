@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { reportesApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
-import { Download } from 'lucide-react'
+import { Download, Calendar, TrendingUp, Users, FileText, BarChart3 } from 'lucide-react'
 
 interface ReporteRow {
   nombre?: string
@@ -61,16 +61,37 @@ export default function ReportesPage() {
 
       {/* Summary cards */}
       {!isLoading && rows.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
           {[
-            { label: 'Total visitas', value: rows.reduce((s, r) => s + (r.total_visitas ?? r.visitas ?? 0), 0) },
-            { label: 'Técnicos activos', value: rows.length },
-            { label: 'Beneficiarios atendidos', value: rows.reduce((s, r) => s + (r.beneficiarios ?? 0), 0) },
-            { label: 'Avance promedio', value: `${Math.round(rows.reduce((s, r) => s + (r.avance ?? r.porcentaje ?? 0), 0) / rows.length)}%` },
-          ].map(({ label, value }) => (
-            <div key={label} className="card" style={{ textAlign: 'center', padding: 16 }}>
-              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--guinda)' }}>{value}</div>
-              <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 4, fontWeight: 500 }}>{label}</div>
+            { label: 'Total visitas', value: rows.reduce((s, r) => s + (r.total_visitas ?? r.visitas ?? 0), 0), icon: FileText, color: 'var(--primary)', bg: 'var(--primary-50)' },
+            { label: 'Tecnicos activos', value: rows.length, icon: Users, color: 'var(--success)', bg: 'var(--success-bg)' },
+            { label: 'Beneficiarios atendidos', value: rows.reduce((s, r) => s + (r.beneficiarios ?? 0), 0), icon: Users, color: 'var(--warning)', bg: 'var(--warning-bg)' },
+            { label: 'Avance promedio', value: `${Math.round(rows.reduce((s, r) => s + (r.avance ?? r.porcentaje ?? 0), 0) / rows.length)}%`, icon: TrendingUp, color: 'var(--info)', bg: 'var(--info-bg)' },
+          ].map(({ label, value, icon: Icon, color, bg }) => (
+            <div key={label} style={{ 
+              background: 'white',
+              borderRadius: 14,
+              padding: '20px 22px',
+              border: '1px solid var(--gray-200)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}>
+              <div style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                background: bg,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Icon size={22} style={{ color }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--gray-900)', lineHeight: 1 }}>{value}</div>
+                <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 4, fontWeight: 500 }}>{label}</div>
+              </div>
             </div>
           ))}
         </div>
@@ -78,8 +99,17 @@ export default function ReportesPage() {
 
       {/* Bar chart */}
       {!isLoading && rows.length > 0 && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <h3 style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'var(--gray-700)' }}>Visitas por técnico</h3>
+        <div style={{ 
+          background: 'white',
+          borderRadius: 14,
+          padding: 24,
+          border: '1px solid var(--gray-200)',
+          marginBottom: 20,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <BarChart3 size={18} style={{ color: 'var(--primary)' }} />
+            <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--gray-900)' }}>Visitas por tecnico</h3>
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {[...rows].sort((a, b) => (b.total_visitas ?? 0) - (a.total_visitas ?? 0)).map((r, i) => {
               const v = r.total_visitas ?? r.visitas ?? 0
