@@ -24,8 +24,8 @@ export default function LoginPage() {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     const code = codigoAcceso.replace(/\D/g, '')
-    if (code.length !== 6) {
-      setError('El código de acceso debe tener 6 dígitos.')
+    if (code.length < 5 || code.length > 6) {
+      setError('El código de acceso debe tener 5 o 6 dígitos.')
       return
     }
 
@@ -79,7 +79,7 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Código de acceso (6 dígitos)</label>
+              <label className="form-label">Código de acceso (5 o 6 dígitos)</label>
               <input
                 className="input"
                 type="password"
@@ -87,7 +87,7 @@ export default function LoginPage() {
                 onChange={e => setCodigoAcceso(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="••••••"
                 inputMode="numeric"
-                pattern="[0-9]{6}"
+                pattern="[0-9]{5,6}"
                 maxLength={6}
                 autoComplete="current-password"
                 required
@@ -99,7 +99,7 @@ export default function LoginPage() {
             <button
               className="btn btn-primary"
               type="submit"
-              disabled={loading || correo.trim().length === 0 || codigoAcceso.length !== 6}
+              disabled={loading || correo.trim().length === 0 || codigoAcceso.length < 5 || codigoAcceso.length > 6}
               style={{ width: '100%', height: 44, fontSize: 14 }}
             >
               {loading ? <><span className="spinner" />Ingresando...</> : 'Acceder al sistema'}
@@ -129,7 +129,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   leftInnerMobile: {},
   leftLogo: {
-    width: 120, height: 120,
+    width: 'max-content', height: 'max-content',
     objectFit: 'contain',
     marginBottom: 24,
   },
@@ -173,3 +173,4 @@ const styles: Record<string, React.CSSProperties> = {
   subtitle: { fontSize: 14, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 8 },
   err: { fontSize: 13, color: 'var(--danger)', marginBottom: 16, padding: '10px 14px', background: 'var(--danger-bg)', borderRadius: 4, border: '1px solid var(--danger)' },
 }
+

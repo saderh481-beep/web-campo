@@ -6,7 +6,7 @@ import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, X } from 'lucide-react'
 
 interface Cadena {
-  id: number
+  id: number | string
   nombre: string
   descripcion?: string
   total_beneficiarios?: number

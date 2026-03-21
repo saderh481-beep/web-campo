@@ -5,10 +5,10 @@ import { usuariosApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 
-type Rol = 'admin' | 'coordinador'
+type Rol = 'administrador' | 'coordinador' | 'tecnico'
 
 interface Usuario {
-  id: number
+  id: number | string
   nombre: string
   correo: string
   rol: Rol | string
@@ -30,12 +30,18 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return axiosErr.response?.data?.message ?? fallback
 }
 
+function toFormRole(role: string | undefined): Rol {
+  if (role === 'coordinador' || role === 'tecnico' || role === 'administrador') return role
+  if (role === 'admin') return 'administrador'
+  return 'coordinador'
+}
+
 function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<UsuarioForm>({
     nombre: u?.nombre ?? '',
     correo: u?.correo ?? '',
-    rol: u?.rol === 'admin' ? 'admin' : 'coordinador',
+    rol: toFormRole(u?.rol),
   })
   const [err, setErr] = useState('')
   const save = useMutation({
@@ -57,8 +63,9 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
             <input className="input" type="email" value={form.correo} onChange={e => setForm(p => ({ ...p, correo: e.target.value }))} /></div>
           <div className="form-group"><label className="form-label">Rol</label>
             <select className="input" value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value as Rol }))}>
-              <option value="admin">Administrador</option>
+              <option value="administrador">Administrador</option>
               <option value="coordinador">Coordinador</option>
+              <option value="tecnico">Técnico</option>
             </select></div>
           {err && <p className="form-error">{err}</p>}
         </div>
@@ -82,7 +89,7 @@ export default function UsuariosPage() {
     staleTime: 60000,
   })
   const remove = useMutation({
-    mutationFn: (id: number) => usuariosApi.remove(id),
+    mutationFn: (id: string | number) => usuariosApi.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
@@ -106,7 +113,7 @@ export default function UsuariosPage() {
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{u.nombre}</td>
                 <td style={{ color: 'var(--gray-500)' }}>{u.correo}</td>
-                <td><span className={`badge badge-${u.rol === 'admin' ? 'guinda' : 'dorado'}`}>{u.rol}</span></td>
+                <td><span className={`badge badge-${(u.rol === 'administrador' || u.rol === 'admin') ? 'guinda' : 'dorado'}`}>{u.rol}</span></td>
                 <td><span className={`badge badge-${u.activo !== false ? 'green' : 'gray'}`}>{u.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
                 <td><div style={{ display: 'flex', gap: 4 }}>
                   <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(u)}><Pencil size={13} /></button>

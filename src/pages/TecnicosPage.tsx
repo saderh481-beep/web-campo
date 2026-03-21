@@ -5,12 +5,31 @@ import { tecnicosApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
 import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
 
-interface Tecnico { id: number; nombre: string; correo: string; municipio?: string; codigo_acceso?: string; activo?: boolean; vencimiento_codigo?: string }
-interface FormData { nombre: string; correo: string; municipio: string }
-const FORM_FIELDS: Array<{ key: keyof FormData; label: string; type: 'text' | 'email' }> = [
+interface Tecnico {
+  id: number | string
+  nombre: string
+  correo: string
+  telefono?: string
+  coordinador_id?: string
+  fecha_limite?: string
+  codigo_acceso?: string
+  activo?: boolean
+}
+
+interface FormData {
+  nombre: string
+  correo: string
+  telefono: string
+  coordinador_id: string
+  fecha_limite: string
+}
+
+const FORM_FIELDS: Array<{ key: keyof FormData; label: string; type: 'text' | 'email' | 'date' }> = [
   { key: 'nombre', label: 'Nombre completo', type: 'text' },
   { key: 'correo', label: 'Correo electrónico', type: 'email' },
-  { key: 'municipio', label: 'Municipio', type: 'text' },
+  { key: 'telefono', label: 'Teléfono (opcional)', type: 'text' },
+  { key: 'coordinador_id', label: 'ID de coordinador', type: 'text' },
+  { key: 'fecha_limite', label: 'Fecha límite de acceso', type: 'date' },
 ]
 
 function toErrorMessage(err: unknown, fallback: string): string {
@@ -18,11 +37,11 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return axiosErr.response?.data?.message ?? fallback
 }
 
-function CodigoAcceso({ codigo, id }: { codigo: string; id: number }) {
+function CodigoAcceso({ codigo, id }: { codigo: string; id: string | number }) {
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
   const regen = useMutation({
-    mutationFn: () => tecnicosApi.regenerarCodigo(id),
+    mutationFn: () => tecnicosApi.generarCodigoAcceso(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
   })
   const copy = () => {
@@ -45,11 +64,26 @@ function CodigoAcceso({ codigo, id }: { codigo: string; id: number }) {
 
 function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => void }) {
   const qc = useQueryClient()
-  const [form, setForm] = useState<FormData>({ nombre: tecnico?.nombre ?? '', correo: tecnico?.correo ?? '', municipio: tecnico?.municipio ?? '' })
+  const [form, setForm] = useState<FormData>({
+    nombre: tecnico?.nombre ?? '',
+    correo: tecnico?.correo ?? '',
+    telefono: tecnico?.telefono ?? '',
+    coordinador_id: tecnico?.coordinador_id ?? '',
+    fecha_limite: tecnico?.fecha_limite?.slice(0, 10) ?? '',
+  })
   const [err, setErr] = useState('')
 
   const save = useMutation({
-    mutationFn: () => tecnico ? tecnicosApi.update(tecnico.id, form) : tecnicosApi.create(form),
+    mutationFn: () => {
+      const payload = {
+        nombre: form.nombre,
+        correo: form.correo,
+        telefono: form.telefono || undefined,
+        coordinador_id: form.coordinador_id,
+        fecha_limite: form.fecha_limite,
+      }
+      return tecnico ? tecnicosApi.update(tecnico.id, payload) : tecnicosApi.create(payload)
+    },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
@@ -96,7 +130,7 @@ export default function TecnicosPage() {
   })
 
   const remove = useMutation({
-    mutationFn: (id: number) => tecnicosApi.remove(id),
+    mutationFn: (id: string | number) => tecnicosApi.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
   })
 
@@ -126,7 +160,7 @@ export default function TecnicosPage() {
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Nombre</th><th>Correo</th><th>Municipio</th><th>Código de acceso</th><th>Estado</th><th></th>
+              <th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Código de acceso</th><th>Estado</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -143,7 +177,7 @@ export default function TecnicosPage() {
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{t.nombre}</td>
                 <td style={{ color: 'var(--gray-500)' }}>{t.correo}</td>
-                <td>{t.municipio ?? '—'}</td>
+                <td>{t.telefono ?? '—'}</td>
                 <td>{t.codigo_acceso ? <CodigoAcceso codigo={t.codigo_acceso} id={t.id} /> : <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
                 <td>
                   <span className={`badge badge-${t.activo !== false ? 'green' : 'gray'}`}>

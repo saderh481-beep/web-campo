@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import { authApi } from '../lib/api'
 
 interface User {
-  id: number
+  id: number | string
   nombre: string
   correo: string
   rol: string
@@ -40,7 +40,7 @@ function normalizeUser(value: unknown): User | null {
   }
 
   return {
-    id: Number(rawId),
+    id: typeof rawId === 'string' ? rawId : Number(rawId),
     nombre: rawNombre,
     correo: typeof rawCorreo === 'string' ? rawCorreo : '',
     rol: typeof rawRol === 'string' ? rawRol : '',

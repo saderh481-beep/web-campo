@@ -5,12 +5,23 @@ import { pickArray } from '../lib/normalize'
 import { FileText, Download, Eye, X, Pencil, Save } from 'lucide-react'
 
 interface Bitacora {
-  id: number; beneficiario_nombre?: string; beneficiario?: string;
-  tecnico_nombre?: string; tecnico?: string; fecha?: string;
-  estado?: string; tipo?: string; notas?: string;
+  id: number | string
+  beneficiario_nombre?: string
+  beneficiario?: string
+  tecnico_nombre?: string
+  tecnico?: string
+  fecha?: string
+  estado?: string
+  tipo?: string
+  notas?: string
+  observaciones?: string
+  observaciones_coordinador?: string
+  actividades_realizadas?: string
+  actividades_desc?: string
+  actividad?: string
 }
 
-function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
+function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => void }) {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ['bitacora', id],
@@ -21,7 +32,7 @@ function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
   const bit = data?.bitacora ?? data
 
   const saveNotas = useMutation({
-    mutationFn: () => bitacorasApi.update(id, { notas }),
+    mutationFn: () => bitacorasApi.update(id, { observaciones: notas }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['bitacora', id] }); setEditNotas(false) },
   })
 
@@ -66,7 +77,7 @@ function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Notas</div>
                   {bit.estado === 'borrador' && !editNotas && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => { setNotas(bit.notas ?? ''); setEditNotas(true) }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setNotas(bit.notas ?? bit.observaciones ?? bit.observaciones_coordinador ?? ''); setEditNotas(true) }}>
                       <Pencil size={12} /> Editar
                     </button>
                   )}
@@ -83,7 +94,7 @@ function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
                   </>
                 ) : (
                   <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
-                    {bit.notas || <em style={{ color: 'var(--gray-300)' }}>Sin notas</em>}
+                    {bit.notas ?? bit.observaciones ?? bit.observaciones_coordinador ?? bit.actividades_realizadas ?? bit.actividades_desc ?? <em style={{ color: 'var(--gray-300)' }}>Sin notas</em>}
                   </p>
                 )}
               </div>
@@ -97,7 +108,7 @@ function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
 
 export default function BitacorasPage() {
   const [filtros, setFiltros] = useState<{ mes?: string; estado?: string; tipo?: string }>({})
-  const [detalle, setDetalle] = useState<number | null>(null)
+  const [detalle, setDetalle] = useState<string | number | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['bitacoras', filtros],
@@ -120,7 +131,6 @@ export default function BitacorasPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="card" style={{ marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label className="form-label">Mes</label>

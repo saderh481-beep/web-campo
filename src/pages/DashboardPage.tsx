@@ -13,7 +13,7 @@ interface StatCardProps {
 }
 
 interface TecnicoSummary {
-  id: number
+  id: number | string
 }
 
 interface TecnicosResponse {
@@ -26,7 +26,7 @@ interface BeneficiariosResponse {
 }
 
 interface BitacoraSummary {
-  id: number
+  id: number | string
   beneficiario_nombre?: string
   beneficiario?: string
   tecnico_nombre?: string
