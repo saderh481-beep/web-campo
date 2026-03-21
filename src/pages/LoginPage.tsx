@@ -46,6 +46,7 @@ export default function LoginPage() {
     <div style={{ ...styles.wrap, ...(isMobile ? styles.wrapMobile : {}) }}>
       <div style={{ ...styles.left, ...(isMobile ? styles.leftMobile : {}) }}>
         <div style={{ ...styles.leftInner, ...(isMobile ? styles.leftInnerMobile : {}) }}>
+          <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={styles.leftLogo} />
           <h1 style={styles.brand}>CAMPO</h1>
           <p style={styles.brandSub}>Sistema de Gestión de Técnicos y Beneficiarios</p>
           <div style={styles.divider} />
@@ -58,13 +59,9 @@ export default function LoginPage() {
 
       <div style={{ ...styles.right, ...(isMobile ? styles.rightMobile : {}) }}>
         <div style={{ ...styles.formCard, ...(isMobile ? styles.formCardMobile : {}) }}>
-          <div style={styles.formLogoWrap}>
-            <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={styles.formLogoImg} />
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 32 }}>
             <h2 style={styles.title}>Iniciar sesión</h2>
-            <p style={styles.subtitle}>Ingresa tu correo y tu código de acceso en un solo paso</p>
+            <p style={styles.subtitle}>Ingresa tu correo y tu código de acceso</p>
           </div>
 
           <form onSubmit={handleLogin}>
@@ -120,69 +117,59 @@ const styles: Record<string, React.CSSProperties> = {
   },
   wrapMobile: { flexDirection: 'column' },
   left: {
-    width: '42%', background: 'var(--guinda)',
+    width: '46%', background: 'var(--guinda)',
     position: 'relative', overflow: 'hidden',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    padding: '60px 48px',
   },
-  leftMobile: { width: '100%', minHeight: 220 },
+  leftMobile: { width: '100%', minHeight: 'auto', padding: '40px 24px' },
   leftInner: {
-    position: 'relative', zIndex: 1, padding: '56px 44px', color: 'white',
+    position: 'relative', zIndex: 1, color: 'white', textAlign: 'center',
+    maxWidth: 420,
   },
-  leftInnerMobile: { padding: '24px 20px' },
+  leftInnerMobile: {},
+  leftLogo: {
+    width: 80, height: 80,
+    objectFit: 'contain',
+    marginBottom: 24,
+  },
   brand: {
-    fontSize: 42, fontWeight: 800, letterSpacing: '-0.03em',
-    color: 'white', marginBottom: 8,
+    fontSize: 48, fontWeight: 600, letterSpacing: '-0.02em',
+    color: 'white', marginBottom: 16,
   },
   brandSub: {
-    fontSize: 13, color: 'rgba(212,193,156,0.9)',
-    lineHeight: 1.5, maxWidth: 260, fontWeight: 400,
+    fontSize: 15, color: 'rgba(255,255,255,0.85)',
+    lineHeight: 1.6, fontWeight: 400, marginBottom: 32,
   },
   divider: {
-    width: 40, height: 2, background: 'var(--dorado)',
-    borderRadius: 1, margin: '24px 0',
+    width: 60, height: 1, background: 'rgba(212,193,156,0.4)',
+    margin: '0 auto 32px',
   },
-  org: { fontSize: 12, fontWeight: 700, color: 'var(--dorado)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 },
-  gov: { fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 400 },
+  org: { fontSize: 13, fontWeight: 600, color: 'var(--dorado)', letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: 8 },
+  gov: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 400, lineHeight: 1.5 },
   decorCircle: {
-    position: 'absolute', bottom: -80, right: -80,
+    position: 'absolute', bottom: -100, right: -100,
     width: 300, height: 300, borderRadius: '50%',
-    border: '1px solid rgba(212,193,156,0.12)',
+    border: '1px solid rgba(212,193,156,0.1)',
   },
   decorCircle2: {
-    position: 'absolute', bottom: -40, right: -40,
-    width: 180, height: 180, borderRadius: '50%',
-    background: 'rgba(212,193,156,0.05)',
-    border: '1px solid rgba(212,193,156,0.1)',
+    position: 'absolute', top: -80, left: -80,
+    width: 200, height: 200, borderRadius: '50%',
+    background: 'rgba(212,193,156,0.04)',
+    border: '1px solid rgba(212,193,156,0.08)',
   },
   right: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--gray-50)', padding: 24,
+    background: 'var(--gray-50)', padding: 32,
   },
-  rightMobile: { padding: 14 },
+  rightMobile: { padding: 20 },
   formCard: {
-    background: 'white', borderRadius: 16, padding: '40px 36px',
-    width: '100%', maxWidth: 420,
+    background: 'white', borderRadius: 8, padding: '48px 40px',
+    width: '100%', maxWidth: 440,
     border: '1px solid var(--gray-200)',
-    boxShadow: '0 4px 24px rgba(98,17,50,0.08)',
   },
-  formCardMobile: { padding: '24px 16px', maxWidth: '100%' },
-  formLogoWrap: {
-    width: 88,
-    height: 88,
-    margin: '0 auto 18px',
-    borderRadius: 18,
-    border: '1.5px solid var(--dorado-light)',
-    background: 'var(--guinda-50)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  formLogoImg: {
-    width: 60,
-    height: 60,
-    objectFit: 'contain',
-  },
-  title: { fontSize: 22, fontWeight: 800, color: 'var(--gray-900)', marginBottom: 6 },
-  subtitle: { fontSize: 13, color: 'var(--gray-500)' },
-  err: { fontSize: 12, color: 'var(--danger)', marginBottom: 14, padding: '8px 12px', background: 'var(--danger-bg)', borderRadius: 6 },
+  formCardMobile: { padding: '32px 24px', maxWidth: '100%' },
+  title: { fontSize: 24, fontWeight: 600, color: 'var(--gray-900)', marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 8 },
+  err: { fontSize: 13, color: 'var(--danger)', marginBottom: 16, padding: '10px 14px', background: 'var(--danger-bg)', borderRadius: 4, border: '1px solid var(--danger)' },
 }
