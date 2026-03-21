@@ -193,18 +193,23 @@ const styles: Record<string, React.CSSProperties> = {
   
   // Logo
   logoContainer: {
-    marginBottom: 32,
+    marginBottom: 40,
+    padding: 24,
+    background: 'rgba(255,255,255,0.08)',
+    borderRadius: 24,
+    backdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255,255,255,0.1)',
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 180,
     objectFit: 'contain',
     filter: 'brightness(0) invert(1)',
     opacity: 0.95,
   },
   logoMobile: {
-    width: 80,
-    height: 80,
+    width: 120,
+    height: 120,
   },
   
   // Brand text
