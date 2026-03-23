@@ -27,17 +27,17 @@ function BitacoraDetalle({ id, onClose }: { id: number; onClose: () => void }) {
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 620 }}>
+      <div className="modal">
         <div className="modal-header">
-          <h3>Bitácora #{id}</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a href={bitacorasApi.pdfUrl(id)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
-              <Eye size={13} /> Ver PDF
+          <h3>Detalle de Bitácora #{id}</h3>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <a href={bitacorasApi.pdfUrl(id)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" title="Ver PDF">
+              <Eye size={14} /> Ver PDF
             </a>
-            <a href={bitacorasApi.pdfDownloadUrl(id)} download className="btn btn-primary btn-sm">
-              <Download size={13} /> Descargar
+            <a href={bitacorasApi.pdfDownloadUrl(id)} download className="btn btn-primary btn-sm" title="Descargar PDF">
+              <Download size={14} /> Descargar
             </a>
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Cerrar"><X size={18} /></button>
           </div>
         </div>
         <div className="modal-body">

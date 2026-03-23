@@ -72,10 +72,10 @@ function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas:
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 520 }}>
+      <div className="modal">
         <div className="modal-header">
-          <h3>{b ? 'Editar beneficiario' : 'Nuevo beneficiario'}</h3>
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+          <h3>{b ? 'Editar beneficiario' : 'Registrar nuevo beneficiario'}</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Cerrar"><X size={18} /></button>
         </div>
         <div className="modal-body">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
@@ -83,18 +83,20 @@ function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas:
               <div key={key} className="form-group" style={full ? { gridColumn: '1/-1' } : {}}>
                 <label className="form-label">{label}</label>
                 <input className="input" value={form[key]}
-                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
+                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                  placeholder={key === 'nombre' ? 'Ej. María García López' : key === 'curp' ? 'Ej. GARX000101MDFMRA00' : key === 'municipio' ? 'Ej. Pachuca' : 'Ej. Centro'}
+                />
               </div>
             ))}
           </div>
           {cadenas.length > 0 && (
             <div className="form-group">
               <label className="form-label">Cadenas productivas</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {cadenas.map((c) => (
                   <button key={c.id} type="button"
                     style={{
-                      padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600,
+                      padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 600,
                       border: `1.5px solid ${form.cadenas_ids.includes(c.id) ? 'var(--guinda)' : 'var(--gray-200)'}`,
                       background: form.cadenas_ids.includes(c.id) ? 'var(--guinda-50)' : 'white',
                       color: form.cadenas_ids.includes(c.id) ? 'var(--guinda)' : 'var(--gray-500)',
@@ -110,7 +112,7 @@ function BeneficiarioModal({ b, cadenas, onClose }: { b?: Beneficiario; cadenas:
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar cambios'}
           </button>
         </div>
       </div>

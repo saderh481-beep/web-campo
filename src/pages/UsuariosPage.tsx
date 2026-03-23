@@ -47,25 +47,31 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>{u ? 'Editar usuario' : 'Nuevo usuario'}</h3>
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+          <h3>{u ? 'Editar usuario' : 'Crear nuevo usuario'}</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Cerrar"><X size={18} /></button>
         </div>
         <div className="modal-body">
-          <div className="form-group"><label className="form-label">Nombre</label>
-            <input className="input" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} /></div>
-          <div className="form-group"><label className="form-label">Correo</label>
-            <input className="input" type="email" value={form.correo} onChange={e => setForm(p => ({ ...p, correo: e.target.value }))} /></div>
-          <div className="form-group"><label className="form-label">Rol</label>
+          <div className="form-group">
+            <label className="form-label">Nombre completo</label>
+            <input className="input" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej. Juan Pérez García" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Correo electrónico</label>
+            <input className="input" type="email" value={form.correo} onChange={e => setForm(p => ({ ...p, correo: e.target.value }))} placeholder="usuario@hidalgo.gob.mx" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Rol del usuario</label>
             <select className="input" value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value as Rol }))}>
-              <option value="admin">Administrador</option>
               <option value="coordinador">Coordinador</option>
-            </select></div>
+              <option value="admin">Administrador</option>
+            </select>
+          </div>
           {err && <p className="form-error">{err}</p>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar cambios'}
           </button>
         </div>
       </div>

@@ -58,8 +58,8 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>{tecnico ? 'Editar técnico' : 'Nuevo técnico'}</h3>
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+          <h3>{tecnico ? 'Editar técnico' : 'Registrar nuevo técnico'}</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Cerrar"><X size={18} /></button>
         </div>
         <div className="modal-body">
           {FORM_FIELDS.map(({ key, label, type }) => (
@@ -68,6 +68,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
               <input className="input" type={type}
                 value={form[key]}
                 onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                placeholder={key === 'nombre' ? 'Ej. Carlos López Martinez' : key === 'correo' ? 'tecnico@hidalgo.gob.mx' : 'Ej. Pachuca'}
               />
             </div>
           ))}
@@ -76,7 +77,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar cambios'}
           </button>
         </div>
       </div>

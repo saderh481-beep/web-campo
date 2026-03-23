@@ -34,24 +34,24 @@ function CadenaModal({ cadena, onClose }: { cadena?: Cadena; onClose: () => void
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>{cadena ? 'Editar cadena' : 'Nueva cadena productiva'}</h3>
-          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+          <h3>{cadena ? 'Editar cadena productiva' : 'Crear cadena productiva'}</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose} title="Cerrar"><X size={18} /></button>
         </div>
         <div className="modal-body">
           <div className="form-group">
-            <label className="form-label">Nombre</label>
-            <input className="input" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} />
+            <label className="form-label">Nombre de la cadena</label>
+            <input className="input" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej. Producción de maíz" />
           </div>
           <div className="form-group">
             <label className="form-label">Descripción</label>
-            <textarea className="input" rows={3} value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} />
+            <textarea className="input" rows={4} value={form.descripcion} onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))} placeholder="Descripción de los objetivos y actividades..." />
           </div>
           {err && <p className="form-error">{err}</p>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar cambios'}
           </button>
         </div>
       </div>
