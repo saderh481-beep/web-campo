@@ -124,17 +124,6 @@ function withEmailAlias(payload: unknown): unknown {
   }
 }
 
-function withRoleAlias(payload: unknown): unknown {
-  if (!isRecord(payload)) return payload
-  const rol = payload.rol
-  const role = payload.role
-  const normalized = normalizeRoleValue(rol ?? role)
-  return {
-    ...payload,
-    rol: normalized,
-    role: normalized,
-  }
-}
 
 function withNameAlias(payload: unknown): unknown {
   if (!isRecord(payload)) return payload
@@ -272,7 +261,10 @@ api.interceptors.response.use(
       path === '/auth/request-codigo-acceso' ||
       path === '/auth/verify-codigo-acceso' ||
       path === '/auth/request-otp' ||
-      path === '/auth/verify-otp'
+      path === '/auth/verify-otp' ||
+      path === '/auth/me' ||
+      path === '/auth/logout' ||
+      path === '/usuarios/me'
 
     if (
       err.response?.status === 401 &&
@@ -335,11 +327,23 @@ export const authApi = {
   },
 }
 
+function buildUsuarioPayload(data: unknown): Record<string, unknown> {
+  if (!isRecord(data)) return {}
+  const payload: Record<string, unknown> = {}
+  const nombre = (data as Record<string,unknown>).nombre ?? (data as Record<string,unknown>).name
+  const correo = (data as Record<string,unknown>).correo ?? (data as Record<string,unknown>).email
+  const rol    = normalizeRoleValue((data as Record<string,unknown>).rol ?? (data as Record<string,unknown>).role)
+  if (nombre !== undefined && nombre !== null) payload.nombre = nombre
+  if (correo !== undefined && correo !== null) payload.correo = correo
+  if (rol    !== undefined)                   payload.rol    = rol
+  return payload
+}
+
 // ── USUARIOS ──────────────────────────────────────────────────────
 export const usuariosApi = {
   list: () => api.get('/usuarios'),
-  create: (data: unknown) => api.post('/usuarios', withRoleAlias(withNameAlias(withEmailAlias(data)))),
-  update: (id: string | number, data: unknown) => api.patch(`/usuarios/${id}`, withRoleAlias(withNameAlias(withEmailAlias(data)))),
+  create: (data: unknown) => api.post('/usuarios', buildUsuarioPayload(data)),
+  update: (id: string | number, data: unknown) => api.patch(`/usuarios/${id}`, buildUsuarioPayload(data)),
   remove: (id: string | number) => api.delete(`/usuarios/${id}`),
 }
 
