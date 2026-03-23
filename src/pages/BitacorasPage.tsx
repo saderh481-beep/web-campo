@@ -78,7 +78,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 760 }}>
+      <div className="modal modal-wide">
         <div className="modal-header">
           <h3>Bitácora #{id}</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -91,7 +91,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
             <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
           </div>
         </div>
-        <div className="modal-body">
+        <div className="modal-body modal-body-scroll">
           {isLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[60, 40, 80].map((w, i) => <div key={i} className="skeleton" style={{ height: 20, width: `${w}%` }} />)}

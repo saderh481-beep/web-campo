@@ -125,14 +125,14 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 760 }}>
+      <div className="modal modal-wide">
         <div className="modal-header">
           <h3>Documentos de {beneficiario.nombre}</h3>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="modal-body">
+        <div className="modal-body modal-body-scroll">
           {canUpload && (
-            <div className="card" style={{ marginBottom: 16, padding: 14 }}>
+            <div className="card modal-soft-section" style={{ marginBottom: 16, padding: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 160px auto', gap: 10, alignItems: 'center' }}>
                 <input
                   className="input"
@@ -276,12 +276,12 @@ function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: 
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 620 }}>
+      <div className="modal modal-wide">
         <div className="modal-header">
           <h3>{b ? 'Editar beneficiario' : 'Nuevo beneficiario'}</h3>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="modal-body">
+        <div className="modal-body modal-body-scroll">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
             {FORM_FIELDS.map(({ key, label, full }) => (
               <div key={key} className="form-group" style={full ? { gridColumn: '1/-1' } : {}}>
