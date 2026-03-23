@@ -330,20 +330,54 @@ export const authApi = {
 function buildUsuarioPayload(data: unknown): Record<string, unknown> {
   if (!isRecord(data)) return {}
   const payload: Record<string, unknown> = {}
-  const nombre = (data as Record<string,unknown>).nombre ?? (data as Record<string,unknown>).name
-  const correo = (data as Record<string,unknown>).correo ?? (data as Record<string,unknown>).email
-  const rol    = normalizeRoleValue((data as Record<string,unknown>).rol ?? (data as Record<string,unknown>).role)
-  if (nombre !== undefined && nombre !== null) payload.nombre = nombre
-  if (correo !== undefined && correo !== null) payload.correo = correo
-  if (rol    !== undefined)                   payload.rol    = rol
+  const nombre = (data as Record<string, unknown>).nombre ?? (data as Record<string, unknown>).name
+  const correo = (data as Record<string, unknown>).correo ?? (data as Record<string, unknown>).email
+  const rol = normalizeRoleValue((data as Record<string, unknown>).rol ?? (data as Record<string, unknown>).role)
+
+  if (nombre !== undefined && nombre !== null) {
+    payload.nombre = nombre
+    payload.name = nombre
+  }
+  if (correo !== undefined && correo !== null) {
+    payload.correo = correo
+    payload.email = correo
+  }
+  if (rol !== undefined) {
+    payload.rol = rol
+    payload.role = rol
+  }
+
+  const activo = (data as Record<string, unknown>).activo
+  if (typeof activo === 'boolean') payload.activo = activo
+
   return payload
+}
+
+async function updateUsuarioWithFallback(id: string | number, data: unknown): Promise<AxiosResponse<unknown>> {
+  const payload = buildUsuarioPayload(data)
+  const enrichedPayload = {
+    ...payload,
+    usuario_id: id,
+    id_usuario: id,
+    id,
+    uuid: id,
+  }
+
+  return withFallback<unknown>([
+    () => api.patch(`/usuarios/${id}`, payload),
+    () => api.put(`/usuarios/${id}`, payload),
+    () => api.patch(`/usuarios/${id}`, enrichedPayload),
+    () => api.put(`/usuarios/${id}`, enrichedPayload),
+    () => api.patch(`/usuarios/uuid/${id}`, payload),
+    () => api.put(`/usuarios/uuid/${id}`, payload),
+  ], [400, 404, 405])
 }
 
 // ── USUARIOS ──────────────────────────────────────────────────────
 export const usuariosApi = {
   list: () => api.get('/usuarios'),
   create: (data: unknown) => api.post('/usuarios', buildUsuarioPayload(data)),
-  update: (id: string | number, data: unknown) => api.patch(`/usuarios/${id}`, buildUsuarioPayload(data)),
+  update: (id: string | number, data: unknown) => updateUsuarioWithFallback(id, data),
   remove: (id: string | number) => api.delete(`/usuarios/${id}`),
 }
 
