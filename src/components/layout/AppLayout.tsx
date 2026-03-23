@@ -1,7 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { canViewActividades, canViewAsignaciones, canViewBeneficiarios, canViewBitacoras, canViewCadenas, canViewDashboard, canViewNotifications, canViewReports, canViewTecnicos, canManageUsers } from '../../lib/authz'
 import { notificacionesApi } from '../../lib/api'
 import { pickArray } from '../../lib/normalize'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -19,13 +20,15 @@ interface NotificacionesResponse {
 }
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/tecnicos', label: 'Técnicos', icon: UserCheck },
-  { to: '/beneficiarios', label: 'Beneficiarios', icon: Users },
-  { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen },
-  { to: '/cadenas', label: 'Cadenas Productivas', icon: Layers },
-  { to: '/reportes', label: 'Reportes', icon: FileBarChart },
-  { to: '/usuarios', label: 'Usuarios', icon: Settings },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true, allow: canViewDashboard },
+  { to: '/tecnicos', label: 'Técnicos', icon: UserCheck, allow: canViewTecnicos },
+  { to: '/beneficiarios', label: 'Beneficiarios', icon: Users, allow: canViewBeneficiarios },
+  { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen, allow: canViewBitacoras },
+  { to: '/cadenas', label: 'Cadenas Productivas', icon: Layers, allow: canViewCadenas },
+  { to: '/reportes', label: 'Reportes', icon: FileBarChart, allow: canViewReports },
+  { to: '/actividades', label: 'Actividades', icon: ClipboardList, allow: canViewActividades },
+  { to: '/asignaciones', label: 'Asignaciones', icon: Link2, allow: canViewAsignaciones },
+  { to: '/usuarios', label: 'Usuarios', icon: Settings, allow: canManageUsers },
 ]
 
 export default function AppLayout() {
@@ -37,10 +40,14 @@ export default function AppLayout() {
   )
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const canSeeNotifications = canViewNotifications(user?.rol)
+  const visibleNav = NAV.filter(({ allow }) => allow(user?.rol))
+
   const notifData = useQuery({
     queryKey: ['notificaciones'],
     queryFn: () => notificacionesApi.list().then((r: { data: unknown }) => r.data),
     refetchInterval: 30000,
+    enabled: canSeeNotifications,
   }).data
 
   const notifs = pickArray<Notificacion>(notifData as NotificacionesResponse | Notificacion[] | undefined, ['notificaciones', 'rows', 'data'])
@@ -51,10 +58,10 @@ export default function AppLayout() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
   })
 
-   const marcarLeida = useMutation({
-     mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
-     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
-   })
+  const marcarLeida = useMutation({
+    mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
+  })
 
   useEffect(() => {
     if (!notifOpen) return
@@ -99,7 +106,7 @@ export default function AppLayout() {
         </div>
 
         <nav style={s.nav}>
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {visibleNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to} to={to} end={end}
               style={({ isActive }) => ({ ...s.navItem, ...(isActive ? s.navActive : {}) })}
@@ -146,49 +153,51 @@ export default function AppLayout() {
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ position: 'relative' }} data-notif>
-              <button
-                data-notif
-                style={{ ...s.iconBtn, ...(unread > 0 ? s.iconBtnActive : {}) }}
-                onClick={() => setNotifOpen(o => !o)}
-              >
-                <Bell size={18} />
-                {unread > 0 && <span style={s.badge}>{unread}</span>}
-              </button>
-              {notifOpen && (
-                <div style={{ ...s.notifPanel, ...(isMobile ? s.notifPanelMobile : {}) }} data-notif>
-                  <div style={s.notifHeader}>
-                    <span style={{ fontWeight: 600, fontSize: 13 }}>Notificaciones</span>
-                    {unread > 0 && (
-                      <button style={s.notifMark} onClick={() => marcarTodas.mutate()}>
-                        Marcar todas leídas
-                      </button>
-                    )}
-                  </div>
-                  {notifs.length === 0 ? (
-                    <div style={s.notifEmpty}>Sin notificaciones</div>
-                  ) : (
-                    <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-                      {notifs.map((n) => (
-                        <div
-                          key={n.id}
-                          style={{ ...s.notifItem, ...(!n.leida ? s.notifUnread : {}) }}
-                          onClick={() => !n.leida && marcarLeida.mutate(n.id)}
-                        >
-                          {!n.leida && <span style={s.dot} />}
-                          <div>
-                            <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 500 }}>{n.mensaje ?? n.titulo}</div>
-                            <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
-                              {n.fecha ? new Date(n.fecha).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+            {canSeeNotifications && (
+              <div style={{ position: 'relative' }} data-notif>
+                <button
+                  data-notif
+                  style={{ ...s.iconBtn, ...(unread > 0 ? s.iconBtnActive : {}) }}
+                  onClick={() => setNotifOpen(o => !o)}
+                >
+                  <Bell size={18} />
+                  {unread > 0 && <span style={s.badge}>{unread}</span>}
+                </button>
+                {notifOpen && (
+                  <div style={{ ...s.notifPanel, ...(isMobile ? s.notifPanelMobile : {}) }} data-notif>
+                    <div style={s.notifHeader}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>Notificaciones</span>
+                      {unread > 0 && (
+                        <button style={s.notifMark} onClick={() => marcarTodas.mutate()}>
+                          Marcar todas leídas
+                        </button>
+                      )}
+                    </div>
+                    {notifs.length === 0 ? (
+                      <div style={s.notifEmpty}>Sin notificaciones</div>
+                    ) : (
+                      <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                        {notifs.map((n) => (
+                          <div
+                            key={n.id}
+                            style={{ ...s.notifItem, ...(!n.leida ? s.notifUnread : {}) }}
+                            onClick={() => !n.leida && marcarLeida.mutate(n.id)}
+                          >
+                            {!n.leida && <span style={s.dot} />}
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 500 }}>{n.mensaje ?? n.titulo}</div>
+                              <div style={{ fontSize: 11, color: 'var(--gray-400)', marginTop: 2 }}>
+                                {n.fecha ? new Date(n.fecha).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </header>
 
@@ -324,3 +333,6 @@ const s: Record<string, React.CSSProperties> = {
   notifUnread: { background: 'var(--gray-50)' },
   dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--guinda)', flexShrink: 0, marginTop: 4 },
 }
+
+
+

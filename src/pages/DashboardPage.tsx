@@ -43,8 +43,9 @@ interface BitacorasResponse {
 interface ReporteRow {
   nombre?: string
   tecnico?: string
-  avance?: number
-  porcentaje?: number
+  cerradas?: number
+  borradores?: number
+  total?: number
   total_visitas?: number
   visitas?: number
 }
@@ -52,7 +53,24 @@ interface ReporteRow {
 interface ReporteResponse {
   tecnicos?: ReporteRow[]
   reporte?: ReporteRow[]
-  avance_global?: number
+}
+
+function getNombre(row: ReporteRow): string {
+  return row.nombre ?? row.tecnico ?? 'Sin nombre'
+}
+
+function getTotal(row: ReporteRow): number {
+  return row.total ?? row.total_visitas ?? row.visitas ?? 0
+}
+
+function getCerradas(row: ReporteRow): number {
+  return row.cerradas ?? 0
+}
+
+function getPorcentaje(row: ReporteRow): number {
+  const total = getTotal(row)
+  if (total <= 0) return 0
+  return Math.round((getCerradas(row) / total) * 100)
 }
 
 function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
@@ -116,6 +134,7 @@ export default function DashboardPage() {
   const totalBit = Array.isArray(bitacorasData) ? bitacorasData.length : pickNumber(bitacorasData, ['total'], bitacorasRows.length)
   const totalTecs = tecs.length
   const reporteRows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
+  const cierrePromedio = reporteRows.length > 0 ? Math.round(reporteRows.reduce((sum, row) => sum + getPorcentaje(row), 0) / reporteRows.length) : 0
 
   return (
     <div className="page animate-in">
@@ -126,27 +145,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
         <StatCard label="Técnicos activos" value={totalTecs} icon={UserCheck} color="var(--guinda)" loading={tLoad} />
         <StatCard label="Beneficiarios" value={totalBenef} icon={Users} color="var(--success)" loading={bLoad} />
         <StatCard label="Bitácoras" value={totalBit} icon={FileText} color="var(--warning)" loading={biLoad} />
         <StatCard
-          label="Avance mensual"
-          value={reporteData?.avance_global != null ? `${reporteData.avance_global}%` : (reporteRows.length > 0 ? 'Ver detalle' : '—')}
+          label="Cierre mensual"
+          value={reporteRows.length > 0 ? `${cierrePromedio}%` : '—'}
           icon={TrendingUp}
           color="var(--info)"
           loading={rLoad}
         />
       </div>
 
-      {/* Recent bitácoras + técnicos table */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-        {/* Técnicos */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Activity size={16} style={{ color: 'var(--guinda)' }} />
-            <span style={{ fontWeight: 700, fontSize: 14 }}>Actividad por técnico</span>
+            <span style={{ fontWeight: 700, fontSize: 14 }}>Resumen por técnico</span>
           </div>
           {rLoad ? (
             <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -157,12 +173,12 @@ export default function DashboardPage() {
           ) : (
             <div style={{ padding: '8px 0' }}>
               {reporteRows.slice(0, 8).map((row, i) => {
-                const pct = Math.min(100, row.avance ?? row.porcentaje ?? 0)
+                const pct = Math.min(100, getPorcentaje(row))
                 return (
                   <div key={i} style={{ padding: '10px 20px', borderBottom: '1px solid var(--gray-100)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600 }}>{row.nombre ?? row.tecnico}</span>
-                      <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{row.total_visitas ?? row.visitas ?? 0} visitas</span>
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{getNombre(row)}</span>
+                      <span style={{ fontSize: 11, color: 'var(--gray-400)' }}>{getTotal(row)} bitácoras</span>
                     </div>
                     <div style={{ height: 4, background: 'var(--gray-100)', borderRadius: 2 }}>
                       <div style={{ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--guinda-light), var(--guinda))', borderRadius: 2, transition: 'width 0.5s ease' }} />
@@ -174,7 +190,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Bitácoras recientes */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--gray-100)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <FileText size={16} style={{ color: 'var(--guinda)' }} />

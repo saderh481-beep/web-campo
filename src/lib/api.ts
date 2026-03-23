@@ -183,9 +183,11 @@ function withBitacoraUpdateAliases(payload: unknown): unknown {
   if (!isRecord(payload)) return payload
   const notas = payload.notas
   const observaciones = payload.observaciones
+  const actividadesRealizadas = payload.actividades_realizadas ?? payload.actividadesRealizadas
   return {
     ...payload,
     observaciones: typeof observaciones === 'string' ? observaciones : notas,
+    actividades_realizadas: typeof actividadesRealizadas === 'string' ? actividadesRealizadas : undefined,
   }
 }
 
@@ -214,6 +216,15 @@ function withBeneficiarioPayload(data: unknown): Record<string, unknown> {
   }
 
   return payload
+}
+
+function withActividadPayload(data: unknown): Record<string, unknown> {
+  if (!isRecord(data)) return {}
+  return {
+    nombre: data.nombre,
+    descripcion: data.descripcion,
+    created_by: data.created_by ?? data.createdBy,
+  }
 }
 
 async function with404Fallback<T>(requests: Array<() => Promise<AxiosResponse<T>>>): Promise<AxiosResponse<T>> {
@@ -329,31 +340,17 @@ export const usuariosApi = {
   list: () => api.get('/usuarios'),
   create: (data: unknown) => api.post('/usuarios', withRoleAlias(withNameAlias(withEmailAlias(data)))),
   update: (id: string | number, data: unknown) => api.patch(`/usuarios/${id}`, withRoleAlias(withNameAlias(withEmailAlias(data)))),
-  remove: (id: string | number) => withFallback([
-    () => api.delete(`/usuarios/${id}`),
-    () => api.patch(`/usuarios/${id}/desactivar`),
-    () => api.post(`/usuarios/${id}/desactivar`),
-  ], [404, 405]),
-  perfil: () => api.get('/usuarios/perfil'),
-  actualizarPerfil: (data: unknown) => api.patch('/usuarios/perfil', data),
+  remove: (id: string | number) => api.delete(`/usuarios/${id}`),
 }
 
 // ── TÉCNICOS ──────────────────────────────────────────────────────
 export const tecnicosApi = {
   list: () => api.get('/tecnicos'),
-  getById: (id: string | number) => api.get(`/tecnicos/${id}`),
+  get: (id: string | number) => api.get(`/tecnicos/${id}`),
   create: (data: unknown) => api.post('/tecnicos', withNameAlias(withEmailAlias(data))),
   update: (id: string | number, data: unknown) => api.patch(`/tecnicos/${id}`, withNameAlias(withEmailAlias(data))),
-  regenerarCodigo: (id: string | number) => withFallback([
-    () => api.post(`/tecnicos/${id}/codigo`),
-    () => api.post(`/tecnicos/${id}/regenerar-codigo`),
-  ], [404, 405]),
+  remove: (id: string | number) => api.delete(`/tecnicos/${id}`),
   generarCodigoAcceso: (id: string | number) => api.post(`/tecnicos/${id}/codigo`),
-  remove: (id: string | number) => withFallback([
-    () => api.delete(`/tecnicos/${id}`),
-    () => api.patch(`/tecnicos/${id}/desactivar`),
-    () => api.post(`/tecnicos/${id}/desactivar`),
-  ], [404, 405]),
 }
 
 // ── CADENAS PRODUCTIVAS ───────────────────────────────────────────
@@ -364,47 +361,38 @@ export const cadenasApi = {
   remove: (id: string | number) => api.delete(`/cadenas-productivas/${id}`),
 }
 
-// ── ACTIVIDADES ───────────────────────────────────────────────────
-export const actividadesApi = {
-  list: () => with404Fallback([
-    () => api.get('/actividades'),
-    () => api.get('/mis-actividades'),
-    () => api.get('/datos/mis-actividades'),
-  ]),
-  create: (data: unknown) => api.post('/actividades', data),
-  update: (id: string | number, data: unknown) => api.patch(`/actividades/${id}`, data),
-  remove: (id: string | number) => api.delete(`/actividades/${id}`),
-}
-
-// ── ASIGNACIONES ──────────────────────────────────────────────────────
-export const asignacionesApi = {
-  asignarBeneficiario: (data: { tecnico_id: string; beneficiario_id: string }) =>
-    api.post('/asignaciones/beneficiario', data),
-  desasignarBeneficiario: (id: string) => api.delete(`/asignaciones/beneficiario/${id}`),
-  asignarActividad: (data: { tecnico_id: string; actividad_id: string }) =>
-    api.post('/asignaciones/actividad', data),
-  desasignarActividad: (id: string) => api.delete(`/asignaciones/actividad/${id}`),
-}
-
 // ── BENEFICIARIOS ─────────────────────────────────────────────────
 export const beneficiariosApi = {
-  list: (params?: { page?: number; q?: string; cadena?: number }) => {
-    const normalizedParams = params ? {
-      ...params,
-      query: params.q,
-      search: params.q,
-      cadena_id: params.cadena,
-    } : params
-    return api.get('/beneficiarios', { params: normalizedParams })
-  },
-  getById: (id: string) => api.get(`/beneficiarios/${id}`),
-  create: (data: unknown) => api.post('/beneficiarios', withBeneficiarioPayload(withNameAlias(data))),
-  update: (id: string | number, data: unknown) => api.patch(`/beneficiarios/${id}`, withBeneficiarioPayload(withNameAlias(data))),
+  list: (params?: { page?: number; q?: string; tecnico_id?: string; cadena_id?: string }) =>
+    api.get('/beneficiarios', { params }),
+  get: (id: string | number) => api.get(`/beneficiarios/${id}`),
+  create: (data: unknown) => api.post('/beneficiarios', withBeneficiarioPayload(data)),
+  update: (id: string | number, data: unknown) => api.patch(`/beneficiarios/${id}`, withBeneficiarioPayload(data)),
   asignarCadenas: (id: string, cadenaIds: string[]) =>
-    api.post(`/beneficiarios/${id}/cadenas`, { cadena_ids: cadenaIds, cadenas_ids: cadenaIds }),
+    api.post(`/beneficiarios/${id}/cadenas`, { cadena_ids: cadenaIds }),
   subirDocumento: (id: string, formData: FormData) =>
     api.post(`/beneficiarios/${id}/documentos`, formData),
   getDocumentos: (id: string) => api.get(`/beneficiarios/${id}/documentos`),
+}
+
+// ── ACTIVIDADES ───────────────────────────────────────────────────
+export const actividadesApi = {
+  list: () => api.get('/actividades'),
+  create: (data: unknown) => api.post('/actividades', withActividadPayload(data)),
+  update: (id: string | number, data: unknown) => api.patch(`/actividades/${id}`, withActividadPayload(data)),
+  remove: (id: string | number) => api.delete(`/actividades/${id}`),
+}
+
+// ── ASIGNACIONES ──────────────────────────────────────────────────
+export const asignacionesApi = {
+  asignarBeneficiario: (data: { tecnico_id: string; beneficiario_id: string }) =>
+    api.post('/asignaciones/beneficiario', data),
+  quitarBeneficiario: (id: string | number) =>
+    api.delete(`/asignaciones/beneficiario/${id}`),
+  asignarActividad: (data: { tecnico_id: string; actividad_id: string }) =>
+    api.post('/asignaciones/actividad', data),
+  quitarActividad: (id: string | number) =>
+    api.delete(`/asignaciones/actividad/${id}`),
 }
 
 // ── BITÁCORAS ─────────────────────────────────────────────────────
@@ -417,15 +405,24 @@ export const bitacorasApi = {
   update: (id: string | number, data: unknown) => api.patch(`/bitacoras/${id}`, withBitacoraUpdateAliases(data)),
   pdfUrl: (id: string | number) => `${apiBaseUrl}/bitacoras/${id}/pdf`,
   pdfDownloadUrl: (id: string | number) => `${apiBaseUrl}/bitacoras/${id}/pdf/descargar`,
+  imprimirPdf: (id: string | number) => api.post(`/bitacoras/${id}/pdf/imprimir`),
+  versiones: (id: string | number) => api.get(`/bitacoras/${id}/versiones`),
 }
 
 // ── REPORTES ──────────────────────────────────────────────────────
 export const reportesApi = {
-  mensual: (params?: { mes?: string; anio?: number }) => with404Fallback([
-    () => api.get('/reportes/mensual', { params: normalizeMonthlyParams(params) }),
-    () => api.get('/bitacoras/mensual', { params: normalizeMonthlyParams(params) }),
-    () => api.get('/bitacoras-mensual', { params: normalizeMonthlyParams(params) }),
-  ]),
+  mensual: (params?: { mes?: string; anio?: number }) =>
+    api.get('/reportes/mensual', { params: normalizeMonthlyParams(params) }),
+  tecnico: (id: string | number, params?: { desde?: string; hasta?: string }) =>
+    api.get(`/reportes/tecnico/${id}`, { params }),
+}
+
+// ── ARCHIVE ───────────────────────────────────────────────────────
+export const archiveApi = {
+  list: () => api.get('/archive'),
+  descargar: (periodo: string) => api.get(`/archive/${periodo}/descargar`),
+  confirmar: (periodo: string) => api.post(`/archive/${periodo}/confirmar`, { confirmar: true }),
+  forzar: (periodo: string) => api.post(`/archive/${periodo}/forzar`),
 }
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────

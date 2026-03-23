@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { beneficiariosApi, cadenasApi, tecnicosApi } from '../lib/api'
+import { canAssignBeneficiarioCadenas, canUploadBeneficiarioDocumentos } from '../lib/authz'
+import { useAuth } from '../hooks/useAuth'
+import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
+import type { AssetItem } from '../lib/assets'
 import { pickArray, pickNumber } from '../lib/normalize'
-import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil } from 'lucide-react'
+import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
 
 interface Cadena {
   id: number | string
@@ -72,7 +76,149 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return axiosErr.response?.data?.message ?? fallback
 }
 
-function BeneficiarioModal({ b, cadenas, tecnicos, onClose }: { b?: Beneficiario; cadenas: Cadena[]; tecnicos: Tecnico[]; onClose: () => void }) {
+function getBeneficiarioAssets(source: unknown): AssetItem[] {
+  if (Array.isArray(source)) return normalizeAssets(source, 'documentos-root')
+  if (!isRecord(source)) return []
+
+  return dedupeAssets([
+    normalizeAssets(source.documentos, 'documentos'),
+    normalizeAssets(source.archivos, 'archivos'),
+    normalizeAssets(source.adjuntos, 'adjuntos'),
+    normalizeAssets(source.imagenes, 'imagenes'),
+    normalizeAssets(source.evidencias, 'evidencias'),
+    normalizeAssets(source.items, 'items'),
+    normalizeAssets(source.data, 'data'),
+  ])
+}
+
+function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: Beneficiario; canUpload: boolean; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [tipo, setTipo] = useState('general')
+  const [err, setErr] = useState('')
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['beneficiarios', beneficiario.id, 'documentos'],
+    queryFn: () => beneficiariosApi.getDocumentos(String(beneficiario.id)).then((r) => r.data),
+    staleTime: 30000,
+  })
+
+  const upload = useMutation({
+    mutationFn: async () => {
+      if (!selectedFile) throw new Error('Selecciona un archivo primero')
+      const formData = new FormData()
+      formData.append('archivo', selectedFile)
+      formData.append('tipo', tipo)
+      return beneficiariosApi.subirDocumento(String(beneficiario.id), formData)
+    },
+    onSuccess: () => {
+      setSelectedFile(null)
+      setErr('')
+      qc.invalidateQueries({ queryKey: ['beneficiarios', beneficiario.id, 'documentos'] })
+    },
+    onError: (e: unknown) => setErr(toErrorMessage(e, (e as Error).message || 'No se pudo subir el archivo')),
+  })
+
+  const assets = useMemo(() => getBeneficiarioAssets(data), [data])
+  const imageAssets = assets.filter((asset) => asset.kind === 'image')
+  const fileAssets = assets.filter((asset) => asset.kind !== 'image')
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 760 }}>
+        <div className="modal-header">
+          <h3>Documentos de {beneficiario.nombre}</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body">
+          {canUpload && (
+            <div className="card" style={{ marginBottom: 16, padding: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 160px auto', gap: 10, alignItems: 'center' }}>
+                <input
+                  className="input"
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={e => setSelectedFile(e.target.files?.[0] ?? null)}
+                />
+                <select className="input" value={tipo} onChange={e => setTipo(e.target.value)}>
+                  <option value="general">General</option>
+                  <option value="identificacion">Identificación</option>
+                  <option value="comprobante">Comprobante</option>
+                  <option value="pdf">PDF</option>
+                  <option value="imagen">Imagen</option>
+                </select>
+                <button className="btn btn-primary" onClick={() => upload.mutate()} disabled={!selectedFile || upload.isPending}>
+                  {upload.isPending ? <><span className="spinner" />Subiendo...</> : <><Upload size={14} /> Subir</>}
+                </button>
+              </div>
+              {selectedFile && <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 8 }}>Seleccionado: {selectedFile.name}</p>}
+              {err && <p className="form-error" style={{ marginTop: 8 }}>{err}</p>}
+            </div>
+          )}
+
+          {isLoading ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 48, borderRadius: 8 }} />)}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {imageAssets.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Imágenes</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+                    {imageAssets.map((asset) => (
+                      <a key={asset.id} href={asset.url} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+                        <div style={{ border: '1px solid var(--gray-200)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                          <img src={asset.url} alt={asset.label} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block', background: 'var(--gray-100)' }} />
+                          <div style={{ padding: 8, fontSize: 12, fontWeight: 500, color: 'var(--gray-700)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <ImageIcon size={13} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.label}</span>
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {fileAssets.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Archivos</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {fileAssets.map((asset) => (
+                      <a
+                        key={asset.id}
+                        href={asset.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--gray-200)', background: 'white', textDecoration: 'none', color: 'var(--gray-700)' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          {asset.kind === 'pdf' ? <Paperclip size={15} /> : <LinkIcon size={15} />}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.label}</span>
+                        </span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Download size={14} />
+                          <span className="badge badge-guinda">Abrir</span>
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {assets.length === 0 && (
+                <div className="empty-state"><p>Este beneficiario aún no tiene documentos visibles.</p></div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: { b?: Beneficiario; cadenas: Cadena[]; tecnicos: Tecnico[]; canAssignCadenas: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
@@ -110,7 +256,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, onClose }: { b?: Beneficiario
         ? await beneficiariosApi.update(b.id, payload)
         : await beneficiariosApi.create(payload)
 
-      if (form.cadenas_ids.length > 0) {
+      if (canAssignCadenas && form.cadenas_ids.length > 0) {
         const createdId = String((response.data as { id?: string | number })?.id ?? b?.id ?? '')
         if (createdId) {
           await beneficiariosApi.asignarCadenas(createdId, form.cadenas_ids)
@@ -154,7 +300,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, onClose }: { b?: Beneficiario
               </select>
             </div>
           </div>
-          {cadenas.length > 0 && (
+          {canAssignCadenas && cadenas.length > 0 && (
             <div className="form-group">
               <label className="form-label">Cadenas productivas</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -189,9 +335,13 @@ function BeneficiarioModal({ b, cadenas, tecnicos, onClose }: { b?: Beneficiario
 }
 
 export default function BeneficiariosPage() {
+  const { user } = useAuth()
+  const canAssignCadenas = canAssignBeneficiarioCadenas(user?.rol)
+  const canUploadDocs = canUploadBeneficiarioDocumentos(user?.rol)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [modal, setModal] = useState<'new' | Beneficiario | null>(null)
+  const [docsModal, setDocsModal] = useState<Beneficiario | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['beneficiarios', { page, q }],
@@ -275,7 +425,10 @@ export default function BeneficiariosPage() {
                   </div>
                 </td>
                 <td>
-                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(b)}><Pencil size={13} /></button>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button className="btn btn-ghost btn-icon btn-sm" title="Documentos" onClick={() => setDocsModal(b)}><Paperclip size={13} /></button>
+                    <button className="btn btn-ghost btn-icon btn-sm" title="Editar" onClick={() => setModal(b)}><Pencil size={13} /></button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -300,9 +453,12 @@ export default function BeneficiariosPage() {
           b={modal === 'new' ? undefined : modal}
           cadenas={cadenas}
           tecnicos={tecnicos}
+          canAssignCadenas={canAssignCadenas}
           onClose={() => setModal(null)}
         />
       )}
+
+      {docsModal && <DocumentosModal beneficiario={docsModal} canUpload={canUploadDocs} onClose={() => setDocsModal(null)} />}
     </div>
   )
 }

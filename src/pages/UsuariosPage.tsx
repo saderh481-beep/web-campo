@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { usuariosApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Copy, Check } from 'lucide-react'
 
 type Rol = 'administrador' | 'coordinador' | 'tecnico'
 
@@ -36,6 +36,31 @@ function toFormRole(role: string | undefined): Rol {
   return 'coordinador'
 }
 
+function CodigoGenerado({ codigo }: { codigo: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(codigo)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className="card" style={{ marginTop: 16, background: 'var(--guinda-50)', borderColor: 'var(--guinda-100)' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--guinda)', textTransform: 'uppercase', marginBottom: 8 }}>Código de acceso generado</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <code style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 18, color: 'var(--guinda)' }}>{codigo}</code>
+        <button className="btn btn-secondary btn-sm" onClick={copy}>
+          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--gray-600)', marginTop: 10, marginBottom: 0 }}>
+        Guárdalo ahora. El backend solo lo devuelve en la creación inicial.
+      </p>
+    </div>
+  )
+}
+
 function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<UsuarioForm>({
@@ -44,11 +69,22 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
     rol: toFormRole(u?.rol),
   })
   const [err, setErr] = useState('')
+  const [codigoGenerado, setCodigoGenerado] = useState('')
+
   const save = useMutation({
     mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['usuarios'] }); onClose() },
+    onSuccess: (response) => {
+      qc.invalidateQueries({ queryKey: ['usuarios'] })
+      if (u) {
+        onClose()
+        return
+      }
+      const maybeCode = (response.data as { codigo_acceso?: string })?.codigo_acceso ?? ''
+      setCodigoGenerado(maybeCode)
+    },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -68,11 +104,12 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
               <option value="tecnico">Técnico</option>
             </select></div>
           {err && <p className="form-error">{err}</p>}
+          {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+          <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending || (!u && codigoGenerado.length > 0)}>
+            {save.isPending ? <><span className="spinner" />Guardando...</> : (u ? 'Guardar' : 'Crear usuario')}
           </button>
         </div>
       </div>

@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bitacorasApi } from '../lib/api'
+import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets'
+import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
-import { FileText, Download, Eye, X, Pencil, Save } from 'lucide-react'
+import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
 
 interface Bitacora {
   id: number | string
@@ -19,6 +21,39 @@ interface Bitacora {
   actividades_realizadas?: string
   actividades_desc?: string
   actividad?: string
+  pdf_url?: string
+  pdf_secure_url?: string
+  pdf_download_url?: string
+  documento_url?: string
+  archivo_pdf_url?: string
+  reporte_url?: string
+  imagenes?: unknown[]
+  imagenes_urls?: string[]
+  fotos?: unknown[]
+  evidencias?: unknown[]
+  adjuntos?: unknown[]
+  archivos?: unknown[]
+  documentos?: unknown[]
+}
+
+function getPdfLinks(bit: unknown, id: string | number) {
+  const viewUrl = firstUrl(bit, ['pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasApi.pdfUrl(id)
+  const downloadUrl = firstUrl(bit, ['pdf_download_url', 'download_url', 'pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasApi.pdfDownloadUrl(id)
+  return { viewUrl, downloadUrl }
+}
+
+function getBitacoraAssets(bit: unknown): AssetItem[] {
+  if (!isRecord(bit)) return []
+
+  return dedupeAssets([
+    normalizeAssets(bit.imagenes, 'imagenes'),
+    normalizeAssets(bit.imagenes_urls, 'imagenes-url'),
+    normalizeAssets(bit.fotos, 'fotos'),
+    normalizeAssets(bit.evidencias, 'evidencias'),
+    normalizeAssets(bit.adjuntos, 'adjuntos'),
+    normalizeAssets(bit.archivos, 'archivos'),
+    normalizeAssets(bit.documentos, 'documentos'),
+  ])
 }
 
 function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => void }) {
@@ -31,6 +66,11 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   const [notas, setNotas] = useState('')
   const bit = data?.bitacora ?? data
 
+  const pdfLinks = useMemo(() => getPdfLinks(bit, id), [bit, id])
+  const assets = useMemo(() => getBitacoraAssets(bit), [bit])
+  const imageAssets = assets.filter((asset) => asset.kind === 'image')
+  const fileAssets = assets.filter((asset) => asset.kind !== 'image')
+
   const saveNotas = useMutation({
     mutationFn: () => bitacorasApi.update(id, { observaciones: notas }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['bitacora', id] }); setEditNotas(false) },
@@ -38,14 +78,14 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 620 }}>
+      <div className="modal" style={{ maxWidth: 760 }}>
         <div className="modal-header">
           <h3>Bitácora #{id}</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a href={bitacorasApi.pdfUrl(id)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <a href={pdfLinks.viewUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
               <Eye size={13} /> Ver PDF
             </a>
-            <a href={bitacorasApi.pdfDownloadUrl(id)} download className="btn btn-primary btn-sm">
+            <a href={pdfLinks.downloadUrl} download className="btn btn-primary btn-sm">
               <Download size={13} /> Descargar
             </a>
             <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
@@ -73,6 +113,55 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                   </div>
                 ))}
               </div>
+
+              {imageAssets.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Imágenes y evidencias</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+                    {imageAssets.map((asset) => (
+                      <a
+                        key={asset.id}
+                        href={asset.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}
+                      >
+                        <div style={{ border: '1px solid var(--gray-200)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
+                          <img src={asset.url} alt={asset.label} style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block', background: 'var(--gray-100)' }} />
+                          <div style={{ padding: 8, fontSize: 12, fontWeight: 500, color: 'var(--gray-700)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <ImageIcon size={13} />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.label}</span>
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {fileAssets.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Archivos adjuntos</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {fileAssets.map((asset) => (
+                      <a
+                        key={asset.id}
+                        href={asset.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--gray-200)', background: 'white', textDecoration: 'none', color: 'var(--gray-700)' }}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                          {asset.kind === 'pdf' ? <FileText size={15} /> : <LinkIcon size={15} />}
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.label}</span>
+                        </span>
+                        <span className="badge badge-guinda">Abrir</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Notas</div>
@@ -176,30 +265,33 @@ export default function BitacorasPage() {
               <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
             )) : bitacoras.length === 0 ? (
               <tr><td colSpan={7}><div className="empty-state"><FileText size={32} /><p>Sin bitácoras con los filtros seleccionados</p></div></td></tr>
-            ) : bitacoras.map(b => (
-              <tr key={b.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12, fontWeight: 700 }}>#{b.id}</td>
-                <td style={{ fontWeight: 600 }}>{b.beneficiario_nombre ?? b.beneficiario ?? '—'}</td>
-                <td style={{ color: 'var(--gray-500)' }}>{b.tecnico_nombre ?? b.tecnico ?? '—'}</td>
-                <td style={{ fontSize: 12 }}>{b.fecha ? new Date(b.fecha).toLocaleDateString('es-MX') : '—'}</td>
-                <td>{b.tipo ? <span className="badge badge-guinda">{b.tipo}</span> : '—'}</td>
-                <td>
-                  <span className={`badge badge-${estadoColor[b.estado ?? ''] ?? 'gray'}`}>
-                    {b.estado ?? 'borrador'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-ghost btn-icon btn-sm" title="Ver detalle" onClick={() => setDetalle(b.id)}>
-                      <Eye size={13} />
-                    </button>
-                    <a href={bitacorasApi.pdfDownloadUrl(b.id)} download className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF">
-                      <Download size={13} />
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            ) : bitacoras.map(b => {
+              const pdfLinks = getPdfLinks(b, b.id)
+              return (
+                <tr key={b.id}>
+                  <td style={{ color: 'var(--gray-400)', fontSize: 12, fontWeight: 700 }}>#{b.id}</td>
+                  <td style={{ fontWeight: 600 }}>{b.beneficiario_nombre ?? b.beneficiario ?? '—'}</td>
+                  <td style={{ color: 'var(--gray-500)' }}>{b.tecnico_nombre ?? b.tecnico ?? '—'}</td>
+                  <td style={{ fontSize: 12 }}>{b.fecha ? new Date(b.fecha).toLocaleDateString('es-MX') : '—'}</td>
+                  <td>{b.tipo ? <span className="badge badge-guinda">{b.tipo}</span> : '—'}</td>
+                  <td>
+                    <span className={`badge badge-${estadoColor[b.estado ?? ''] ?? 'gray'}`}>
+                      {b.estado ?? 'borrador'}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Ver detalle" onClick={() => setDetalle(b.id)}>
+                        <Eye size={13} />
+                      </button>
+                      <a href={pdfLinks.downloadUrl} download className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF">
+                        <Download size={13} />
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -208,3 +300,4 @@ export default function BitacorasPage() {
     </div>
   )
 }
+
