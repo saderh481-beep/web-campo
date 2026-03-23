@@ -101,7 +101,8 @@ export default function AppLayout() {
           <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={s.logoImg} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.logoName}>CAMPO</div>
-            <div style={s.logoSub}>Sistema de gestión</div>
+            <div style={s.logoSub}>Secretaría de Desarrollo Agropecuario</div>
+            <div style={s.logoGov}>Primero el Pueblo 2022-2028</div>
           </div>
         </div>
 
@@ -210,16 +211,16 @@ export default function AppLayout() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  wrap: { display: 'flex', height: '100vh', overflow: 'hidden' },
+  wrap: { display: 'flex', height: '100vh', overflow: 'hidden', background: 'linear-gradient(180deg, #F5F5F5 0%, #FFFFFF 100%)' },
   mobileOverlay: {
-    position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.4)',
+    position: 'fixed', inset: 0, background: 'rgba(74, 14, 31, 0.45)',
     zIndex: 18,
   },
   sidebar: {
     width: 'var(--sidebar-w)', flexShrink: 0,
-    background: 'white',
+    background: 'linear-gradient(180deg, #691B31 0%, #A02142 100%)',
     display: 'flex', flexDirection: 'column',
-    borderRight: '1px solid var(--gray-200)',
+    borderRight: '1px solid #BC955B',
     position: 'relative', zIndex: 10,
   },
   sidebarMobile: {
@@ -237,82 +238,83 @@ const s: Record<string, React.CSSProperties> = {
   sidebarLogo: {
     display: 'flex', alignItems: 'center', gap: 12,
     padding: '20px 24px',
-    borderBottom: '1px solid var(--gray-200)',
+    borderBottom: '1px solid #BC955B',
   },
   logoImg: {
     width: 48, height: 48,
     objectFit: 'contain',
     flexShrink: 0,
   },
-  logoName: { fontSize: 18, fontWeight: 600, color: 'var(--gray-900)', letterSpacing: '-0.01em' },
-  logoSub: { fontSize: 11, color: 'var(--gray-500)', fontWeight: 400, letterSpacing: '0.01em' },
+  logoName: { fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' },
+  logoSub: { fontSize: 10, color: '#DDC9A3', fontWeight: 600, letterSpacing: '0.01em', textTransform: 'uppercase' },
+  logoGov: { fontSize: 10, color: '#DDC9A3', fontWeight: 500, letterSpacing: '0.01em' },
   nav: { flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 2 },
   navItem: {
     display: 'flex', alignItems: 'center', gap: 10,
     padding: '10px 14px', borderRadius: 4, fontSize: 13,
-    fontWeight: 500, color: 'var(--gray-600)',
+    fontWeight: 600, color: '#FFFFFF',
     textDecoration: 'none', transition: 'all 0.15s',
     position: 'relative', cursor: 'pointer',
   },
   navActive: {
-    color: 'var(--guinda)', background: 'var(--gray-50)',
-    fontWeight: 500,
+    color: '#691B31', background: '#DDC9A3',
+    fontWeight: 700,
   },
   activeLine: {
     position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
-    width: 3, height: 20, background: 'var(--guinda)',
+    width: 3, height: 20, background: '#BC955B',
     borderRadius: '0 2px 2px 0',
   },
   sidebarUser: {
     display: 'flex', alignItems: 'center', gap: 12,
     padding: '16px 20px',
-    borderTop: '1px solid var(--gray-200)',
+    borderTop: '1px solid #BC955B',
     margin: '0',
   },
   avatarCircle: {
     width: 36, height: 36, borderRadius: '50%',
-    background: 'var(--gray-100)',
-    border: '1px solid var(--gray-200)',
+    background: '#DDC9A3',
+    border: '1px solid #BC955B',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 13, fontWeight: 600, color: 'var(--gray-700)',
+    fontSize: 13, fontWeight: 700, color: '#691B31',
     flexShrink: 0,
   },
-  userName: { fontSize: 13, fontWeight: 500, color: 'var(--gray-900)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  userRole: { fontSize: 11, color: 'var(--gray-500)', textTransform: 'capitalize', letterSpacing: '0.01em' },
+  userName: { fontSize: 13, fontWeight: 600, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  userRole: { fontSize: 11, color: '#DDC9A3', textTransform: 'capitalize', letterSpacing: '0.01em' },
   logoutBtn: {
     background: 'none', border: 'none', cursor: 'pointer',
-    color: 'var(--gray-400)', padding: 6, borderRadius: 4,
+    color: '#DDC9A3', padding: 6, borderRadius: 4,
     display: 'flex', transition: 'color 0.15s',
   },
   main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   mainMobile: { width: '100%' },
   header: {
-    height: 'var(--header-h)', background: 'white',
-    borderBottom: '1px solid var(--gray-200)',
+    height: 'var(--header-h)', background: 'linear-gradient(180deg, #691B31 0%, #A02142 100%)',
+    borderBottom: '1px solid #BC955B',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0 32px', flexShrink: 0,
   },
   headerMobile: { padding: '0 16px' },
-  content: { flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--gray-50)' },
+  content: { flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'linear-gradient(180deg, #F5F5F5 0%, #FFFFFF 100%)' },
   iconBtn: {
-    position: 'relative', background: 'white', border: '1px solid var(--gray-200)',
+    position: 'relative', background: '#DDC9A3', border: '1px solid #BC955B',
     borderRadius: 4, padding: '8px 10px', cursor: 'pointer',
-    color: 'var(--gray-600)', display: 'flex', alignItems: 'center',
+    color: '#691B31', display: 'flex', alignItems: 'center',
     transition: 'all 0.15s',
   },
-  iconBtnActive: { borderColor: 'var(--guinda)', color: 'var(--guinda)', background: 'var(--guinda-50)' },
+  iconBtnActive: { borderColor: '#DDC9A3', color: '#FFFFFF', background: '#691B31' },
   badge: {
     position: 'absolute', top: -6, right: -6,
-    background: 'var(--guinda)', color: 'white',
-    fontSize: 10, fontWeight: 600, minWidth: 16, height: 16,
+    background: '#A02142', color: '#FFFFFF',
+    fontSize: 10, fontWeight: 700, minWidth: 16, height: 16,
     borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center',
     padding: '0 4px',
   },
   notifPanel: {
     position: 'absolute', right: 0, top: 'calc(100% + 8px)',
-    width: 340, background: 'white',
-    borderRadius: 6, border: '1px solid var(--gray-200)',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    width: 340, background: '#FFFFFF',
+    borderRadius: 6, border: '1px solid #BC955B',
+    boxShadow: '0 8px 22px rgba(105,27,49,0.2)',
     zIndex: 50,
   },
   notifPanelMobile: {
@@ -321,17 +323,17 @@ const s: Record<string, React.CSSProperties> = {
   },
   notifHeader: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '14px 16px', borderBottom: '1px solid var(--gray-200)',
+    padding: '14px 16px', borderBottom: '1px solid #DDC9A3',
   },
-  notifMark: { fontSize: 11, color: 'var(--guinda)', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' },
-  notifEmpty: { padding: '24px', textAlign: 'center', color: 'var(--gray-400)', fontSize: 13 },
+  notifMark: { fontSize: 11, color: '#A02142', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' },
+  notifEmpty: { padding: '24px', textAlign: 'center', color: '#6F7271', fontSize: 13 },
   notifItem: {
     display: 'flex', gap: 10, padding: '12px 16px',
-    borderBottom: '1px solid var(--gray-100)', cursor: 'pointer',
+    borderBottom: '1px solid #DDC9A3', cursor: 'pointer',
     transition: 'background 0.1s', alignItems: 'flex-start',
   },
-  notifUnread: { background: 'var(--gray-50)' },
-  dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--guinda)', flexShrink: 0, marginTop: 4 },
+  notifUnread: { background: '#F5F5F5' },
+  dot: { width: 6, height: 6, borderRadius: '50%', background: '#A02142', flexShrink: 0, marginTop: 4 },
 }
 
 

@@ -50,8 +50,9 @@ export default function LoginPage() {
           <h1 style={styles.brand}>CAMPO</h1>
           <p style={styles.brandSub}>Sistema de Gestión de Técnicos y Beneficiarios</p>
           <div style={styles.divider} />
-          <p style={styles.org}>Secretaría de Desarrollo Agropecuario</p>
-          <p style={styles.gov}>Gobierno del Estado de Hidalgo 2022-2028</p>
+          <p style={styles.org}>Secretaría de Desarrollo Agropecuario — CAMPO</p>
+          <p style={styles.gov}>Gobierno del Estado de Hidalgo</p>
+          <p style={styles.motto}>Primero el Pueblo 2022-2028</p>
           {!isMobile && <div style={styles.decorCircle} />}
           {!isMobile && <div style={styles.decorCircle2} />}
         </div>
@@ -117,7 +118,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   wrapMobile: { flexDirection: 'column' },
   left: {
-    width: '46%', background: 'var(--guinda)',
+    width: '46%', background: 'linear-gradient(180deg, #691B31 0%, #A02142 100%)',
     position: 'relative', overflow: 'hidden',
     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     padding: '60px 48px',
@@ -142,11 +143,12 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.6, fontWeight: 400, marginBottom: 32,
   },
   divider: {
-    width: 60, height: 1, background: 'rgba(212,193,156,0.4)',
+    width: 60, height: 1, background: 'rgba(221,201,163,0.56)',
     margin: '0 auto 32px',
   },
-  org: { fontSize: 13, fontWeight: 600, color: 'var(--dorado)', letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: 8 },
-  gov: { fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 400, lineHeight: 1.5 },
+  org: { fontSize: 13, fontWeight: 700, color: '#DDC9A3', letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: 8 },
+  gov: { fontSize: 13, color: 'rgba(255,255,255,0.88)', fontWeight: 500, lineHeight: 1.5 },
+  motto: { fontSize: 12, color: '#DDC9A3', fontWeight: 600, marginTop: 8, letterSpacing: '0.03em', textTransform: 'uppercase' },
   decorCircle: {
     position: 'absolute', bottom: -100, right: -100,
     width: 300, height: 300, borderRadius: '50%',
@@ -160,13 +162,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   right: {
     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'var(--gray-50)', padding: 32,
+    background: 'linear-gradient(180deg, #F5F5F5 0%, #FFFFFF 100%)', padding: 32,
   },
   rightMobile: { padding: 20 },
   formCard: {
-    background: 'white', borderRadius: 8, padding: '48px 40px',
+    background: '#FFFFFF', borderRadius: 8, padding: '48px 40px',
     width: '100%', maxWidth: 440,
-    border: '1px solid var(--gray-200)',
+    border: '1px solid #BC955B',
+    boxShadow: '0 10px 24px rgba(105,27,49,0.12)',
   },
   formCardMobile: { padding: '32px 24px', maxWidth: '100%' },
   title: { fontSize: 24, fontWeight: 600, color: 'var(--gray-900)', marginBottom: 8, textAlign: 'center' },
