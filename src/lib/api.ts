@@ -320,6 +320,10 @@ export const authApi = {
     if (cachedUser) {
       return Promise.resolve({ data: { usuario: cachedUser } } as AxiosResponse<unknown>)
     }
+    const token = getStoredToken()
+    if (!token) {
+      return Promise.resolve({ data: { usuario: null } } as AxiosResponse<unknown>)
+    }
     return with404Fallback([
       () => api.get('/auth/me'),
       () => api.get('/usuarios/me'),
@@ -336,19 +340,24 @@ function buildUsuarioPayload(data: unknown): Record<string, unknown> {
 
   if (nombre !== undefined && nombre !== null) {
     payload.nombre = nombre
-    payload.name = nombre
   }
   if (correo !== undefined && correo !== null) {
     payload.correo = correo
-    payload.email = correo
   }
   if (rol !== undefined) {
     payload.rol = rol
-    payload.role = rol
   }
 
   const activo = (data as Record<string, unknown>).activo
   if (typeof activo === 'boolean') payload.activo = activo
+
+  const optionalKeys = ['telefono', 'coordinador_id', 'fecha_limite', 'codigo_acceso']
+  for (const key of optionalKeys) {
+    const value = (data as Record<string, unknown>)[key]
+    if (value !== undefined && value !== null && value !== '') {
+      payload[key] = value
+    }
+  }
 
   return payload
 }

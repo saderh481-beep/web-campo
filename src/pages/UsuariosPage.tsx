@@ -12,6 +12,10 @@ interface Usuario {
   nombre: string
   correo: string
   rol: Rol | string
+  codigo_acceso?: string
+  telefono?: string
+  coordinador_id?: string
+  fecha_limite?: string
   activo?: boolean
 }
 
@@ -23,6 +27,9 @@ interface UsuarioForm {
   nombre: string
   correo: string
   rol: Rol
+  telefono: string
+  coordinador_id: string
+  fecha_limite: string
 }
 
 type AnyRecord = Record<string, unknown>
@@ -67,9 +74,13 @@ function normalizeUsuarios(source: unknown): Usuario[] {
       const nombre = pickString(row, ['nombre', 'name']) ?? 'Sin nombre'
       const correo = pickString(row, ['correo', 'email']) ?? 'sin-correo'
       const rol = pickString(row, ['rol', 'role']) ?? 'coordinador'
+      const codigo_acceso = pickString(row, ['codigo_acceso', 'codigoAcceso', 'codigo', 'access_code'])
+      const telefono = pickString(row, ['telefono', 'phone'])
+      const coordinador_id = pickString(row, ['coordinador_id', 'coordinator_id'])
+      const fecha_limite = pickString(row, ['fecha_limite', 'fechaLimite'])
       const activo = pickBoolean(row, ['activo', 'is_active', 'status'])
 
-      return { id, nombre, correo, rol, activo }
+      return { id, nombre, correo, rol, codigo_acceso, telefono, coordinador_id, fecha_limite, activo }
     })
     .filter((u): u is Usuario => Boolean(u))
 }
@@ -110,15 +121,19 @@ function CodigoGenerado({ codigo }: { codigo: string }) {
   )
 }
 
-function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
+function UsuarioModal({ u, onClose, coordinadores }: { u?: Usuario; onClose: () => void; coordinadores: Usuario[] }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<UsuarioForm>({
     nombre: u?.nombre ?? '',
     correo: u?.correo ?? '',
     rol: toFormRole(u?.rol),
+    telefono: u?.telefono ?? '',
+    coordinador_id: u?.coordinador_id ?? '',
+    fecha_limite: u?.fecha_limite ? String(u.fecha_limite).slice(0, 10) : '',
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
+  const isTecnico = form.rol === 'tecnico'
 
   const save = useMutation({
     mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
@@ -134,6 +149,29 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
 
+  const handleSave = () => {
+    if (!form.nombre.trim() || !form.correo.trim()) {
+      setErr('Nombre y correo son obligatorios.')
+      return
+    }
+    if (isTecnico) {
+      if (!form.telefono.trim()) {
+        setErr('El teléfono es obligatorio para técnicos.')
+        return
+      }
+      if (!form.coordinador_id.trim()) {
+        setErr('Debes seleccionar un coordinador para el técnico.')
+        return
+      }
+      if (!form.fecha_limite.trim()) {
+        setErr('La fecha límite es obligatoria para técnicos.')
+        return
+      }
+    }
+    setErr('')
+    save.mutate()
+  }
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
@@ -147,17 +185,38 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
           <div className="form-group"><label className="form-label">Correo</label>
             <input className="input" type="email" value={form.correo} onChange={e => setForm(p => ({ ...p, correo: e.target.value }))} /></div>
           <div className="form-group"><label className="form-label">Rol</label>
-            <select className="input" value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value as Rol }))}>
+            <select className="input" value={form.rol} onChange={e => setForm(p => ({
+              ...p,
+              rol: e.target.value as Rol,
+              telefono: e.target.value === 'tecnico' ? p.telefono : '',
+              coordinador_id: e.target.value === 'tecnico' ? p.coordinador_id : '',
+              fecha_limite: e.target.value === 'tecnico' ? p.fecha_limite : '',
+            }))}>
               <option value="administrador">Administrador</option>
               <option value="coordinador">Coordinador</option>
               <option value="tecnico">Técnico</option>
             </select></div>
+          {isTecnico && (
+            <>
+              <div className="form-group"><label className="form-label">Teléfono</label>
+                <input className="input" value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} /></div>
+              <div className="form-group"><label className="form-label">Coordinador</label>
+                <select className="input" value={form.coordinador_id} onChange={e => setForm(p => ({ ...p, coordinador_id: e.target.value }))}>
+                  <option value="">Selecciona un coordinador</option>
+                  {coordinadores.map((coordinador) => (
+                    <option key={coordinador.id} value={String(coordinador.id)}>{coordinador.nombre}</option>
+                  ))}
+                </select></div>
+              <div className="form-group"><label className="form-label">Fecha límite</label>
+                <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} /></div>
+            </>
+          )}
           {err && <p className="form-error">{err}</p>}
           {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending || (!u && codigoGenerado.length > 0)}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={save.isPending || (!u && codigoGenerado.length > 0)}>
             {save.isPending ? <><span className="spinner" />Guardando...</> : (u ? 'Guardar' : 'Crear usuario')}
           </button>
         </div>
@@ -180,6 +239,7 @@ export default function UsuariosPage() {
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
   const usuarios = normalizeUsuarios(usuariosData)
+  const coordinadores = usuarios.filter((usuario) => (usuario.rol === 'coordinador' || usuario.rol === 'administrador') && usuario.activo !== false)
 
   return (
     <div className="page animate-in">
@@ -190,15 +250,16 @@ export default function UsuariosPage() {
       </div>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Código acceso</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {isLoading ? Array(4).fill(0).map((_, i) => (
-              <tr key={i}>{Array(6).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
+              <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
             )) : usuarios.map((u, i) => (
               <tr key={u.id}>
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{u.nombre}</td>
                 <td style={{ color: 'var(--gray-500)' }}>{u.correo}</td>
+                <td><code style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--gray-700)' }}>{u.codigo_acceso ?? '—'}</code></td>
                 <td><span className={`badge badge-${(u.rol === 'administrador' || u.rol === 'admin') ? 'guinda' : 'dorado'}`}>{u.rol}</span></td>
                 <td><span className={`badge badge-${u.activo !== false ? 'green' : 'gray'}`}>{u.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
                 <td><div style={{ display: 'flex', gap: 4 }}>
@@ -211,7 +272,14 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
-      {modal && <UsuarioModal u={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
+      {modal && <UsuarioModal u={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} />}
     </div>
   )
 }
+
+
+
+
+
+
+
