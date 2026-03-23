@@ -186,13 +186,21 @@ tbody td { padding: 14px 16px; color: var(--gray-700); vertical-align: middle; }
 .input::placeholder { color: var(--gray-400); }
 /* Inputs dentro del modal */
 .modal-body .input {
-  background: var(--gray-50);
-  border-color: var(--gray-200);
+  background: #fdfcfb;
+  border: 1px solid #e8e0d8;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.modal-body .input:hover {
+  border-color: #BC955B;
 }
 .modal-body .input:focus {
-  background: white;
-  border-color: var(--guinda-medium);
-  box-shadow: 0 0 0 3px rgba(160, 33, 66, 0.1);
+  background: #ffffff;
+  border-color: #691B31;
+  box-shadow: 0 0 0 3px rgba(105, 27, 49, 0.1);
+}
+.modal-body select.input {
+  background-color: #fdfcfb;
 }
 
 /* Page */
@@ -224,36 +232,55 @@ tbody td { padding: 14px 16px; color: var(--gray-700); vertical-align: middle; }
 .empty-state svg { opacity: 0.3; }
 
 /* Select */
-select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+select.input { 
+  appearance: none; 
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23691B31' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); 
+  background-repeat: no-repeat; 
+  background-position: right 12px center; 
+  padding-right: 36px;
+  cursor: pointer;
+}
 
 /* Modal - Estilo Institucional Gobierno del Estado de Hidalgo */
 .modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(105, 27, 49, 0.65);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  z-index: 100;
-  display: flex; align-items: center; justify-content: center; padding: 20px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(105, 27, 49, 0.7) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
   animation: overlayEnter 0.25s ease;
 }
 .modal {
-  background: var(--gray-50);
-  border-radius: 8px;
+  background: #ffffff !important;
+  border-radius: 12px;
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: 
-    0 25px 50px -12px rgba(105, 27, 49, 0.35),
-    0 0 0 1px rgba(105, 27, 49, 0.15),
-    0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    0 25px 50px -12px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(105, 27, 49, 0.2);
   animation: modalEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .modal-header {
   padding: 20px 24px;
-  background: linear-gradient(135deg, #691B31 0%, #A02142 100%);
-  display: flex; align-items: center; justify-content: space-between;
-  border: none;
+  background: linear-gradient(135deg, #691B31 0%, #A02142 100%) !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none !important;
   position: relative;
+  flex-shrink: 0;
 }
 .modal-header::before {
   content: '';
@@ -261,45 +288,67 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
   background: linear-gradient(90deg, #DDC9A3 0%, #BC955B 50%, #DDC9A3 100%);
 }
 .modal-header h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #DDC9A3;
+  color: #DDC9A3 !important;
   letter-spacing: 0.01em;
+  margin: 0;
 }
-.modal-header .btn-ghost {
-  color: #DDC9A3;
-  background: rgba(221, 201, 163, 0.1);
-  border-radius: var(--radius);
+.modal-header .btn-ghost,
+.modal-header .btn-icon {
+  color: #DDC9A3 !important;
+  background: rgba(221, 201, 163, 0.15) !important;
+  border-radius: 6px;
+  border: none;
 }
-.modal-header .btn-ghost:hover {
-  background: rgba(221, 201, 163, 0.2);
-  color: white;
+.modal-header .btn-ghost:hover,
+.modal-header .btn-icon:hover {
+  background: rgba(221, 201, 163, 0.3) !important;
+  color: #ffffff !important;
 }
 .modal-body {
   padding: 24px;
-  background: white;
+  background: #ffffff !important;
+  flex: 1;
+  overflow-y: auto;
+}
+.modal-body .form-label {
+  color: #691B31;
+  font-weight: 600;
 }
 .modal-footer {
   padding: 16px 24px;
-  background: linear-gradient(to bottom, #fafafa, #f5f5f5);
-  border-top: 1px solid var(--gray-200);
+  background: linear-gradient(to bottom, #f8f4f0, #f5f0eb) !important;
+  border-top: 2px solid #DDC9A3 !important;
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 /* Estilo especial para botones dentro del modal */
 .modal-footer .btn-secondary {
-  background: white;
-  border-color: var(--gray-300);
+  background: #ffffff;
+  border: 1px solid #BC955B;
+  color: #691B31;
 }
 .modal-footer .btn-secondary:hover:not(:disabled) {
-  background: var(--gray-50);
-  border-color: var(--guinda);
-  color: var(--guinda);
+  background: #fdf8f3;
+  border-color: #691B31;
+  color: #691B31;
+}
+.modal-footer .btn-primary {
+  background: linear-gradient(135deg, #691B31 0%, #A02142 100%);
+  border: none;
+  color: #DDC9A3;
+  font-weight: 600;
+}
+.modal-footer .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4A0E1F 0%, #691B31 100%);
+  color: #ffffff;
 }
 
 /* Form */
