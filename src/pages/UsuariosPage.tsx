@@ -25,6 +25,55 @@ interface UsuarioForm {
   rol: Rol
 }
 
+type AnyRecord = Record<string, unknown>
+
+function isRecord(value: unknown): value is AnyRecord {
+  return typeof value === 'object' && value !== null
+}
+
+function pickString(source: AnyRecord, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+  }
+  return undefined
+}
+
+function pickBoolean(source: AnyRecord, keys: string[]): boolean | undefined {
+  for (const key of keys) {
+    const value = source[key]
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value !== 0
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (['true', '1', 'activo', 'active', 'habilitado'].includes(normalized)) return true
+      if (['false', '0', 'inactivo', 'inactive', 'deshabilitado'].includes(normalized)) return false
+    }
+  }
+  return undefined
+}
+
+function normalizeUsuarios(source: unknown): Usuario[] {
+  const rows = pickArray<unknown>(source, ['usuarios', 'rows', 'data'])
+  return rows
+    .map((row): Usuario | null => {
+      if (!isRecord(row)) return null
+
+      // Prioriza ids enteros/canónicos del backend antes de UUID para update/delete.
+      const id = pickString(row, ['usuario_id', 'id_usuario', 'user_id', 'id', 'uuid'])
+      if (!id) return null
+
+      const nombre = pickString(row, ['nombre', 'name']) ?? 'Sin nombre'
+      const correo = pickString(row, ['correo', 'email']) ?? 'sin-correo'
+      const rol = pickString(row, ['rol', 'role']) ?? 'coordinador'
+      const activo = pickBoolean(row, ['activo', 'is_active', 'status'])
+
+      return { id, nombre, correo, rol, activo }
+    })
+    .filter((u): u is Usuario => Boolean(u))
+}
+
 function toErrorMessage(err: unknown, fallback: string): string {
   const axiosErr = err as AxiosError<{ message?: string }>
   return axiosErr.response?.data?.message ?? fallback
@@ -130,7 +179,7 @@ export default function UsuariosPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
-  const usuarios = pickArray<Usuario>(usuariosData, ['usuarios', 'rows', 'data'])
+  const usuarios = normalizeUsuarios(usuariosData)
 
   return (
     <div className="page animate-in">

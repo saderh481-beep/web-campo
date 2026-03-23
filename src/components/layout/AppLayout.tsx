@@ -21,6 +21,7 @@ interface NotificacionesResponse {
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true, allow: canViewDashboard },
+  { to: '/usuarios', label: 'Usuarios', icon: Settings, allow: canManageUsers },
   { to: '/tecnicos', label: 'Técnicos', icon: UserCheck, allow: canViewTecnicos },
   { to: '/beneficiarios', label: 'Beneficiarios', icon: Users, allow: canViewBeneficiarios },
   { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen, allow: canViewBitacoras },
@@ -28,7 +29,6 @@ const NAV = [
   { to: '/reportes', label: 'Reportes', icon: FileBarChart, allow: canViewReports },
   { to: '/actividades', label: 'Actividades', icon: ClipboardList, allow: canViewActividades },
   { to: '/asignaciones', label: 'Asignaciones', icon: Link2, allow: canViewAsignaciones },
-  { to: '/usuarios', label: 'Usuarios', icon: Settings, allow: canManageUsers },
 ]
 
 export default function AppLayout() {
