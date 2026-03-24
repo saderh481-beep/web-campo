@@ -28,9 +28,6 @@ interface UsuarioForm {
   nombre: string
   correo: string
   rol: Rol
-  telefono: string
-  coordinador_id: string
-  fecha_limite: string
 }
 
 type AnyRecord = Record<string, unknown>
@@ -122,20 +119,15 @@ function CodigoGenerado({ codigo }: { codigo: string }) {
   )
 }
 
-function UsuarioModal({ u, onClose, coordinadores }: { u?: Usuario; onClose: () => void; coordinadores: Usuario[] }) {
+function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<UsuarioForm>({
     nombre: u?.nombre ?? '',
     correo: u?.correo ?? '',
     rol: toFormRole(u?.rol),
-    telefono: u?.telefono ?? '',
-    coordinador_id: u?.coordinador_id ?? '',
-    fecha_limite: u?.fecha_limite ? String(u.fecha_limite).slice(0, 10) : '',
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
-  const isTecnico = form.rol === 'tecnico'
-
   const save = useMutation({
     mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
     onSuccess: (response) => {
@@ -154,20 +146,6 @@ function UsuarioModal({ u, onClose, coordinadores }: { u?: Usuario; onClose: () 
     if (!form.nombre.trim() || !form.correo.trim()) {
       setErr('Nombre y correo son obligatorios.')
       return
-    }
-    if (isTecnico) {
-      if (!form.telefono.trim()) {
-        setErr('El teléfono es obligatorio para técnicos.')
-        return
-      }
-      if (!form.coordinador_id.trim()) {
-        setErr('Debes seleccionar un coordinador para el técnico.')
-        return
-      }
-      if (!form.fecha_limite.trim()) {
-        setErr('La fecha límite es obligatoria para técnicos.')
-        return
-      }
     }
     setErr('')
     save.mutate()
@@ -189,29 +167,11 @@ function UsuarioModal({ u, onClose, coordinadores }: { u?: Usuario; onClose: () 
             <select className="input" value={form.rol} onChange={e => setForm(p => ({
               ...p,
               rol: e.target.value as Rol,
-              telefono: e.target.value === 'tecnico' ? p.telefono : '',
-              coordinador_id: e.target.value === 'tecnico' ? p.coordinador_id : '',
-              fecha_limite: e.target.value === 'tecnico' ? p.fecha_limite : '',
             }))}>
               <option value="administrador">Administrador</option>
               <option value="coordinador">Coordinador</option>
               <option value="tecnico">Técnico</option>
             </select></div>
-          {isTecnico && (
-            <>
-              <div className="form-group"><label className="form-label">Teléfono</label>
-                <input className="input" value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} /></div>
-              <div className="form-group"><label className="form-label">Coordinador</label>
-                <select className="input" value={form.coordinador_id} onChange={e => setForm(p => ({ ...p, coordinador_id: e.target.value }))}>
-                  <option value="">Selecciona un coordinador</option>
-                  {coordinadores.map((coordinador) => (
-                    <option key={coordinador.id} value={String(coordinador.id)}>{coordinador.nombre}</option>
-                  ))}
-                </select></div>
-              <div className="form-group"><label className="form-label">Fecha límite</label>
-                <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} /></div>
-            </>
-          )}
           {err && <FeedbackBanner kind="error" message={err} compact />}
           {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
         </div>
@@ -245,7 +205,6 @@ export default function UsuariosPage() {
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
   const usuarios = normalizeUsuarios(usuariosData)
-  const coordinadores = usuarios.filter((usuario) => (usuario.rol === 'coordinador' || usuario.rol === 'administrador') && usuario.activo !== false)
 
   return (
     <div className="page animate-in">
@@ -279,7 +238,7 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
-      {modal && <UsuarioModal u={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} />}
+      {modal && <UsuarioModal u={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
     </div>
   )
 }
