@@ -6,6 +6,7 @@ import { canManageAsignaciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
 import { ClipboardList, Link2 } from 'lucide-react'
+import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
   id: number | string
@@ -34,8 +35,8 @@ export default function AsignacionesPage() {
   const [beneficiarioId, setBeneficiarioId] = useState('')
   const [tecnicoActividadId, setTecnicoActividadId] = useState('')
   const [actividadId, setActividadId] = useState('')
-  const [beneficiarioMsg, setBeneficiarioMsg] = useState('')
-  const [actividadMsg, setActividadMsg] = useState('')
+  const [beneficiarioFeedback, setBeneficiarioFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
+  const [actividadFeedback, setActividadFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data: tecnicosData, isLoading: loadingTecnicos } = useQuery({
     queryKey: ['tecnicos'],
@@ -58,19 +59,19 @@ export default function AsignacionesPage() {
   const asignarBeneficiario = useMutation({
     mutationFn: () => asignacionesApi.asignarBeneficiario({ tecnico_id: tecnicoBeneficiarioId, beneficiario_id: beneficiarioId }),
     onSuccess: () => {
-      setBeneficiarioMsg('Beneficiario asignado correctamente.')
+      setBeneficiarioFeedback({ kind: 'success', message: 'Beneficiario asignado correctamente.' })
       setBeneficiarioId('')
     },
-    onError: (e: unknown) => setBeneficiarioMsg(toErrorMessage(e, 'No se pudo asignar el beneficiario.')),
+    onError: (e: unknown) => setBeneficiarioFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar el beneficiario.') }),
   })
 
   const asignarActividad = useMutation({
     mutationFn: () => asignacionesApi.asignarActividad({ tecnico_id: tecnicoActividadId, actividad_id: actividadId }),
     onSuccess: () => {
-      setActividadMsg('Actividad asignada correctamente.')
+      setActividadFeedback({ kind: 'success', message: 'Actividad asignada correctamente.' })
       setActividadId('')
     },
-    onError: (e: unknown) => setActividadMsg(toErrorMessage(e, 'No se pudo asignar la actividad.')),
+    onError: (e: unknown) => setActividadFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar la actividad.') }),
   })
 
   const tecnicos = pickArray<Tecnico>(tecnicosData as unknown, ['tecnicos', 'rows', 'data'])
@@ -113,7 +114,7 @@ export default function AsignacionesPage() {
                 {beneficiarios.map((b) => <option key={b.id} value={String(b.id)}>{b.nombre}</option>)}
               </select>
             </div>
-            {beneficiarioMsg && <p className={beneficiarioMsg.includes('correctamente') ? '' : 'form-error'}>{beneficiarioMsg}</p>}
+            {beneficiarioFeedback && <FeedbackBanner kind={beneficiarioFeedback.kind} message={beneficiarioFeedback.message} compact />}
             <button className="btn btn-primary" disabled={loading || asignarBeneficiario.isPending || !tecnicoBeneficiarioId || !beneficiarioId} onClick={() => asignarBeneficiario.mutate()}>
               {asignarBeneficiario.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar beneficiario'}
             </button>
@@ -138,7 +139,7 @@ export default function AsignacionesPage() {
                 {actividades.map((a) => <option key={a.id} value={String(a.id)}>{a.nombre}</option>)}
               </select>
             </div>
-            {actividadMsg && <p className={actividadMsg.includes('correctamente') ? '' : 'form-error'}>{actividadMsg}</p>}
+            {actividadFeedback && <FeedbackBanner kind={actividadFeedback.kind} message={actividadFeedback.message} compact />}
             <button className="btn btn-primary" disabled={loading || asignarActividad.isPending || !tecnicoActividadId || !actividadId} onClick={() => asignarActividad.mutate()}>
               {asignarActividad.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar actividad'}
             </button>

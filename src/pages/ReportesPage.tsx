@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { reportesApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
 import { Download } from 'lucide-react'
+import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface ReporteRow {
   nombre?: string
@@ -44,6 +45,7 @@ function getPorcentaje(row: ReporteRow): number {
 export default function ReportesPage() {
   const hoy = new Date()
   const [mes, setMes] = useState(`${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`)
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'warning' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['reporte', mes],
@@ -56,14 +58,24 @@ export default function ReportesPage() {
   const maxTotal = Math.max(...rows.map(getTotal), 1)
 
   const exportCSV = () => {
+    if (rows.length === 0) {
+      setFeedback({ kind: 'warning', message: 'No hay datos para exportar en el periodo seleccionado.' })
+      return
+    }
+
     const header = 'Técnico,Total,Cerradas,Borradores,Cierre %\n'
     const csv = rows.map(r =>
       `"${getNombre(r)}",${getTotal(r)},${getCerradas(r)},${getBorradores(r)},${getPorcentaje(r)}`
     ).join('\n')
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([header + csv], { type: 'text/csv;charset=utf-8;' }))
-    a.download = `reporte-campo-${mes}.csv`
-    a.click()
+    try {
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(new Blob([header + csv], { type: 'text/csv;charset=utf-8;' }))
+      a.download = `reporte-campo-${mes}.csv`
+      a.click()
+      setFeedback({ kind: 'success', message: 'Reporte CSV generado correctamente.' })
+    } catch {
+      setFeedback({ kind: 'error', message: 'No se pudo generar el archivo CSV.' })
+    }
   }
 
   const totalBitacoras = rows.reduce((sum, row) => sum + getTotal(row), 0)
@@ -85,6 +97,8 @@ export default function ReportesPage() {
           </button>
         </div>
       </div>
+
+      {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
 
       {!isLoading && rows.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 24 }}>

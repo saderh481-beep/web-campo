@@ -46,11 +46,11 @@ export function canManageTecnicos(role?: string | null): boolean {
 }
 
 export function canViewBeneficiarios(role?: string | null): boolean {
-  return isAdmin(role)
+  return isAdmin(role) || isCoordinator(role)
 }
 
 export function canManageBeneficiarios(role?: string | null): boolean {
-  return isAdmin(role)
+  return isAdmin(role) || isCoordinator(role)
 }
 
 export function canAssignBeneficiarioCadenas(role?: string | null): boolean {
@@ -58,11 +58,11 @@ export function canAssignBeneficiarioCadenas(role?: string | null): boolean {
 }
 
 export function canUploadBeneficiarioDocumentos(role?: string | null): boolean {
-  return isAdmin(role)
+  return isAdmin(role) || isCoordinator(role)
 }
 
 export function canViewCadenas(role?: string | null): boolean {
-  return isAdmin(role)
+  return isAdmin(role) || isCoordinator(role)
 }
 
 export function canManageCadenas(role?: string | null): boolean {
@@ -78,11 +78,11 @@ export function canManageBitacoras(role?: string | null): boolean {
 }
 
 export function canViewReports(role?: string | null): boolean {
-  return isAdmin(role)
+  return isAdmin(role) || isCoordinator(role)
 }
 
 export function canViewActividades(role?: string | null): boolean {
-  return isAdmin(role)
+  return isAdmin(role) || isCoordinator(role)
 }
 
 export function canManageActividades(role?: string | null): boolean {
@@ -90,14 +90,38 @@ export function canManageActividades(role?: string | null): boolean {
 }
 
 export function canViewAsignaciones(role?: string | null): boolean {
-  return isAdmin(role) || isCoordinator(role)
+  return isAdmin(role)
 }
 
 export function canManageAsignaciones(role?: string | null): boolean {
-  return isAdmin(role) || isCoordinator(role)
+  return isAdmin(role)
 }
 
 export function canViewNotifications(role?: string | null): boolean {
+  return isAdmin(role) || isCoordinator(role) || isTecnico(role)
+}
+
+export function canViewLocalidades(role?: string | null): boolean {
+  return isAdmin(role) || isCoordinator(role)
+}
+
+export function canManageLocalidades(role?: string | null): boolean {
+  return isAdmin(role)
+}
+
+export function canViewConfiguraciones(role?: string | null): boolean {
+  return isAdmin(role) || isCoordinator(role)
+}
+
+export function canManageConfiguraciones(role?: string | null): boolean {
+  return isAdmin(role)
+}
+
+export function canViewDocumentosPlantilla(role?: string | null): boolean {
+  return isAdmin(role) || isCoordinator(role)
+}
+
+export function canManageDocumentosPlantilla(role?: string | null): boolean {
   return isAdmin(role)
 }
 

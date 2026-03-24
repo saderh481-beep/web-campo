@@ -428,6 +428,8 @@ export const tecnicosApi = {
   update: (id: string | number, data: unknown) => api.patch(`/tecnicos/${id}`, withNameAlias(withEmailAlias(data))),
   remove: (id: string | number) => api.delete(`/tecnicos/${id}`),
   generarCodigoAcceso: (id: string | number) => api.post(`/tecnicos/${id}/codigo`),
+  aplicarCortes: () => api.post('/tecnicos/aplicar-cortes'),
+  cerrarCorte: (id: string | number) => api.post(`/tecnicos/${id}/cerrar-corte`),
 }
 
 // ── CADENAS PRODUCTIVAS ───────────────────────────────────────────
@@ -500,6 +502,30 @@ export const archiveApi = {
   descargar: (periodo: string) => api.get(`/archive/${periodo}/descargar`),
   confirmar: (periodo: string) => api.post(`/archive/${periodo}/confirmar`, { confirmar: true }),
   forzar: (periodo: string) => api.post(`/archive/${periodo}/forzar`),
+}
+
+// ── LOCALIDADES ──────────────────────────────────────────────────
+export const localidadesApi = {
+  list: () => api.get('/localidades'),
+  create: (data: unknown) => api.post('/localidades', data),
+  update: (id: string | number, data: unknown) => api.patch(`/localidades/${id}`, data),
+  remove: (id: string | number) => api.delete(`/localidades/${id}`),
+}
+
+// ── CONFIGURACIONES ──────────────────────────────────────────────
+export const configuracionesApi = {
+  list: () => api.get('/configuraciones'),
+  get: (clave: string) => api.get(`/configuraciones/${clave}`),
+  update: (clave: string, valor: unknown) => api.put(`/configuraciones/${clave}`, { valor }),
+}
+
+// ── DOCUMENTOS PLANTILLA ─────────────────────────────────────────
+export const documentosPlantillaApi = {
+  activos: () => api.get('/documentos-plantilla/activos'),
+  list: () => api.get('/documentos-plantilla'),
+  create: (data: unknown) => api.post('/documentos-plantilla', data),
+  update: (id: string | number, data: unknown) => api.patch(`/documentos-plantilla/${id}`, data),
+  remove: (id: string | number) => api.delete(`/documentos-plantilla/${id}`),
 }
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────

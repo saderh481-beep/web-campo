@@ -1,8 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2 } from 'lucide-react'
+import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { canViewActividades, canViewAsignaciones, canViewBeneficiarios, canViewBitacoras, canViewCadenas, canViewDashboard, canViewNotifications, canViewReports, canViewTecnicos, canManageUsers } from '../../lib/authz'
+import { canViewActividades, canViewAsignaciones, canViewBeneficiarios, canViewBitacoras, canViewCadenas, canViewDashboard, canViewNotifications, canViewReports, canViewTecnicos, canManageUsers, canViewLocalidades, canViewConfiguraciones, canViewDocumentosPlantilla, canViewArchive } from '../../lib/authz'
 import { notificacionesApi } from '../../lib/api'
 import { pickArray } from '../../lib/normalize'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -29,6 +29,10 @@ const NAV = [
   { to: '/reportes', label: 'Reportes', icon: FileBarChart, allow: canViewReports },
   { to: '/actividades', label: 'Actividades', icon: ClipboardList, allow: canViewActividades },
   { to: '/asignaciones', label: 'Asignaciones', icon: Link2, allow: canViewAsignaciones },
+  { to: '/localidades', label: 'Localidades', icon: MapPin, allow: canViewLocalidades },
+  { to: '/documentos-plantilla', label: 'Documentos Plantilla', icon: FileBadge2, allow: canViewDocumentosPlantilla },
+  { to: '/configuraciones', label: 'Configuraciones', icon: SlidersHorizontal, allow: canViewConfiguraciones },
+  { to: '/archive', label: 'Archive', icon: Archive, allow: canViewArchive },
 ]
 
 export default function AppLayout() {

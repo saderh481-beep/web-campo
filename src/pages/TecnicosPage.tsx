@@ -6,6 +6,7 @@ import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
 import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search, Users } from 'lucide-react'
+import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
   id: number | string
@@ -15,6 +16,7 @@ interface Tecnico {
   coordinador_id?: string
   fecha_limite?: string
   codigo_acceso?: string
+  estado_corte?: string
   activo?: boolean
 }
 
@@ -108,7 +110,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico: Tecnico; onClose: () => v
               <input className="input" type={type} value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
             </div>
           ))}
-          {err && <p className="form-error">{err}</p>}
+          {err && <FeedbackBanner kind="error" message={err} compact />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
@@ -127,6 +129,7 @@ export default function TecnicosPage() {
   const qc = useQueryClient()
   const [modal, setModal] = useState<Tecnico | null>(null)
   const [q, setQ] = useState('')
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['tecnicos'],
@@ -136,7 +139,29 @@ export default function TecnicosPage() {
 
   const remove = useMutation({
     mutationFn: (id: string | number) => tecnicosApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tecnicos'] })
+      setFeedback({ kind: 'success', message: 'Tecnico desactivado correctamente.' })
+    },
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo desactivar el tecnico.') }),
+  })
+
+  const aplicarCortes = useMutation({
+    mutationFn: () => tecnicosApi.aplicarCortes(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tecnicos'] })
+      setFeedback({ kind: 'success', message: 'Cortes aplicados correctamente.' })
+    },
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudieron aplicar cortes.') }),
+  })
+
+  const cerrarCorte = useMutation({
+    mutationFn: (id: string | number) => tecnicosApi.cerrarCorte(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tecnicos'] })
+      setFeedback({ kind: 'success', message: 'Corte cerrado correctamente.' })
+    },
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo cerrar el corte.') }),
   })
 
   const tecnicosData = pickArray<Tecnico>(data, ['tecnicos', 'rows', 'data'])
@@ -151,15 +176,22 @@ export default function TecnicosPage() {
         </div>
       </div>
 
+      {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
+
       {canManage && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>Alta de técnicos</div>
             <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>El backend actual no crea técnicos desde /tecnicos. La alta se hace en Usuarios con rol técnico.</div>
           </div>
-          <button className="btn btn-secondary" onClick={() => window.location.assign('/usuarios')}>
-            <Users size={14} /> Ir a usuarios
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-secondary" onClick={() => window.location.assign('/usuarios')}>
+              <Users size={14} /> Ir a usuarios
+            </button>
+            <button className="btn btn-primary" onClick={() => aplicarCortes.mutate()} disabled={aplicarCortes.isPending}>
+              {aplicarCortes.isPending ? <><span className="spinner" />Aplicando...</> : 'Aplicar cortes'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -172,18 +204,18 @@ export default function TecnicosPage() {
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Código de acceso</th><th>Estado</th><th></th>
+              <th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Código de acceso</th><th>Corte</th><th>Estado</th><th></th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               Array(5).fill(0).map((_, i) => (
-                <tr key={i}>{Array(7).fill(0).map((_, j) => (
+                <tr key={i}>{Array(8).fill(0).map((_, j) => (
                   <td key={j}><div className="skeleton" style={{ height: 18, width: j === 0 ? 24 : '80%' }} /></td>
                 ))}</tr>
               ))
             ) : tecnicos.length === 0 ? (
-              <tr><td colSpan={7}><div className="empty-state"><p>Sin técnicos</p></div></td></tr>
+              <tr><td colSpan={8}><div className="empty-state"><p>Sin técnicos</p></div></td></tr>
             ) : tecnicos.map((t, i) => (
               <tr key={t.id}>
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
@@ -192,6 +224,11 @@ export default function TecnicosPage() {
                 <td>{t.telefono ?? '—'}</td>
                 <td>{t.codigo_acceso ? <CodigoAcceso codigo={t.codigo_acceso} id={t.id} canManage={canManage} /> : <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
                 <td>
+                  <span className={`badge badge-${t.estado_corte === 'corte_aplicado' ? 'amber' : 'green'}`}>
+                    {t.estado_corte ?? 'en_servicio'}
+                  </span>
+                </td>
+                <td>
                   <span className={`badge badge-${t.activo !== false ? 'green' : 'gray'}`}>
                     {t.activo !== false ? 'Activo' : 'Inactivo'}
                   </span>
@@ -199,6 +236,9 @@ export default function TecnicosPage() {
                 <td>
                   {canManage && (
                     <div style={{ display: 'flex', gap: 4 }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => cerrarCorte.mutate(t.id)} disabled={cerrarCorte.isPending}>
+                        Cerrar corte
+                      </button>
                       <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(t)}><Pencil size={13} /></button>
                       <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} onClick={() => confirm(`¿Desactivar a ${t.nombre}?`) && remove.mutate(t.id)}>
                         <Trash2 size={13} />

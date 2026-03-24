@@ -4,6 +4,7 @@ import type { AxiosError } from 'axios'
 import { usuariosApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X, Copy, Check } from 'lucide-react'
+import FeedbackBanner from '../components/common/FeedbackBanner'
 
 type Rol = 'administrador' | 'coordinador' | 'tecnico'
 
@@ -211,7 +212,7 @@ function UsuarioModal({ u, onClose, coordinadores }: { u?: Usuario; onClose: () 
                 <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} /></div>
             </>
           )}
-          {err && <p className="form-error">{err}</p>}
+          {err && <FeedbackBanner kind="error" message={err} compact />}
           {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
         </div>
         <div className="modal-footer">
@@ -228,6 +229,7 @@ function UsuarioModal({ u, onClose, coordinadores }: { u?: Usuario; onClose: () 
 export default function UsuariosPage() {
   const qc = useQueryClient()
   const [modal, setModal] = useState<'new' | Usuario | null>(null)
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const { data, isLoading } = useQuery({
     queryKey: ['usuarios'],
     queryFn: () => usuariosApi.list().then(r => r.data),
@@ -235,7 +237,11 @@ export default function UsuariosPage() {
   })
   const remove = useMutation({
     mutationFn: (id: string | number) => usuariosApi.remove(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['usuarios'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['usuarios'] })
+      setFeedback({ kind: 'success', message: 'Usuario desactivado correctamente.' })
+    },
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo desactivar el usuario.') }),
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
   const usuarios = normalizeUsuarios(usuariosData)
@@ -248,6 +254,7 @@ export default function UsuariosPage() {
           <p className="page-subtitle">{usuarios.length} usuario{usuarios.length !== 1 ? 's' : ''}</p></div>
         <button className="btn btn-primary" onClick={() => setModal('new')}><Plus size={15} /> Nuevo usuario</button>
       </div>
+      {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
       <div className="table-wrap">
         <table>
           <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Código acceso</th><th>Rol</th><th>Estado</th><th></th></tr></thead>

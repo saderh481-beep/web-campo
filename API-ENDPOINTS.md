@@ -1,651 +1,523 @@
-# API Web - Documentación de Endpoints
+# API Web - Endpoints (Actualizado)
 
-Documentación actualizada de endpoints expuestos por la API.
+Documentacion consolidada con la especificacion nueva de rutas, roles y comportamiento.
 
 ## Base
 
-- **Health**: `GET /health`
-- **Prefijos montados**:
+- Health: `GET /health`
+- Prefijos principales:
   - `/auth`
   - `/usuarios`
   - `/tecnicos`
-  - `/actividades`
   - `/cadenas-productivas`
+  - `/actividades`
   - `/beneficiarios`
   - `/asignaciones`
   - `/bitacoras`
   - `/reportes`
-  - `/archive`
   - `/notificaciones`
+  - `/localidades`
+  - `/configuraciones`
+  - `/documentos-plantilla`
+  - `/archive`
 
-## Autenticación
+## Autenticacion
 
-Todas las rutas protegidas usan header `Authorization` con esquema Bearer:
+Rutas protegidas usan header:
 
-```
+```http
 Authorization: Bearer <token>
 ```
 
-**Almacenamiento de credenciales:**
-- **Tokens de sesión**: Se validan contra Redis en la clave `session:{token}` (sesiones web)
-- **Códigos de acceso**: Se guardan en base de datos con:
-  - `usuarios.codigo_acceso` (texto plano)
-  - `usuarios.hash_codigo_acceso` (bcrypt, costo 12)
-
-## Roles
-
-Roles disponibles en el backend:
+Roles disponibles:
 - `administrador`
 - `coordinador`
 - `tecnico`
 
----
-
-## Tabla Rápida
+## Tabla Rapida
 
 ### Auth
 
-| Método | Ruta | Autenticación | Body Mínimo |
-|--------|------|---------------|------------|
-| POST | `/auth/request-codigo-acceso` | Público | `{ correo }` |
-| POST | `/auth/verify-codigo-acceso` | Público | `{ correo, codigo_acceso }` |
-| POST | `/auth/login` | Público | `{ correo, codigo_acceso }` |
-| POST | `/auth/request-otp` | Público | `{ correo }` |
-| POST | `/auth/verify-otp` | Público | `{ correo, codigo_acceso }` |
-| POST | `/auth/logout` | Bearer | — |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| POST | `/auth/request-codigo-acceso` | Publico | `{ correo }` |
+| POST | `/auth/verify-codigo-acceso` | Publico | `{ correo, codigo_acceso }` |
+| POST | `/auth/login` | Publico | `{ correo, codigo_acceso }` |
+| POST | `/auth/request-otp` | Publico | `{ correo }` |
+| POST | `/auth/verify-otp` | Publico | `{ correo, codigo_acceso }` |
+| POST | `/auth/logout` | Bearer | `-` |
 
 ### Usuarios
 
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
-| GET | `/usuarios` | administrador | — |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/usuarios` | administrador | `-` |
 | POST | `/usuarios` | administrador | `{ correo, nombre, rol, telefono?, coordinador_id?, fecha_limite? }` |
 | PATCH | `/usuarios/:id` | administrador | `{ nombre?, correo?, rol?, codigo_acceso?, telefono?, coordinador_id?, fecha_limite? }` |
-| DELETE | `/usuarios/:id` | administrador | — |
+| DELETE | `/usuarios/:id` | administrador | `-` |
 
-### Técnicos
+### Tecnicos
 
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
-| GET | `/tecnicos` | administrador, coordinador | — |
-| GET | `/tecnicos/:id` | administrador, coordinador | — |
-| POST | `/tecnicos` | administrador | No disponible (usar `/usuarios` con rol=tecnico) |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/tecnicos` | administrador, coordinador | `-` |
+| GET | `/tecnicos/:id` | administrador, coordinador | `-` |
+| POST | `/tecnicos` | administrador | No disponible (alta via `/usuarios` con rol tecnico) |
 | PATCH | `/tecnicos/:id` | administrador | `{ nombre?, correo?, telefono?, coordinador_id?, fecha_limite? }` |
-| POST | `/tecnicos/:id/codigo` | administrador | — |
-| DELETE | `/tecnicos/:id` | administrador | — |
-
-### Actividades
-
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
-| GET | `/actividades` | administrador, coordinador | — |
-| POST | `/actividades` | administrador | `{ nombre, descripcion? }` |
-| PATCH | `/actividades/:id` | administrador | `{ nombre?, descripcion?, created_by? }` |
-| DELETE | `/actividades/:id` | administrador | — |
+| POST | `/tecnicos/:id/codigo` | administrador | `-` |
+| POST | `/tecnicos/aplicar-cortes` | administrador | `-` |
+| POST | `/tecnicos/:id/cerrar-corte` | administrador, coordinador | `-` |
+| DELETE | `/tecnicos/:id` | administrador | `-` |
 
 ### Cadenas Productivas
 
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
-| GET | `/cadenas-productivas` | administrador, coordinador | — |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/cadenas-productivas` | administrador, coordinador | `-` |
 | POST | `/cadenas-productivas` | administrador | `{ nombre, descripcion? }` |
 | PATCH | `/cadenas-productivas/:id` | administrador | `{ nombre?, descripcion? }` |
-| DELETE | `/cadenas-productivas/:id` | administrador | — |
+| DELETE | `/cadenas-productivas/:id` | administrador | `-` |
+
+### Actividades
+
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/actividades` | administrador, coordinador | `-` |
+| POST | `/actividades` | administrador | `{ nombre, descripcion? }` |
+| PATCH | `/actividades/:id` | administrador | `{ nombre?, descripcion? }` |
+| DELETE | `/actividades/:id` | administrador | `-` |
 
 ### Beneficiarios
 
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
-| GET | `/beneficiarios` | administrador, coordinador | — |
-| GET | `/beneficiarios/:id` | administrador, coordinador | — |
-| POST | `/beneficiarios` | administrador, coordinador | `{ nombre, municipio, tecnico_id }` |
-| PATCH | `/beneficiarios/:id` | administrador, coordinador | `{ nombre?, municipio?, localidad?, direccion?, cp?, telefono_principal?, telefono_secundario?, coord_parcela?, tecnico_id? }` |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/beneficiarios` | administrador, coordinador | `-` |
+| GET | `/beneficiarios/:id` | administrador, coordinador | `-` |
+| POST | `/beneficiarios` | administrador, coordinador | `{ nombre, municipio, tecnico_id, localidad_id? }` |
+| PATCH | `/beneficiarios/:id` | administrador, coordinador | `{ nombre?, municipio?, localidad?, localidad_id?, direccion?, cp?, telefono_principal?, telefono_secundario?, coord_parcela?, tecnico_id? }` |
 | POST | `/beneficiarios/:id/cadenas` | administrador | `{ cadena_ids: uuid[] }` |
 | POST | `/beneficiarios/:id/documentos` | administrador, coordinador | `FormData(archivo, tipo)` |
-| GET | `/beneficiarios/:id/documentos` | administrador, coordinador | — |
+| GET | `/beneficiarios/:id/documentos` | administrador, coordinador | `-` |
 
 ### Asignaciones
 
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
 | POST | `/asignaciones/beneficiario` | administrador | `{ tecnico_id, beneficiario_id }` |
-| DELETE | `/asignaciones/beneficiario/:id` | administrador | — |
+| DELETE | `/asignaciones/beneficiario/:id` | administrador | `-` |
 | POST | `/asignaciones/actividad` | administrador | `{ tecnico_id, actividad_id }` |
-| DELETE | `/asignaciones/actividad/:id` | administrador | — |
+| DELETE | `/asignaciones/actividad/:id` | administrador | `-` |
 
-### Bitácoras
+### Bitacoras
 
-| Método | Ruta | Rol | Query Opcional |
-|--------|------|-----|----------------|
-| GET | `/bitacoras` | administrador, coordinador | `tecnico_id, mes, anio, estado, tipo` |
-| GET | `/bitacoras/:id` | administrador, coordinador | — |
-| PATCH | `/bitacoras/:id` | administrador, coordinador | — |
-| GET | `/bitacoras/:id/pdf` | administrador, coordinador | — |
-| GET | `/bitacoras/:id/pdf/descargar` | administrador, coordinador | — |
-| POST | `/bitacoras/:id/pdf/imprimir` | administrador, coordinador | — |
-| GET | `/bitacoras/:id/versiones` | administrador, coordinador | — |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/bitacoras` | administrador, coordinador | Query opcional: `tecnico_id, mes, anio, estado, tipo` |
+| GET | `/bitacoras/:id` | administrador, coordinador | `-` |
+| PATCH | `/bitacoras/:id` | administrador, coordinador | `{ observaciones?, actividades_realizadas? }` |
+| GET | `/bitacoras/:id/pdf` | administrador, coordinador | `-` |
+| GET | `/bitacoras/:id/pdf/descargar` | administrador, coordinador | `-` |
+| POST | `/bitacoras/:id/pdf/imprimir` | administrador, coordinador | `-` |
+| GET | `/bitacoras/:id/versiones` | administrador, coordinador | `-` |
 
 ### Reportes
 
-| Método | Ruta | Rol | Query Opcional |
-|--------|------|-----|----------------|
-| GET | `/reportes/mensual` | administrador, coordinador | `mes, anio` |
-| GET | `/reportes/tecnico/:id` | administrador, coordinador | `desde, hasta` |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/reportes/mensual` | administrador, coordinador | Query opcional: `mes, anio` |
+| GET | `/reportes/tecnico/:id` | administrador, coordinador | Query opcional: `desde, hasta` |
 
 ### Notificaciones
 
-| Método | Ruta | Rol | Body |
-|--------|------|-----|------|
-| GET | `/notificaciones` | administrador, coordinador | — |
-| PATCH | `/notificaciones/:id/leer` | administrador, coordinador | — |
-| PATCH | `/notificaciones/leer-todas` | administrador, coordinador | — |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/notificaciones` | todos (autenticado) | `-` |
+| PATCH | `/notificaciones/:id/leer` | todos (autenticado) | `-` |
+| PATCH | `/notificaciones/leer-todas` | todos (autenticado) | `-` |
+
+### Localidades
+
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/localidades` | administrador, coordinador | `-` |
+| POST | `/localidades` | administrador | `{ municipio, nombre, cp? }` |
+| PATCH | `/localidades/:id` | administrador | `{ municipio?, nombre?, cp? }` |
+| DELETE | `/localidades/:id` | administrador | `-` |
+
+### Configuraciones
+
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/configuraciones` | administrador | `-` |
+| GET | `/configuraciones/:clave` | administrador, coordinador | `-` |
+| PUT | `/configuraciones/:clave` | administrador | `{ valor: object }` |
+
+### Documentos Plantilla
+
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/documentos-plantilla/activos` | administrador, coordinador | `-` |
+| GET | `/documentos-plantilla` | administrador | `-` |
+| POST | `/documentos-plantilla` | administrador | `{ nombre, descripcion?, obligatorio?, orden? }` |
+| PATCH | `/documentos-plantilla/:id` | administrador | `{ nombre?, descripcion?, obligatorio?, orden?, activo? }` |
+| DELETE | `/documentos-plantilla/:id` | administrador | `-` |
 
 ### Archive
 
-| Método | Ruta | Rol | Body Mínimo |
-|--------|------|-----|------------|
-| GET | `/archive` | administrador | — |
-| GET | `/archive/:periodo/descargar` | administrador | — |
+| Metodo | Ruta | Rol | Body minimo |
+|---|---|---|---|
+| GET | `/archive` | administrador | `-` |
+| GET | `/archive/:periodo/descargar` | administrador | `-` |
 | POST | `/archive/:periodo/confirmar` | administrador | `{ confirmar: true }` |
-| POST | `/archive/:periodo/forzar` | administrador | — |
-
----
+| POST | `/archive/:periodo/forzar` | administrador | `-` |
 
 ## Referencia Detallada
 
 ### Auth (`/auth`)
 
-#### POST `/request-codigo-acceso`
-- **Autenticación**: Pública
-- **Body**: `{ correo: string }`
-- **Respuesta**: `200 OK`
-- **Nota**: Endpoint informativo/compatibilidad; ya no genera código por correo
+- `POST /request-codigo-acceso`
+  - Body: `{ correo }`
+  - Nota: endpoint informativo/compatibilidad; ya no genera codigo por correo.
 
-#### POST `/verify-codigo-acceso`
-- **Autenticación**: Pública
-- **Body**: `{ correo: string, codigo_acceso: string }`
-- **Respuesta**: `200 OK` → `{ token, usuario: { id, nombre, correo, rol } }`
-- **Errores**: `400` (validación), `401` (credenciales inválidas)
-- **Nota**: Login por compatibilidad
+- `POST /verify-codigo-acceso`
+  - Body: `{ correo, codigo_acceso }`
+  - Nota: login por compatibilidad.
 
-#### POST `/login`
-- **Autenticación**: Pública
-- **Body**: `{ correo: string, codigo_acceso: string }`
-- **Respuesta**: `200 OK` → `{ token, usuario: { id, nombre, correo, rol } }`
-- **Errores**: `400` (validación), `401` (credenciales inválidas), `404` (usuario no encontrado)
-- **Lógica**:
-  1. Busca usuario activo por correo
-  2. Compara `codigo_acceso` contra `hash_codigo_acceso` (bcrypt)
-  3. Crea token UUID
-  4. Guarda sesión en Redis con clave `session:{token}`
-  5. Registra evento en `auth_logs` (login)
+- `POST /login`
+  - Body: `{ correo, codigo_acceso }`
+  - Busca usuario activo por correo, compara con `hash_codigo_acceso` (bcrypt), crea token UUID, guarda sesion en Redis y registra `auth_logs` login.
+  - Respuesta 200:
 
-#### POST `/request-otp`
-- **Autenticación**: Pública
-- **Body**: `{ correo: string }`
-- **Respuesta**: `200 OK`
-- **Nota**: Compatibilidad temporal (comportamiento idéntico a `/request-codigo-acceso`)
+```json
+{
+  "token": "uuid",
+  "usuario": {
+    "id": "uuid",
+    "nombre": "Nombre",
+    "correo": "correo@dominio.com",
+    "rol": "administrador"
+  }
+}
+```
 
-#### POST `/verify-otp`
-- **Autenticación**: Pública
-- **Body**: `{ correo: string, codigo_acceso: string }`
-- **Respuesta**: `200 OK` → `{ token, usuario: { id, nombre, correo, rol } }`
-- **Errores**: `400` (validación), `401` (credenciales inválidas)
-- **Nota**: Compatibilidad temporal (comportamiento idéntico a `/login`)
+- `POST /request-otp`
+  - Compatibilidad temporal (mismo comportamiento de `request-codigo-acceso`).
 
-#### POST `/logout`
-- **Autenticación**: Bearer token (requerido)
-- **Body**: — (vacío)
-- **Respuesta**: `200 OK`
-- **Errores**: `401` (sin autenticación)
-- **Lógica**:
-  1. Elimina `session:{token}` en Redis
-  2. Registra evento en `auth_logs` (logout)
+- `POST /verify-otp`
+  - Compatibilidad temporal (mismo comportamiento de `login`).
 
----
+- `POST /logout`
+  - Requiere Bearer token.
+  - Elimina `session:{token}` en Redis y registra `auth_logs` logout.
 
 ### Usuarios (`/usuarios`)
 
-**Autenticación**: Todas requieren rol `administrador`
+Requiere rol `administrador`.
 
-#### GET `/`
-- **Respuesta**: `200 OK` → `[ { id, nombre, correo, rol, codigo_acceso, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Nota**: Incluye `codigo_acceso` en texto plano
+- `GET /`
+  - Lista usuarios (incluye `codigo_acceso`).
 
-#### POST `/`
-- **Body**:
-  - `correo` (string, requerido): Email del usuario
-  - `nombre` (string, requerido)
-  - `rol` (enum: `tecnico | coordinador | administrador`, requerido)
-  - `telefono` (string, opcional): Solo para rol=tecnico
-  - `coordinador_id` (uuid, requerido si rol=tecnico)
-  - `fecha_limite` (date, requerido si rol=tecnico)
-- **Respuesta**: `201 Created` → `{ id, nombre, correo, rol, codigo_acceso, ... }`
-- **Errores**: `400` (validación), `409` (correo duplicado), `404` (coordinador no encontrado para tecnico)
-- **Lógica**:
-  1. Valida correo único entre usuarios activos
-  2. Genera `codigo_acceso`:
-     - `tecnico`: 5 dígitos
-     - `coordinador/administrador`: 6 dígitos
-  3. Calcula `hash_codigo_acceso` (bcrypt, costo 12)
-  4. Si `rol=tecnico`, replica registro en tabla `tecnicos` con `activo=true`
-  5. La respuesta incluye el `codigo_acceso` generado
+- `POST /`
+  - Body:
+    - `correo` (email)
+    - `nombre`
+    - `rol`: `tecnico | coordinador | administrador`
+    - `telefono?` (solo tecnico)
+    - `coordinador_id?` (requerido si rol=tecnico)
+    - `fecha_limite?` (requerido si rol=tecnico)
+  - Genera `codigo_acceso` automaticamente:
+    - tecnico: 5 digitos
+    - coordinador/administrador: 6 digitos
+  - Guarda codigo en texto plano y hash en bcrypt cost 12.
+  - Si rol=tecnico, replica en tabla `tecnicos` con `activo=true`.
+  - Respuesta 201 incluye `codigo_acceso`.
 
-#### PATCH `/:id`
-- **Body** (todos opcionales):
-  - `nombre`, `correo`, `rol`, `telefono`, `coordinador_id`, `fecha_limite`
-  - `codigo_acceso`: Si se actualiza, también regenera `hash_codigo_acceso`
-- **Respuesta**: `200 OK` → `{ id, nombre, correo, rol, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (usuario no encontrado), `409` (correo duplicado o coordinador inactivo)
-- **Lógica**:
-  1. Valida correo único entre usuarios activos
-  2. Si `rol=tecnico` y se envía `coordinador_id`, valida que coordinador exista y esté activo
-  3. Sincroniza datos en tabla `tecnicos` si el usuario es tecnico
+- `PATCH /:id`
+  - Body parcial: `nombre, correo, rol, codigo_acceso, telefono, coordinador_id, fecha_limite`.
+  - Si cambia `codigo_acceso`, tambien actualiza `hash_codigo_acceso`.
+  - Si no se envia `codigo_acceso`, conserva hash actual sin recalcular.
+  - Valida correo unico entre usuarios activos.
+  - Si rol final es tecnico y se envia `coordinador_id`, valida coordinador activo.
+  - Si el usuario es tecnico, sincroniza datos en tabla `tecnicos`.
 
-#### DELETE `/:id`
-- **Body**: — (vacío)
-- **Respuesta**: `204 No Content` o `200 OK`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (usuario no encontrado)
-- **Lógica**:
-  1. Soft delete: `activo=false`, `updated_at=NOW()`
-  2. Si `rol=tecnico`, también desactiva registro en tabla `tecnicos`
+- `DELETE /:id`
+  - Soft delete: `activo=false`, `updated_at=NOW()`.
+  - Retorna 404 si no existe.
+  - Si rol=tecnico, tambien desactiva registro en `tecnicos`.
 
----
+### Tecnicos (`/tecnicos`)
 
-### Técnicos (`/tecnicos`)
+Requiere autenticacion.
 
-**Autenticación**: Todas requieren Bearer token
+- `GET /`
+  - Roles: administrador, coordinador.
+  - Admin ve todos los activos; coordinador solo los suyos.
 
-#### GET `/`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `[ { id, nombre, correo, telefono, coordinador_id, codigo_acceso, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Nota**: 
-  - Admin: Ve todos los técnicos activos
-  - Coordinador: Solo ve técnicos bajo su coordinación
+- `GET /:id`
+  - Roles: administrador, coordinador.
 
-#### GET `/:id`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `{ id, nombre, correo, telefono, coordinador_id, codigo_acceso, ... }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (técnico no encontrado)
-- **Nota**: Coordinador solo puede ver técnicos bajo su coordinación
+- `POST /`
+  - Solo administrador.
+  - No disponible para crear tecnicos.
+  - Alta via `/usuarios` con rol tecnico.
 
-#### POST `/`
-- **Roles autorizados**: `administrador`
-- **Respuesta**: `405 Method Not Allowed` o `400 Bad Request`
-- **Nota**: La alta de técnicos se realiza mediante `POST /usuarios` con `rol=tecnico`
+- `PATCH /:id`
+  - Solo administrador.
+  - Body parcial: `nombre, correo, telefono, coordinador_id, fecha_limite`.
+  - Valida correo unico contra usuarios activos.
+  - Si cambia coordinador, valida coordinador activo.
+  - Sincroniza `nombre/correo` en `usuarios`.
+  - Si `fecha_limite` es futura, resetea `estado_corte` a `en_servicio`.
 
-#### PATCH `/:id`
-- **Roles autorizados**: `administrador`
-- **Body** (todos opcionales):
-  - `nombre`, `correo`, `telefono`, `coordinador_id`, `fecha_limite`
-- **Respuesta**: `200 OK` → `{ id, nombre, correo, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (técnico no encontrado), `409` (correo duplicado o coordinador inactivo)
-- **Lógica**:
-  1. Valida correo único contra usuarios activos
-  2. Si cambia `coordinador_id`, valida que sea coordinador activo
-  3. Sincroniza `nombre` y `correo` en tabla `usuarios` para mantener consistencia
+- `POST /aplicar-cortes`
+  - Solo administrador.
+  - Aplica `estado_corte=corte_aplicado` a tecnicos vencidos que esten en `en_servicio`.
+  - Respuesta: lista de tecnicos actualizados.
 
-#### POST `/:id/codigo`
-- **Roles autorizados**: `administrador`
-- **Body**: — (vacío)
-- **Respuesta**: `200 OK` → `{ codigo_acceso: string }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (técnico no encontrado)
-- **Lógica**:
-  1. Genera código numérico de 5 dígitos
-  2. Actualiza `tecnicos.codigo_acceso`
-  3. Sincroniza en `usuarios.codigo_acceso` y `usuarios.hash_codigo_acceso` (bcrypt)
+- `POST /:id/cerrar-corte`
+  - Roles: administrador, coordinador.
+  - Coordinador solo en tecnicos bajo su coordinacion.
+  - Aplica `estado_corte=corte_aplicado`.
 
-#### DELETE `/:id`
-- **Roles autorizados**: `administrador`
-- **Body**: — (vacío)
-- **Respuesta**: `204 No Content` o `200 OK`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (técnico no encontrado)
-- **Lógica**:
-  1. Soft delete técnico: `activo=false`, `updated_at=NOW()`
-  2. Desactiva usuario tecnico asociado (búsqueda por correo)
+- `POST /:id/codigo`
+  - Solo administrador.
+  - Genera codigo numerico de 5 digitos para tecnico.
+  - Guarda en `tecnicos.codigo_acceso` y en `usuarios.codigo_acceso`, actualizando `usuarios.hash_codigo_acceso`.
+  - No usa Redis para codigos tecnicos.
 
----
-
-### Actividades (`/actividades`)
-
-**Autenticación**: POST, PATCH, DELETE requieren rol `administrador`; GET requiere `administrador` o `coordinador`
-
-#### GET `/`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `[ { id, nombre, descripcion, activo, created_at, updated_at, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-
-#### POST `/`
-- **Roles autorizados**: `administrador`
-- **Body**:
-  - `nombre` (string, requerido)
-  - `descripcion` (string, opcional)
-- **Respuesta**: `201 Created` → `{ id, nombre, descripcion, activo, created_at, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos)
-
-#### PATCH `/:id`
-- **Roles autorizados**: `administrador`
-- **Body** (todos opcionales):
-  - `nombre`, `descripcion`, `created_by`
-- **Respuesta**: `200 OK` → `{ id, nombre, descripcion, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (actividad no encontrada)
-
-#### DELETE `/:id`
-- **Roles autorizados**: `administrador`
-- **Body**: — (vacío)
-- **Respuesta**: `204 No Content` o `200 OK`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (actividad no encontrada)
-- **Lógica**:
-  1. Soft delete: `activo=false`, `updated_at=NOW()`
-
----
+- `DELETE /:id`
+  - Solo administrador.
+  - Soft delete de tecnico: `activo=false`, `updated_at=NOW()`.
+  - Tambien desactiva usuario tecnico asociado por correo.
+  - Retorna 404 si el tecnico no existe.
 
 ### Cadenas Productivas (`/cadenas-productivas`)
 
-**Autenticación**: GET requiere `administrador` o `coordinador`; POST, PATCH, DELETE requieren `administrador`
+- `GET /`: roles administrador, coordinador.
+- `POST /`: solo administrador. Body: `nombre, descripcion?`.
+- `PATCH /:id`: solo administrador. Body parcial: `nombre, descripcion`.
+- `DELETE /:id`: solo administrador. Soft delete `activo=false`, `updated_at=NOW()`. Retorna 404 si no existe.
 
-#### GET `/`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `[ { id, nombre, descripcion, activo, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
+### Actividades (`/actividades`)
 
-#### POST `/`
-- **Roles autorizados**: `administrador`
-- **Body**:
-  - `nombre` (string, requerido)
-  - `descripcion` (string, opcional)
-- **Respuesta**: `201 Created` → `{ id, nombre, descripcion, activo, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos)
-
-#### PATCH `/:id`
-- **Roles autorizados**: `administrador`
-- **Body** (todos opcionales):
-  - `nombre`, `descripcion`
-- **Respuesta**: `200 OK` → `{ id, nombre, descripcion, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (cadena no encontrada)
-
-#### DELETE `/:id`
-- **Roles autorizados**: `administrador`
-- **Body**: — (vacío)
-- **Respuesta**: `204 No Content` o `200 OK`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (cadena no encontrada)
-- **Lógica**:
-  1. Soft delete: `activo=false`, `updated_at=NOW()`
-
----
+- `GET /`: roles administrador, coordinador.
+- `POST /`: solo administrador. Body: `nombre, descripcion?`.
+- `PATCH /:id`: solo administrador. Body parcial: `nombre, descripcion`.
+- `DELETE /:id`: solo administrador. Soft delete `activo=false`, `updated_at=NOW()`. Retorna 404 si no existe.
 
 ### Beneficiarios (`/beneficiarios`)
 
-**Autenticación**: Todas requieren Bearer token
+- `GET /`: roles administrador, coordinador.
+- `GET /:id`: regresa beneficiario con cadenas activas y documentos.
 
-#### GET `/`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `[ { id, nombre, municipio, localidad, direccion, cp, telefono_principal, telefono_secundario, coord_parcela, tecnico_id, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
+- `POST /`
+  - Roles: administrador, coordinador.
+  - Body:
+    - `nombre`
+    - `municipio`
+    - `localidad?`
+    - `localidad_id?` (uuid FK a tabla localidades)
+    - `direccion?`
+    - `cp?`
+    - `telefono_principal?`
+    - `telefono_secundario?`
+    - `coord_parcela?` (formato `x,y` o `(x,y)`)
+    - `tecnico_id`
+  - Telefonos se almacenan como `bytea`.
+  - `coord_parcela` se almacena como `point`.
 
-#### GET `/:id`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `{ id, nombre, municipio, ..., cadenas: [ { id, nombre, ... } ], documentos: [ { ... } ] }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (beneficiario no encontrado)
-- **Nota**: Incluye cadenas activas y documentos asociados
+- `PATCH /:id`
+  - Roles: administrador, coordinador.
+  - Body parcial de los mismos campos, incluyendo `localidad_id`.
+  - Si se envia `tecnico_id`, valida tecnico activo.
+  - Coordinador solo puede asignar tecnicos bajo su coordinacion.
 
-#### POST `/`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Body**:
-  - `nombre` (string, requerido)
-  - `municipio` (string, requerido)
-  - `tecnico_id` (uuid, requerido)
-  - `localidad`, `direccion`, `cp`, `telefono_principal`, `telefono_secundario` (strings, opcionales)
-  - `coord_parcela` (string formato `x,y` o `(x,y)`, opcional)
-- **Respuesta**: `201 Created` → `{ id, nombre, municipio, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (técnico no encontrado)
-- **Almacenamiento especial**:
-  - `telefonos`: bytea
-  - `coord_parcela`: point (PostGIS)
-- **Validación**: Coordinador solo puede asignar técnicos bajo su coordinación
+- `POST /:id/cadenas`
+  - Solo administrador.
+  - Body: `{ cadena_ids: uuid[] }`.
+  - Actualiza asignaciones usando `beneficiario_cadenas.activo` (sin delete fisico).
 
-#### PATCH `/:id`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Body** (todos opcionales):
-  - `nombre`, `municipio`, `localidad`, `direccion`, `cp`, `telefono_principal`, `telefono_secundario`, `coord_parcela`, `tecnico_id`
-- **Respuesta**: `200 OK` → `{ id, nombre, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (beneficiario o técnico no encontrado)
-- **Validación**: Coordinador solo puede asignar técnicos bajo su coordinación
+- `POST /:id/documentos`
+  - Roles: administrador, coordinador.
+  - `FormData`: `archivo`, `tipo`.
+  - Guarda metadata en `documentos` (`r2_key`, `sha256`, `bytes`, `subido_por`).
 
-#### POST `/:id/cadenas`
-- **Roles autorizados**: `administrador`
-- **Body**: `{ cadena_ids: uuid[] }`
-- **Respuesta**: `200 OK`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (beneficiario no encontrado)
-- **Lógica**:
-  1. Actualiza asignaciones usando tabla `beneficiario_cadenas`
-  2. Marca registros como `activo=false` en lugar de eliminar físicamente
-
-#### POST `/:id/documentos`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Body**: `FormData` con:
-  - `archivo` (file, requerido)
-  - `tipo` (string, requerido)
-- **Respuesta**: `201 Created` → `{ id, nombre_original, tipo, sha256, bytes, r2_key, subido_por, created_at, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (beneficiario no encontrado)
-- **Almacenamiento**:
-  - Metadata guardada en tabla `documentos`:
-    - `r2_key`: Key en R2 (Cloudflare)
-    - `sha256`: Hash SHA256
-    - `bytes`: Tamaño en bytes
-    - `subido_por`: ID del usuario
-
-#### GET `/:id/documentos`
-- **Roles autorizados**: `administrador`, `coordinador`
-- **Respuesta**: `200 OK` → `[ { id, nombre_original, tipo, sha256, bytes, r2_key, subido_por, created_at, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (beneficiario no encontrado)
-
----
+- `GET /:id/documentos`
+  - Lista documentos del beneficiario.
 
 ### Asignaciones (`/asignaciones`)
 
-**Autenticación**: Todas requieren rol `administrador`
+Requiere rol `administrador`.
 
-#### POST `/beneficiario`
-- **Body**: `{ tecnico_id: uuid, beneficiario_id: uuid }`
-- **Respuesta**: `201 Created` → `{ id, tecnico_id, beneficiario_id, activo, created_at, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (técnico o beneficiario no encontrado)
-- **Lógica**:
-  1. Crea nueva asignación
-  2. Si existe anterior con `activo=false`, la reactiva
+- `POST /beneficiario`
+  - Body: `{ tecnico_id, beneficiario_id }`.
+  - Crea o reactiva asignacion.
 
-#### DELETE `/beneficiario/:id`
-- **Body**: — (vacío)
-- **Respuesta**: `204 No Content` o `200 OK`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (asignación no encontrada)
-- **Lógica**: Soft remove: `activo=false`, `removido_en=NOW()`
+- `DELETE /beneficiario/:id`
+  - Soft remove: `activo=false`, `removido_en=NOW()`.
+  - Retorna 404 si no existe.
 
-#### POST `/actividad`
-- **Body**: `{ tecnico_id: uuid, actividad_id: uuid }`
-- **Respuesta**: `201 Created` → `{ id, tecnico_id, actividad_id, activo, created_at, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (técnico o actividad no encontrada)
-- **Lógica**:
-  1. Crea nueva asignación
-  2. Si existe anterior con `activo=false`, la reactiva
+- `POST /actividad`
+  - Body: `{ tecnico_id, actividad_id }`.
+  - Crea o reactiva asignacion.
 
-#### DELETE `/actividad/:id`
-- **Body**: — (vacío)
-- **Respuesta**: `204 No Content` o `200 OK`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (asignación no encontrada)
-- **Lógica**: Soft remove: `activo=false`, `removido_en=NOW()`
+- `DELETE /actividad/:id`
+  - Soft remove: `activo=false`, `removido_en=NOW()`.
+  - Retorna 404 si no existe.
 
----
+### Bitacoras (`/bitacoras`)
 
-### Bitácoras (`/bitacoras`)
+Requiere rol `administrador` o `coordinador`.
 
-**Autenticación**: Todas requieren `administrador` o `coordinador`
+- `GET /`
+  - Filtros opcionales: `tecnico_id, mes, anio, estado, tipo`.
 
-#### GET `/`
-- **Query Parameters** (todos opcionales):
-  - `tecnico_id` (uuid)
-  - `mes` (number: 1-12)
-  - `anio` (number)
-  - `estado` (string)
-  - `tipo` (string)
-- **Respuesta**: `200 OK` → `[ { id, tecnico_id, mes, anio, estado, tipo, observaciones_coordinador, actividades_desc, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Nota**: Coordinador filtra automáticamente por técnicos bajo su coordinación
+- `GET /:id`
 
-#### GET `/:id`
-- **Respuesta**: `200 OK` → `{ id, tecnico_id, mes, anio, estado, tipo, observaciones_coordinador, actividades_desc, ... }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (bitácora no encontrada)
+- `PATCH /:id`
+  - Body opcional:
+    - `observaciones`
+    - `actividades_realizadas`
+  - Persiste en columnas:
+    - `observaciones_coordinador`
+    - `actividades_desc`
 
-#### PATCH `/:id`
-- **Body** (todos opcionales):
-  - `observaciones`: Se guarda en `observaciones_coordinador`
-  - `actividades_realizadas`: Se guarda en `actividades_desc`
-- **Respuesta**: `200 OK` → `{ id, observaciones_coordinador, actividades_desc, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (bitácora no encontrada)
+- `GET /:id/pdf`
+  - Render inline PDF.
+  - Usa configuracion dinamica desde `configuraciones.clave = 'pdf_encabezado'`.
 
-#### GET `/:id/pdf`
-- **Respuesta**: `200 OK` con Content-Type `application/pdf`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (bitácora no encontrada)
-- **Nota**: Renderiza PDF inline en el navegador
+- `GET /:id/pdf/descargar`
+  - Descarga PDF.
+  - Usa configuracion dinamica desde `configuraciones.clave = 'pdf_encabezado'`.
 
-#### GET `/:id/pdf/descargar`
-- **Respuesta**: `200 OK` con Content-Disposition `attachment`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (bitácora no encontrada)
-- **Nota**: Descarga PDF con nombre sugerido
+- `POST /:id/pdf/imprimir`
+  - Genera PDF, lo sube y registra version en `pdf_versiones`.
 
-#### POST `/:id/pdf/imprimir`
-- **Body**: — (vacío)
-- **Respuesta**: `200 OK` → `{ pdf_version_id, url, created_at, ... }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (bitácora no encontrada)
-- **Lógica**:
-  1. Genera PDF
-  2. Sube a R2 (Cloudflare)
-  3. Registra versión en tabla `pdf_versiones`
-
-#### GET `/:id/versiones`
-- **Respuesta**: `200 OK` → `[ { id, numero_version, url_r2, created_by, created_at, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (bitácora no encontrada)
-
----
+- `GET /:id/versiones`
+  - Lista versiones PDF.
 
 ### Reportes (`/reportes`)
 
-**Autenticación**: Todas requieren `administrador` o `coordinador`
+Requiere rol `administrador` o `coordinador`.
 
-#### GET `/mensual`
-- **Query Parameters** (opcionales):
-  - `mes` (number: 1-12)
-  - `anio` (number)
-- **Respuesta**: `200 OK` → `[ { tecnico_id, tecnico_nombre, cerradas: number, borradores: number, total: number, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Nota**: Resumen por técnico
+- `GET /mensual`
+  - Query opcional: `mes, anio`.
+  - Respuesta: resumen por tecnico (`cerradas`, `borradores`, `total`).
 
-#### GET `/tecnico/:id`
-- **Path Parameters**:
-  - `id` (uuid, requerido)
-- **Query Parameters** (opcionales):
-  - `desde` (date ISO 8601)
-  - `hasta` (date ISO 8601)
-- **Respuesta**: `200 OK` → `[ { id, mes, anio, estado, observaciones, actividades, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (técnico no encontrado)
-- **Validación**: Coordinador solo puede consultar técnicos bajo su coordinación
-
----
+- `GET /tecnico/:id`
+  - Query opcional: `desde, hasta`.
+  - Respuesta: detalle de bitacoras del tecnico.
+  - Coordinador solo puede consultar tecnicos bajo su coordinacion.
+  - Retorna 404 si no existe o no tiene permisos.
 
 ### Notificaciones (`/notificaciones`)
 
-**Autenticación**: Todas requieren `administrador` o `coordinador`
+Requiere autenticacion (todos los roles, incluido tecnico). Cada ruta filtra por `destino_id` del usuario autenticado.
 
-#### GET `/`
-- **Respuesta**: `200 OK` → `[ { id, usuario_id, tipo, contenido, leida, created_at, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Nota**: Lista notificaciones no leídas del usuario autenticado
+- `GET /`: lista no leidas del usuario autenticado.
+- `PATCH /:id/leer`: marca una notificacion como leida.
+- `PATCH /leer-todas`: marca todas como leidas para el usuario.
 
-#### PATCH `/:id/leer`
-- **Body**: — (vacío)
-- **Respuesta**: `200 OK` → `{ id, leida: true, ... }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (notificación no encontrada)
-- **Lógica**: Marca notificación como leída
+### Localidades (`/localidades`)
 
-#### PATCH `/leer-todas`
-- **Body**: — (vacío)
-- **Respuesta**: `200 OK` → `{ marcadas: number }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Lógica**: Marca todas las notificaciones del usuario como leídas
+Catalogo manual de localidades por municipio.
 
----
+- `GET /`
+  - Roles: administrador, coordinador.
+  - Devuelve activas ordenadas por municipio, nombre.
+
+- `POST /`
+  - Solo administrador.
+  - Body: `municipio`, `nombre`, `cp?` (exactamente 5 digitos).
+
+- `PATCH /:id`
+  - Solo administrador.
+  - Body parcial: `municipio`, `nombre`, `cp`.
+  - Solo actualiza localidades activas.
+
+- `DELETE /:id`
+  - Solo administrador.
+  - Soft delete: `activo=false`.
+
+### Configuraciones (`/configuraciones`)
+
+Almacen clave-valor JSONB global.
+Claves predefinidas: `fecha_corte_global`, `ciclo_nombre`, `pdf_encabezado`.
+
+- `GET /`
+  - Solo administrador.
+  - Lista: `clave`, `valor`, `descripcion`, `updated_at`.
+
+- `GET /:clave`
+  - Roles: administrador, coordinador.
+  - Lee configuracion especifica.
+
+- `PUT /:clave`
+  - Solo administrador.
+  - Body: `{ valor: object }`.
+  - Reemplaza el JSONB completo.
+  - Retorna 404 si no existe la clave.
+
+Ejemplo de `pdf_encabezado`:
+
+```json
+{
+  "valor": {
+    "institucion": "Secretaria de Desarrollo Agropecuario",
+    "dependencia": "Direccion de Fomento",
+    "logo_url": "https://...",
+    "pie_pagina": "Hidalgo, Mexico"
+  }
+}
+```
+
+### Documentos Plantilla (`/documentos-plantilla`)
+
+Catalogo global de documentos requeridos por beneficiario.
+
+- `GET /activos`
+  - Roles: administrador, coordinador.
+  - Devuelve activos ordenados por `orden`, `nombre`.
+
+- `GET /`
+  - Solo administrador.
+  - Devuelve activos e inactivos.
+
+- `POST /`
+  - Solo administrador.
+  - Body: `nombre`, `descripcion?`, `obligatorio?` (default `true`), `orden?` (default `0`).
+
+- `PATCH /:id`
+  - Solo administrador.
+  - Body parcial: `nombre`, `descripcion`, `obligatorio`, `orden`, `activo`.
+
+- `DELETE /:id`
+  - Solo administrador.
+  - Soft delete: `activo=false`.
 
 ### Archive (`/archive`)
 
-**Autenticación**: Todas requieren rol `administrador`
+Requiere rol `administrador`.
 
-#### GET `/`
-- **Respuesta**: `200 OK` → `[ { periodo, estado, created_at, r2_key_staging, r2_key_final, ... } ]`
-- **Errores**: `401` (no autenticado), `403` (sin permisos)
-- **Nota**: Lista registros de `archive_logs`
+- `GET /`
+  - Lista registros de `archive_logs`.
 
-#### GET `/:periodo/descargar`
-- **Path Parameters**:
-  - `periodo` (string, formato P1-2024 o similar)
-- **Respuesta**: `200 OK` (descarga del archivo)
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (periodo no encontrado), `400` (sin URL HTTP(S) disponible)
-- **Condición**: `r2_key_staging` debe contener URL HTTP(S)
+- `GET /:periodo/descargar`
+  - Descarga paquete si `r2_key_staging` contiene URL HTTP(S).
 
-#### POST `/:periodo/confirmar`
-- **Path Parameters**:
-  - `periodo` (string)
-- **Body**: `{ confirmar: true }`
-- **Respuesta**: `200 OK` → `{ evento_id, tipo: "confirmacion", created_at, ... }`
-- **Errores**: `400` (validación), `401` (no autenticado), `403` (sin permisos), `404` (periodo no encontrado)
-- **Lógica**: Inserta evento de confirmación en `archive_logs` (append-only)
+- `POST /:periodo/confirmar`
+  - Body: `{ confirmar: true }`.
+  - Actualiza el registro mas reciente del periodo a `estado=confirmado`.
+  - Retorna 404 si no existe archivado para ese periodo.
 
-#### POST `/:periodo/forzar`
-- **Path Parameters**:
-  - `periodo` (string)
-- **Body**: — (vacío)
-- **Respuesta**: `200 OK` → `{ evento_id, tipo: "forzar", created_at, ... }`
-- **Errores**: `401` (no autenticado), `403` (sin permisos), `404` (periodo no encontrado)
-- **Lógica**: Inserta evento de generación en `archive_logs` (append-only)
+- `POST /:periodo/forzar`
+  - Inserta evento de generacion en `archive_logs`.
+  - Retorna 409 si ya existe archivado en estado `generando` para ese periodo.
 
----
+## Codigos de Error Comunes
 
-## Códigos de Error Comunes
-
-| Código | Descripción | Causas Comunes |
-|--------|-------------|----------------|
-| `400` | Solicitud inválida | Validación fallida, parámetros mal formados, body inválido |
-| `401` | No autenticado | Falta header Authorization, token inválido o expirado |
-| `403` | Prohibido | Usuario autenticado pero sin permisos por rol |
-| `404` | No encontrado | Recurso no existe |
-| `409` | Conflicto | Correo duplicado, inconsistencia de datos, operación no permitida |
-
----
-
-## Convenciones
-
-### Soft Deletes
-- `activo=false` y `updated_at=NOW()`
-- Los registros no se eliminan físicamente
-- Las búsquedas típicamente filtran por `activo=true`
-
-### Sincronización de Datos
-- Cambios en tabla `tecnicos` replican en `usuarios` y viceversa
-- Se mantiene consistencia de:
-  - `nombre`
-  - `correo`
-  - `codigo_acceso` y `hash_codigo_acceso`
-
-### Almacenamiento de Contraseñas
-- `codigo_acceso`: Texto plano en BD (compatibilidad)
-- `hash_codigo_acceso`: bcrypt con costo 12
-
-### Sesiones
-- Tokens: UUID guardados en Redis con clave `session:{token}`
-- TTL: Configurado en Redis
-- Validan automáticamente en rutas protegidas
-
-### Formatos Especiales
-- **coord_parcela**: Formato `x,y` o `(x,y)`, almacenado como `point` en PostGIS
-- **telefonos**: Almacenados como `bytea`
-- **documentos**: Metadata en BD, archivos en R2 (Cloudflare)
+- `400`: Request invalido o validacion fallida.
+- `401`: No autenticado o token invalido.
+- `403`: Sin permisos por rol.
+- `404`: Recurso no encontrado.
+- `409`: Conflicto de datos (por ejemplo correo duplicado).

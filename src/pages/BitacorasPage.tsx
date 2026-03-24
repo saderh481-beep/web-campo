@@ -5,6 +5,7 @@ import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets
 import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
 import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
+import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Bitacora {
   id: number | string
@@ -64,6 +65,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   })
   const [editNotas, setEditNotas] = useState(false)
   const [notas, setNotas] = useState('')
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const bit = data?.bitacora ?? data
 
   const pdfLinks = useMemo(() => getPdfLinks(bit, id), [bit, id])
@@ -73,7 +75,12 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
   const saveNotas = useMutation({
     mutationFn: () => bitacorasApi.update(id, { observaciones: notas }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['bitacora', id] }); setEditNotas(false) },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bitacora', id] })
+      setFeedback({ kind: 'success', message: 'Notas actualizadas correctamente.' })
+      setEditNotas(false)
+    },
+    onError: () => setFeedback({ kind: 'error', message: 'No se pudieron actualizar las notas.' }),
   })
 
   return (
@@ -171,6 +178,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                     </button>
                   )}
                 </div>
+                {feedback && <div style={{ marginBottom: 8 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
                 {editNotas ? (
                   <>
                     <textarea className="input" rows={4} value={notas} onChange={e => setNotas(e.target.value)} style={{ resize: 'vertical' }} />

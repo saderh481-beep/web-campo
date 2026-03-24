@@ -8,6 +8,7 @@ import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray, pickNumber } from '../lib/normalize'
 import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
+import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Cadena {
   id: number | string
@@ -95,7 +96,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
   const qc = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [tipo, setTipo] = useState('general')
-  const [err, setErr] = useState('')
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['beneficiarios', beneficiario.id, 'documentos'],
@@ -113,10 +114,10 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
     },
     onSuccess: () => {
       setSelectedFile(null)
-      setErr('')
+      setFeedback({ kind: 'success', message: 'Documento subido correctamente.' })
       qc.invalidateQueries({ queryKey: ['beneficiarios', beneficiario.id, 'documentos'] })
     },
-    onError: (e: unknown) => setErr(toErrorMessage(e, (e as Error).message || 'No se pudo subir el archivo')),
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, (e as Error).message || 'No se pudo subir el archivo') }),
   })
 
   const assets = useMemo(() => getBeneficiarioAssets(data), [data])
@@ -152,7 +153,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
                 </button>
               </div>
               {selectedFile && <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 8 }}>Seleccionado: {selectedFile.name}</p>}
-              {err && <p className="form-error" style={{ marginTop: 8 }}>{err}</p>}
+              {feedback && <div style={{ marginTop: 8 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
             </div>
           )}
 
@@ -232,7 +233,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: 
     tecnico_id: b?.tecnico_id ?? '',
     cadenas_ids: (b?.cadenas ?? []).map((c) => String(typeof c === 'object' ? c.id : c)),
   })
-  const [err, setErr] = useState('')
+  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const save = useMutation({
     mutationFn: async () => {
@@ -266,7 +267,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: 
       return response
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiarios'] }); onClose() },
-    onError: (e: unknown) => setErr(toErrorMessage(e, (e as Error).message || 'Error al guardar')),
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, (e as Error).message || 'Error al guardar') }),
   })
 
   const toggleCadena = (id: string) => setForm(p => ({
@@ -321,7 +322,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: 
               </div>
             </div>
           )}
-          {err && <p className="form-error">{err}</p>}
+          {feedback && <FeedbackBanner kind={feedback.kind} message={feedback.message} compact />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
