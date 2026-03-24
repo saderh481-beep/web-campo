@@ -362,6 +362,36 @@ function buildUsuarioPayload(data: unknown): Record<string, unknown> {
   return payload
 }
 
+function withUsuarioCreateAliases(payload: Record<string, unknown>): Record<string, unknown> {
+  const correo = payload.correo
+  const nombre = payload.nombre
+  const rol = payload.rol
+  const coordinadorId = payload.coordinador_id
+  const fechaLimite = payload.fecha_limite
+
+  return {
+    ...payload,
+    email: typeof payload.email === 'string' ? payload.email : correo,
+    name: typeof payload.name === 'string' ? payload.name : nombre,
+    role: typeof payload.role === 'string' ? payload.role : rol,
+    coordinator_id: payload.coordinator_id ?? coordinadorId,
+    coordinadorId: payload.coordinadorId ?? coordinadorId,
+    fechaLimite: payload.fechaLimite ?? fechaLimite,
+  }
+}
+
+async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<unknown>> {
+  const payload = buildUsuarioPayload(data)
+  const aliasedPayload = withUsuarioCreateAliases(payload)
+
+  return withFallback<unknown>([
+    () => api.post('/usuarios', payload),
+    () => api.post('/usuarios', aliasedPayload),
+    () => api.post('/usuarios/', payload),
+    () => api.post('/usuarios/', aliasedPayload),
+  ], [400, 404, 405, 422])
+}
+
 async function updateUsuarioWithFallback(id: string | number, data: unknown): Promise<AxiosResponse<unknown>> {
   const payload = buildUsuarioPayload(data)
   const enrichedPayload = {
@@ -385,7 +415,7 @@ async function updateUsuarioWithFallback(id: string | number, data: unknown): Pr
 // ── USUARIOS ──────────────────────────────────────────────────────
 export const usuariosApi = {
   list: () => api.get('/usuarios'),
-  create: (data: unknown) => api.post('/usuarios', buildUsuarioPayload(data)),
+  create: (data: unknown) => createUsuarioWithFallback(data),
   update: (id: string | number, data: unknown) => updateUsuarioWithFallback(id, data),
   remove: (id: string | number) => api.delete(`/usuarios/${id}`),
 }
