@@ -1,4 +1,4 @@
-import axios, { type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
+import axios, { type AxiosResponse } from 'axios'
 
 const DEFAULT_API_URL = 'https://campo-api-web-campo-saas.up.railway.app'
 const API_VERSION_PREFIX = '/api/v1'
@@ -13,10 +13,8 @@ const resolvedApiUrl = resolveApiBaseUrl().replace(/\/+$/, '')
 const apiBaseUrl = /\/api\/v1$/i.test(resolvedApiUrl)
   ? resolvedApiUrl
   : `${resolvedApiUrl}${API_VERSION_PREFIX}`
-const legacyApiBaseUrl = resolvedApiUrl.replace(/\/api\/v1$/i, '')
 const AUTH_TOKEN_KEY = 'campo_auth_token'
 const AUTH_USER_KEY = 'campo_auth_user'
-const LEGACY_FALLBACK_MARK = '__legacyFallbackAttempted'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -222,27 +220,6 @@ function withActividadPayload(data: unknown): Record<string, unknown> {
   }
 }
 
-async function with404Fallback<T>(requests: Array<() => Promise<AxiosResponse<T>>>): Promise<AxiosResponse<T>> {
-  return withFallback(requests, [404])
-}
-
-async function withFallback<T>(
-  requests: Array<() => Promise<AxiosResponse<T>>>,
-  fallbackStatuses: number[]
-): Promise<AxiosResponse<T>> {
-  let lastError: unknown
-  for (const request of requests) {
-    try {
-      return await request()
-    } catch (error) {
-      const status = (error as AxiosError)?.response?.status
-      if (!status || !fallbackStatuses.includes(status)) throw error
-      lastError = error
-    }
-  }
-  throw lastError
-}
-
 export const api = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
@@ -260,25 +237,7 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  async (err) => {
-    const cfg = err.config as (AxiosRequestConfig & { [LEGACY_FALLBACK_MARK]?: boolean }) | undefined
-    const fallbackAttempted = Boolean(cfg?.[LEGACY_FALLBACK_MARK])
-
-    if (
-      err.response?.status === 404 &&
-      !fallbackAttempted &&
-      legacyApiBaseUrl !== apiBaseUrl &&
-      cfg
-    ) {
-      const retryConfig = {
-        ...cfg,
-        baseURL: legacyApiBaseUrl,
-      } as AxiosRequestConfig & { [LEGACY_FALLBACK_MARK]?: boolean }
-
-      retryConfig[LEGACY_FALLBACK_MARK] = true
-      return api.request(retryConfig)
-    }
-
+  (err) => {
     const path = normalizePath(err.config?.url)
     const normalizedPath = path.replace(/^\/api\/v1(?=\/)/, '')
     const isAuthAttempt =
@@ -307,27 +266,14 @@ api.interceptors.response.use(
 
 // ── AUTH ──────────────────────────────────────────────────────────
 export const authApi = {
-  requestOTP: (correo: string) => with404Fallback([
-    () => api.post('/auth/request-codigo-acceso', { correo }),
-    () => api.post('/auth/request-otp', { correo, email: correo }),
-  ]),
+  requestOTP: (correo: string) => api.post('/auth/request-codigo-acceso', { correo }),
   login: async (correo: string, clave: string) => {
     const payload = {
       correo,
-      email: correo,
-      clave,
       codigo_acceso: clave,
-      codigo: clave,
-      code: clave,
-      otp: clave,
-      pin: clave,
     }
 
-    const response = await withFallback([
-      () => api.post('/auth/login', payload),
-      () => api.post('/auth/verify-codigo-acceso', payload),
-      () => api.post('/auth/verify-otp', payload),
-    ], [404, 405])
+    const response = await api.post('/auth/login', payload)
 
     saveAuthFromResponse(response.data)
     return response
@@ -345,14 +291,7 @@ export const authApi = {
     if (cachedUser) {
       return Promise.resolve({ data: { usuario: cachedUser } } as AxiosResponse<unknown>)
     }
-    const token = getStoredToken()
-    if (!token) {
-      return Promise.resolve({ data: { usuario: null } } as AxiosResponse<unknown>)
-    }
-    return with404Fallback([
-      () => api.get('/auth/me'),
-      () => api.get('/usuarios/me'),
-    ])
+    return Promise.resolve({ data: { usuario: null } } as AxiosResponse<unknown>)
   },
 }
 
@@ -387,52 +326,14 @@ function buildUsuarioPayload(data: unknown): Record<string, unknown> {
   return payload
 }
 
-function withUsuarioCreateAliases(payload: Record<string, unknown>): Record<string, unknown> {
-  const correo = payload.correo
-  const nombre = payload.nombre
-  const rol = payload.rol
-  const coordinadorId = payload.coordinador_id
-  const fechaLimite = payload.fecha_limite
-
-  return {
-    ...payload,
-    email: typeof payload.email === 'string' ? payload.email : correo,
-    name: typeof payload.name === 'string' ? payload.name : nombre,
-    role: typeof payload.role === 'string' ? payload.role : rol,
-    coordinator_id: payload.coordinator_id ?? coordinadorId,
-    coordinadorId: payload.coordinadorId ?? coordinadorId,
-    fechaLimite: payload.fechaLimite ?? fechaLimite,
-  }
-}
-
 async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<unknown>> {
   const payload = buildUsuarioPayload(data)
-  const aliasedPayload = withUsuarioCreateAliases(payload)
-
-  return withFallback<unknown>([
-    () => api.post('/usuarios', payload),
-    () => api.post('/usuarios', aliasedPayload),
-  ], [404, 405, 422])
+  return api.post('/usuarios', payload)
 }
 
 async function updateUsuarioWithFallback(id: string | number, data: unknown): Promise<AxiosResponse<unknown>> {
   const payload = buildUsuarioPayload(data)
-  const enrichedPayload = {
-    ...payload,
-    usuario_id: id,
-    id_usuario: id,
-    id,
-    uuid: id,
-  }
-
-  return withFallback<unknown>([
-    () => api.patch(`/usuarios/${id}`, payload),
-    () => api.put(`/usuarios/${id}`, payload),
-    () => api.patch(`/usuarios/${id}`, enrichedPayload),
-    () => api.put(`/usuarios/${id}`, enrichedPayload),
-    () => api.patch(`/usuarios/uuid/${id}`, payload),
-    () => api.put(`/usuarios/uuid/${id}`, payload),
-  ], [400, 404, 405])
+  return api.patch(`/usuarios/${id}`, payload)
 }
 
 // ── USUARIOS ──────────────────────────────────────────────────────
@@ -447,10 +348,6 @@ export const usuariosApi = {
 export const tecnicosApi = {
   list: () => api.get('/tecnicos'),
   get: (id: string | number) => api.get(`/tecnicos/${id}`),
-  create: (data: unknown) => createUsuarioWithFallback({
-    ...((isRecord(data) ? data : {}) as Record<string, unknown>),
-    rol: 'tecnico',
-  }),
   update: (id: string | number, data: unknown) => api.patch(`/tecnicos/${id}`, withNameAlias(withEmailAlias(data))),
   remove: (id: string | number) => api.delete(`/tecnicos/${id}`),
   generarCodigoAcceso: (id: string | number) => api.post(`/tecnicos/${id}/codigo`),
@@ -490,6 +387,12 @@ export const actividadesApi = {
 
 // ── ASIGNACIONES ──────────────────────────────────────────────────
 export const asignacionesApi = {
+  obtenerCoordinadorTecnico: (tecnico_id: string) =>
+    api.get('/asignaciones/coordinador-tecnico', { params: { tecnico_id } }),
+  asignarCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string }) =>
+    api.post('/asignaciones/coordinador-tecnico', data),
+  quitarCoordinadorTecnico: (tecnico_id: string) =>
+    api.delete(`/asignaciones/coordinador-tecnico/${tecnico_id}`),
   asignarBeneficiario: (data: { tecnico_id: string; beneficiario_id: string }) =>
     api.post('/asignaciones/beneficiario', data),
   quitarBeneficiario: (id: string | number) =>

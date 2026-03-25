@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
-import { usuariosApi } from '../lib/api'
+import { asignacionesApi, usuariosApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X, Copy, Check, Eye } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
@@ -134,8 +134,53 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
+
+  function buildPayload() {
+    const payload: Record<string, unknown> = {
+      nombre: form.nombre.trim(),
+      correo: form.correo.trim(),
+      rol: form.rol,
+      telefono: form.telefono.trim() || undefined,
+    }
+
+    return payload
+  }
+
+  function toIsoDateTime(value: string): string {
+    return new Date(`${value}T00:00:00`).toISOString()
+  }
+
+  function resolveUsuarioId(data: unknown): string | null {
+    if (!data || typeof data !== 'object') return null
+    const row = data as Record<string, unknown>
+    const candidates = [row.id, row.usuario_id, row.id_usuario, row.uuid]
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate
+      if (typeof candidate === 'number' && Number.isFinite(candidate)) return String(candidate)
+    }
+    return null
+  }
+
   const save = useMutation({
-    mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
+    mutationFn: async () => {
+      const payload = buildPayload()
+      const response = u ? await usuariosApi.update(u.id, payload) : await usuariosApi.create(payload)
+
+      if (form.rol === 'tecnico') {
+        const tecnicoId = u ? String(u.id) : resolveUsuarioId(response.data)
+        if (!tecnicoId) {
+          throw new Error('No se pudo obtener el ID del técnico creado para asignar coordinador y fecha límite.')
+        }
+
+        await asignacionesApi.asignarCoordinadorTecnico({
+          tecnico_id: tecnicoId,
+          coordinador_id: form.coordinador_id.trim(),
+          fecha_limite: toIsoDateTime(form.fecha_limite.trim()),
+        })
+      }
+
+      return response
+    },
     onSuccess: (response) => {
       qc.invalidateQueries({ queryKey: ['usuarios'] })
       if (u) {

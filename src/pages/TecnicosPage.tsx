@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
-import { tecnicosApi, usuariosApi } from '../lib/api'
+import { tecnicosApi } from '../lib/api'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
-import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search, Plus } from 'lucide-react'
+import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
@@ -41,6 +41,11 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return axiosErr.response?.data?.message ?? fallback
 }
 
+function toIsoDateTime(value: string): string | undefined {
+  if (!value.trim()) return undefined
+  return new Date(`${value}T00:00:00`).toISOString()
+}
+
 function CodigoAcceso({ codigo, id, canManage }: { codigo: string; id: string | number; canManage: boolean }) {
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
@@ -72,7 +77,6 @@ function CodigoAcceso({ codigo, id, canManage }: { codigo: string; id: string | 
 
 function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => void }) {
   const qc = useQueryClient()
-  const isNew = !tecnico
   const [form, setForm] = useState<FormData>({
     nombre: tecnico?.nombre ?? '',
     correo: tecnico?.correo ?? '',
@@ -89,21 +93,19 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
         correo: form.correo,
         telefono: form.telefono || undefined,
         coordinador_id: form.coordinador_id || undefined,
-        fecha_limite: form.fecha_limite || undefined,
+        fecha_limite: toIsoDateTime(form.fecha_limite) || undefined,
       }
-      return isNew 
-        ? usuariosApi.create({ ...payload, rol: 'tecnico' })
-        : tecnicosApi.update(tecnico!.id, payload)
+      return tecnicosApi.update(tecnico!.id, payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
-    onError: (e: unknown) => setErr(toErrorMessage(e, isNew ? 'Error al crear' : 'Error al guardar')),
+    onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>{isNew ? 'Crear técnico' : 'Editar técnico'}</h3>
+          <h3>Editar técnico</h3>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
@@ -118,7 +120,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />{isNew ? 'Creando...' : 'Guardando...'}</> : isNew ? 'Crear' : 'Guardar'}
+            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
           </button>
         </div>
       </div>
@@ -130,7 +132,7 @@ export default function TecnicosPage() {
   const { user } = useAuth()
   const canManage = canManageTecnicos(user?.rol)
   const qc = useQueryClient()
-  const [modal, setModal] = useState<Tecnico | null | 'new'>(null)
+  const [modal, setModal] = useState<Tecnico | null>(null)
   const [q, setQ] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
@@ -177,11 +179,10 @@ export default function TecnicosPage() {
           <h1 className="page-title">Técnicos</h1>
           <p className="page-subtitle">{tecnicos.length} técnico{tecnicos.length !== 1 ? 's' : ''} registrado{tecnicos.length !== 1 ? 's' : ''}</p>
         </div>
-        {canManage && (
-          <button className="btn btn-primary" onClick={() => setModal('new')}>
-            <Plus size={15} /> Nuevo técnico
-          </button>
-        )}
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <FeedbackBanner kind="info" message="La creación de técnicos se realiza desde la sección Usuarios." compact />
       </div>
 
       {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
@@ -251,7 +252,7 @@ export default function TecnicosPage() {
         </table>
       </div>
 
-      {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
+      {modal && canManage && <TecnicoModal tecnico={modal} onClose={() => setModal(null)} />}
     </div>
   )
 }
