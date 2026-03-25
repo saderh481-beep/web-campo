@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
-import { beneficiariosApi, cadenasApi, tecnicosApi } from '../lib/api'
+import { beneficiariosApi, cadenasApi, localidadesApi, tecnicosApi } from '../lib/api'
 import { canAssignBeneficiarioCadenas, canUploadBeneficiarioDocumentos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
@@ -21,6 +21,12 @@ interface Tecnico {
   correo?: string
 }
 
+interface Localidad {
+  id: number | string
+  municipio: string
+  nombre: string
+}
+
 type CadenaRef = Cadena | number | string
 
 interface Beneficiario {
@@ -28,6 +34,7 @@ interface Beneficiario {
   nombre: string
   municipio?: string
   localidad?: string
+  localidad_id?: string
   tecnico_id?: string
   tecnico_nombre?: string
   tecnico?: string
@@ -52,6 +59,7 @@ interface BeneficiarioForm {
   nombre: string
   municipio: string
   localidad: string
+  localidad_id: string
   direccion: string
   cp: string
   telefono_principal: string
@@ -219,12 +227,13 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
   )
 }
 
-function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: { b?: Beneficiario; cadenas: Cadena[]; tecnicos: Tecnico[]; canAssignCadenas: boolean; onClose: () => void }) {
+function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas, onClose }: { b?: Beneficiario; cadenas: Cadena[]; tecnicos: Tecnico[]; localidades: Localidad[]; canAssignCadenas: boolean; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
     municipio: b?.municipio ?? '',
     localidad: b?.localidad ?? '',
+    localidad_id: b?.localidad_id ?? '',
     direccion: '',
     cp: '',
     telefono_principal: '',
@@ -245,6 +254,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: 
         nombre: form.nombre,
         municipio: form.municipio,
         localidad: form.localidad || undefined,
+        localidad_id: form.localidad_id || undefined,
         direccion: form.direccion || undefined,
         cp: form.cp || undefined,
         telefono_principal: form.telefono_principal || undefined,
@@ -291,6 +301,17 @@ function BeneficiarioModal({ b, cadenas, tecnicos, canAssignCadenas, onClose }: 
                   onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
               </div>
             ))}
+            <div className="form-group">
+              <label className="form-label">Localidad (catálogo)</label>
+              <select className="input" value={form.localidad_id} onChange={e => setForm(p => ({ ...p, localidad_id: e.target.value }))}>
+                <option value="">Sin localidad</option>
+                {localidades.map((loc) => (
+                  <option key={loc.id} value={String(loc.id)}>
+                    {loc.municipio} - {loc.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="form-group" style={{ gridColumn: '1/-1' }}>
               <label className="form-label">Técnico asignado</label>
               <select className="input" value={form.tecnico_id} onChange={e => setForm(p => ({ ...p, tecnico_id: e.target.value }))}>
@@ -363,6 +384,12 @@ export default function BeneficiariosPage() {
     staleTime: 300000,
   })
 
+  const { data: localidadesData } = useQuery({
+    queryKey: ['localidades'],
+    queryFn: () => localidadesApi.list().then(r => r.data),
+    staleTime: 300000,
+  })
+
   const benefData = data as BeneficiariosResponse | Beneficiario[] | undefined
   const benefs = pickArray<Beneficiario>(benefData, ['beneficiarios', 'rows', 'data'])
   const total = Array.isArray(benefData) ? benefData.length : pickNumber(benefData, ['total'], benefs.length)
@@ -374,6 +401,8 @@ export default function BeneficiariosPage() {
 
   const rawTecnicos = tecnicosData as TecnicosResponse | Tecnico[] | undefined
   const tecnicos = pickArray<Tecnico>(rawTecnicos, ['tecnicos', 'rows', 'data'])
+
+  const localidades = pickArray<Localidad>(localidadesData as unknown, ['localidades', 'rows', 'data'])
 
   return (
     <div className="page animate-in">
@@ -454,6 +483,7 @@ export default function BeneficiariosPage() {
           b={modal === 'new' ? undefined : modal}
           cadenas={cadenas}
           tecnicos={tecnicos}
+          localidades={localidades}
           canAssignCadenas={canAssignCadenas}
           onClose={() => setModal(null)}
         />

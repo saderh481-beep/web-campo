@@ -18,7 +18,33 @@ function readApiUrl() {
   return line ? line.split('=').slice(1).join('=').trim() : ''
 }
 
-const baseURL = readApiUrl()
+function normalizeApiBaseUrl(rawUrl) {
+  const cleaned = rawUrl.replace(/\/+$/, '')
+  if (/\/api\/v1$/i.test(cleaned)) return cleaned
+  return `${cleaned}/api/v1`
+}
+
+function toLegacyBaseUrl(rawUrl) {
+  return rawUrl.replace(/\/+$/, '').replace(/\/api\/v1$/i, '')
+}
+
+async function detectApiBaseUrl(rawUrl) {
+  const versioned = normalizeApiBaseUrl(rawUrl)
+  const legacy = toLegacyBaseUrl(rawUrl)
+
+  const probe = axios.create({ timeout: 8000, validateStatus: () => true })
+
+  const versionedHealth = await probe.get(`${versioned}/health`)
+  if (versionedHealth.status >= 200 && versionedHealth.status < 300) return versioned
+
+  const legacyHealth = await probe.get(`${legacy}/health`)
+  if (legacyHealth.status >= 200 && legacyHealth.status < 300) return legacy
+
+  return versioned
+}
+
+const rawBaseURL = readApiUrl()
+const baseURL = rawBaseURL ? await detectApiBaseUrl(rawBaseURL) : ''
 
 if (!baseURL) {
   console.error('No se encontro VITE_API_URL. Define la variable o agrega .env.')

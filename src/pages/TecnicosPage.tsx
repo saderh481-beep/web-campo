@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
-import { tecnicosApi } from '../lib/api'
+import { tecnicosApi, usuariosApi } from '../lib/api'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
-import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search, Users, Plus } from 'lucide-react'
+import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search, Plus } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
@@ -92,7 +92,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
         fecha_limite: form.fecha_limite || undefined,
       }
       return isNew 
-        ? tecnicosApi.create(payload)
+        ? usuariosApi.create({ ...payload, rol: 'tecnico' })
         : tecnicosApi.update(tecnico!.id, payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },

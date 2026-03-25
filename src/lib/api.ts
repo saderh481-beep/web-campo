@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse } from 'axios'
 
 const DEFAULT_API_URL = 'https://campo-api-web-campo-saas.up.railway.app'
+const API_VERSION_PREFIX = '/api/v1'
 
 function resolveApiBaseUrl(): string {
   const rawApiUrl = import.meta.env.VITE_API_URL?.trim()
@@ -8,9 +9,14 @@ function resolveApiBaseUrl(): string {
   return DEFAULT_API_URL
 }
 
-const apiBaseUrl = resolveApiBaseUrl().replace(/\/+$/, '')
+const resolvedApiUrl = resolveApiBaseUrl().replace(/\/+$/, '')
+const apiBaseUrl = /\/api\/v1$/i.test(resolvedApiUrl)
+  ? resolvedApiUrl
+  : `${resolvedApiUrl}${API_VERSION_PREFIX}`
+const legacyApiBaseUrl = resolvedApiUrl.replace(/\/api\/v1$/i, '')
 const AUTH_TOKEN_KEY = 'campo_auth_token'
 const AUTH_USER_KEY = 'campo_auth_user'
+const LEGACY_FALLBACK_HEADER = 'x-campo-legacy-fallback'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -190,6 +196,7 @@ function withBeneficiarioPayload(data: unknown): Record<string, unknown> {
   }
 
   const optionalKeys = [
+    'localidad_id',
     'localidad',
     'direccion',
     'cp',
@@ -212,7 +219,6 @@ function withActividadPayload(data: unknown): Record<string, unknown> {
   return {
     nombre: data.nombre,
     descripcion: data.descripcion,
-    created_by: data.created_by ?? data.createdBy,
   }
 }
 
@@ -254,17 +260,37 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (res) => res,
-  (err) => {
+  async (err) => {
+    const cfg = err.config as (typeof err.config & { headers?: Record<string, unknown> }) | undefined
+    const fallbackAttempted = Boolean(cfg?.headers?.[LEGACY_FALLBACK_HEADER])
+
+    if (
+      err.response?.status === 404 &&
+      !fallbackAttempted &&
+      legacyApiBaseUrl !== apiBaseUrl &&
+      cfg
+    ) {
+      return api.request({
+        ...cfg,
+        baseURL: legacyApiBaseUrl,
+        headers: {
+          ...(cfg.headers ?? {}),
+          [LEGACY_FALLBACK_HEADER]: '1',
+        },
+      })
+    }
+
     const path = normalizePath(err.config?.url)
+    const normalizedPath = path.replace(/^\/api\/v1(?=\/)/, '')
     const isAuthAttempt =
-      path === '/auth/login' ||
-      path === '/auth/request-codigo-acceso' ||
-      path === '/auth/verify-codigo-acceso' ||
-      path === '/auth/request-otp' ||
-      path === '/auth/verify-otp' ||
-      path === '/auth/me' ||
-      path === '/auth/logout' ||
-      path === '/usuarios/me'
+      normalizedPath === '/auth/login' ||
+      normalizedPath === '/auth/request-codigo-acceso' ||
+      normalizedPath === '/auth/verify-codigo-acceso' ||
+      normalizedPath === '/auth/request-otp' ||
+      normalizedPath === '/auth/verify-otp' ||
+      normalizedPath === '/auth/me' ||
+      normalizedPath === '/auth/logout' ||
+      normalizedPath === '/usuarios/me'
 
     if (
       err.response?.status === 401 &&
@@ -422,7 +448,10 @@ export const usuariosApi = {
 export const tecnicosApi = {
   list: () => api.get('/tecnicos'),
   get: (id: string | number) => api.get(`/tecnicos/${id}`),
-  create: (data: unknown) => api.post('/tecnicos', withNameAlias(withEmailAlias(data))),
+  create: (data: unknown) => createUsuarioWithFallback({
+    ...((isRecord(data) ? data : {}) as Record<string, unknown>),
+    rol: 'tecnico',
+  }),
   update: (id: string | number, data: unknown) => api.patch(`/tecnicos/${id}`, withNameAlias(withEmailAlias(data))),
   remove: (id: string | number) => api.delete(`/tecnicos/${id}`),
   generarCodigoAcceso: (id: string | number) => api.post(`/tecnicos/${id}/codigo`),

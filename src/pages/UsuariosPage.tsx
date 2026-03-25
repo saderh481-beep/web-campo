@@ -28,6 +28,9 @@ interface UsuarioForm {
   nombre: string
   correo: string
   rol: Rol
+  telefono: string
+  coordinador_id: string
+  fecha_limite: string
 }
 
 type AnyRecord = Record<string, unknown>
@@ -125,10 +128,12 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
     nombre: u?.nombre ?? '',
     correo: u?.correo ?? '',
     rol: toFormRole(u?.rol),
+    telefono: u?.telefono ?? '',
+    coordinador_id: u?.coordinador_id ?? '',
+    fecha_limite: u?.fecha_limite?.slice(0, 10) ?? '',
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
-  const isCreate = !u
   const save = useMutation({
     mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
     onSuccess: (response) => {
@@ -148,6 +153,12 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
       setErr('Nombre y correo son obligatorios.')
       return
     }
+
+    if (form.rol === 'tecnico' && (!form.coordinador_id.trim() || !form.fecha_limite.trim())) {
+      setErr('Para técnicos, coordinador y fecha límite son obligatorios.')
+      return
+    }
+
     setErr('')
     save.mutate()
   }
@@ -171,14 +182,17 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
             }))}>
               <option value="administrador">Administrador</option>
               <option value="coordinador">Coordinador</option>
-              {!isCreate && <option value="tecnico">Técnico</option>}
+              <option value="tecnico">Técnico</option>
             </select></div>
-          {isCreate && (
-            <FeedbackBanner
-              kind="info"
-              message="Alta de tecnico se realiza desde el flujo de Tecnicos (endpoints dedicados), no desde Usuarios."
-              compact
-            />
+          {form.rol === 'tecnico' && (
+            <>
+              <div className="form-group"><label className="form-label">Teléfono (opcional)</label>
+                <input className="input" value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} /></div>
+              <div className="form-group"><label className="form-label">ID de coordinador</label>
+                <input className="input" value={form.coordinador_id} onChange={e => setForm(p => ({ ...p, coordinador_id: e.target.value }))} /></div>
+              <div className="form-group"><label className="form-label">Fecha límite</label>
+                <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} /></div>
+            </>
           )}
           {err && <FeedbackBanner kind="error" message={err} compact />}
           {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
