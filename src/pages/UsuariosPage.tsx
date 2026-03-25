@@ -128,6 +128,7 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
+  const isCreate = !u
   const save = useMutation({
     mutationFn: () => u ? usuariosApi.update(u.id, form) : usuariosApi.create(form),
     onSuccess: (response) => {
@@ -170,8 +171,15 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
             }))}>
               <option value="administrador">Administrador</option>
               <option value="coordinador">Coordinador</option>
-              <option value="tecnico">Técnico</option>
+              {!isCreate && <option value="tecnico">Técnico</option>}
             </select></div>
+          {isCreate && (
+            <FeedbackBanner
+              kind="info"
+              message="Alta de tecnico se realiza desde el flujo de Tecnicos (endpoints dedicados), no desde Usuarios."
+              compact
+            />
+          )}
           {err && <FeedbackBanner kind="error" message={err} compact />}
           {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
         </div>

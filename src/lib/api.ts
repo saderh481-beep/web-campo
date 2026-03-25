@@ -387,9 +387,7 @@ async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<u
   return withFallback<unknown>([
     () => api.post('/usuarios', payload),
     () => api.post('/usuarios', aliasedPayload),
-    () => api.post('/usuarios/', payload),
-    () => api.post('/usuarios/', aliasedPayload),
-  ], [400, 404, 405, 422])
+  ], [404, 405, 422])
 }
 
 async function updateUsuarioWithFallback(id: string | number, data: unknown): Promise<AxiosResponse<unknown>> {
