@@ -34,7 +34,7 @@ export function canManageUsers(role?: string | null): boolean {
 }
 
 export function canViewDashboard(role?: string | null): boolean {
-  return isAdmin(role)
+  return normalizeRole(role) !== ''
 }
 
 export function canViewTecnicos(role?: string | null): boolean {
@@ -132,11 +132,11 @@ export function canViewArchive(role?: string | null): boolean {
 export function getRoleHomePath(role?: string | null): string {
   switch (normalizeRole(role)) {
     case 'administrador':
-      return '/usuarios'
+      return '/dashboard'
     case 'coordinador':
-      return '/tecnicos'
+      return '/dashboard'
     case 'tecnico':
-      return '/sin-acceso'
+      return '/dashboard'
     default:
       return '/login'
   }

@@ -215,17 +215,23 @@ export default function AppLayout() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  wrap: { display: 'flex', height: '100vh', overflow: 'hidden', background: 'linear-gradient(180deg, #F5F5F5 0%, #FFFFFF 100%)' },
+  wrap: {
+    display: 'flex',
+    height: '100vh',
+    overflow: 'hidden',
+    background: 'radial-gradient(circle at 0% 0%, rgba(221,201,163,0.28) 0%, transparent 36%), linear-gradient(180deg, #F7F5F2 0%, #FFFFFF 100%)',
+  },
   mobileOverlay: {
     position: 'fixed', inset: 0, background: 'rgba(74, 14, 31, 0.45)',
     zIndex: 18,
   },
   sidebar: {
     width: 'var(--sidebar-w)', flexShrink: 0,
-    background: 'linear-gradient(180deg, #691B31 0%, #A02142 100%)',
+    background: 'linear-gradient(180deg, #5E132A 0%, #8E1E3D 46%, #A02142 100%)',
     display: 'flex', flexDirection: 'column',
-    borderRight: '1px solid #BC955B',
+    borderRight: '1px solid rgba(221, 201, 163, 0.42)',
     position: 'relative', zIndex: 10,
+    boxShadow: '12px 0 34px rgba(74,14,31,0.18)',
   },
   sidebarMobile: {
     position: 'fixed',
@@ -241,8 +247,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   sidebarLogo: {
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '20px 24px',
-    borderBottom: '1px solid #BC955B',
+    padding: '22px 24px',
+    borderBottom: '1px solid rgba(221,201,163,0.36)',
   },
   logoImg: {
     width: 48, height: 48,
@@ -252,17 +258,18 @@ const s: Record<string, React.CSSProperties> = {
   logoName: { fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' },
   logoSub: { fontSize: 10, color: '#DDC9A3', fontWeight: 600, letterSpacing: '0.01em', textTransform: 'uppercase' },
   logoGov: { fontSize: 10, color: '#DDC9A3', fontWeight: 500, letterSpacing: '0.01em' },
-  nav: { flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 2 },
+  nav: { flex: 1, overflowY: 'auto', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 6 },
   navItem: {
     display: 'flex', alignItems: 'center', gap: 10,
-    padding: '10px 14px', borderRadius: 4, fontSize: 13,
-    fontWeight: 600, color: '#FFFFFF',
+    padding: '11px 14px', borderRadius: 10, fontSize: 13,
+    fontWeight: 600, color: '#F7EEE0',
     textDecoration: 'none', transition: 'all 0.15s',
     position: 'relative', cursor: 'pointer',
   },
   navActive: {
-    color: '#691B31', background: '#DDC9A3',
+    color: '#5A0F26', background: '#F0DFBF',
     fontWeight: 700,
+    boxShadow: '0 8px 20px rgba(74,14,31,0.22)',
   },
   activeLine: {
     position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)',
@@ -271,8 +278,8 @@ const s: Record<string, React.CSSProperties> = {
   },
   sidebarUser: {
     display: 'flex', alignItems: 'center', gap: 12,
-    padding: '16px 20px',
-    borderTop: '1px solid #BC955B',
+    padding: '16px 20px 18px',
+    borderTop: '1px solid rgba(221,201,163,0.3)',
     margin: '0',
   },
   avatarCircle: {
@@ -293,20 +300,26 @@ const s: Record<string, React.CSSProperties> = {
   main: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   mainMobile: { width: '100%' },
   header: {
-    height: 'var(--header-h)', background: 'linear-gradient(180deg, #691B31 0%, #A02142 100%)',
-    borderBottom: '1px solid #BC955B',
+    height: 'var(--header-h)', background: 'rgba(255,255,255,0.78)',
+    backdropFilter: 'blur(10px)',
+    borderBottom: '1px solid rgba(221,201,163,0.65)',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0 32px', flexShrink: 0,
   },
   headerMobile: { padding: '0 16px' },
-  content: { flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'linear-gradient(180deg, #F5F5F5 0%, #FFFFFF 100%)' },
+  content: {
+    flex: 1,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    background: 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, #FFFFFF 100%)',
+  },
   iconBtn: {
-    position: 'relative', background: '#DDC9A3', border: '1px solid #BC955B',
-    borderRadius: 4, padding: '8px 10px', cursor: 'pointer',
+    position: 'relative', background: '#FFFFFF', border: '1px solid rgba(188,149,91,0.5)',
+    borderRadius: 10, padding: '8px 10px', cursor: 'pointer',
     color: '#691B31', display: 'flex', alignItems: 'center',
     transition: 'all 0.15s',
   },
-  iconBtnActive: { borderColor: '#DDC9A3', color: '#FFFFFF', background: '#691B31' },
+  iconBtnActive: { borderColor: '#691B31', color: '#FFFFFF', background: '#691B31' },
   badge: {
     position: 'absolute', top: -6, right: -6,
     background: '#A02142', color: '#FFFFFF',
@@ -317,8 +330,8 @@ const s: Record<string, React.CSSProperties> = {
   notifPanel: {
     position: 'absolute', right: 0, top: 'calc(100% + 8px)',
     width: 340, background: '#FFFFFF',
-    borderRadius: 6, border: '1px solid #BC955B',
-    boxShadow: '0 8px 22px rgba(105,27,49,0.2)',
+    borderRadius: 12, border: '1px solid rgba(188,149,91,0.55)',
+    boxShadow: '0 18px 38px rgba(74,14,31,0.22)',
     zIndex: 50,
   },
   notifPanelMobile: {
