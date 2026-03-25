@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { AxiosError } from 'axios'
 import { usuariosApi } from '../lib/api'
 import { pickArray } from '../lib/normalize'
-import { Plus, Pencil, Trash2, X, Copy, Check } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Copy, Check, Eye } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 type Rol = 'administrador' | 'coordinador' | 'tecnico'
@@ -194,9 +194,36 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   )
 }
 
+function UsuarioInfoModal({ usuario, onClose }: { usuario: Usuario; onClose: () => void }) {
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <h3>Información de usuario</h3>
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
+        </div>
+        <div className="modal-body" style={{ display: 'grid', gap: 10 }}>
+          <div><strong>Nombre:</strong> {usuario.nombre}</div>
+          <div><strong>Correo:</strong> {usuario.correo}</div>
+          <div><strong>Rol:</strong> {usuario.rol}</div>
+          <div><strong>Código de acceso:</strong> {usuario.codigo_acceso ?? '—'}</div>
+          <div><strong>Teléfono:</strong> {usuario.telefono ?? '—'}</div>
+          <div><strong>Coordinador ID:</strong> {usuario.coordinador_id ?? '—'}</div>
+          <div><strong>Fecha límite:</strong> {usuario.fecha_limite ?? '—'}</div>
+          <div><strong>Estado:</strong> {usuario.activo !== false ? 'Activo' : 'Inactivo'}</div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={onClose}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function UsuariosPage() {
   const qc = useQueryClient()
   const [modal, setModal] = useState<'new' | Usuario | null>(null)
+  const [infoModal, setInfoModal] = useState<Usuario | null>(null)
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const { data, isLoading } = useQuery({
     queryKey: ['usuarios'],
@@ -237,9 +264,10 @@ export default function UsuariosPage() {
                 <td><span className={`badge badge-${(u.rol === 'administrador' || u.rol === 'admin') ? 'guinda' : 'dorado'}`}>{u.rol}</span></td>
                 <td><span className={`badge badge-${u.activo !== false ? 'green' : 'gray'}`}>{u.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
                 <td><div style={{ display: 'flex', gap: 4 }}>
-                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(u)}><Pencil size={13} /></button>
-                  <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }}
-                    onClick={() => confirm(`¿Desactivar a ${u.nombre}?`) && remove.mutate(u.id)}><Trash2 size={13} /></button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(u)}><Eye size={13} /> Ver</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setModal(u)}><Pencil size={13} /> Editar</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}
+                    onClick={() => confirm(`¿Desactivar a ${u.nombre}?`) && remove.mutate(u.id)}><Trash2 size={13} /> Eliminar</button>
                 </div></td>
               </tr>
             ))}
@@ -247,6 +275,7 @@ export default function UsuariosPage() {
         </table>
       </div>
       {modal && <UsuarioModal u={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
+      {infoModal && <UsuarioInfoModal usuario={infoModal} onClose={() => setInfoModal(null)} />}
     </div>
   )
 }
