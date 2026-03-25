@@ -1,4 +1,4 @@
-import axios, { type AxiosError, type AxiosResponse } from 'axios'
+import axios, { type AxiosError, type AxiosRequestConfig, type AxiosResponse } from 'axios'
 
 const DEFAULT_API_URL = 'https://campo-api-web-campo-saas.up.railway.app'
 const API_VERSION_PREFIX = '/api/v1'
@@ -16,7 +16,7 @@ const apiBaseUrl = /\/api\/v1$/i.test(resolvedApiUrl)
 const legacyApiBaseUrl = resolvedApiUrl.replace(/\/api\/v1$/i, '')
 const AUTH_TOKEN_KEY = 'campo_auth_token'
 const AUTH_USER_KEY = 'campo_auth_user'
-const LEGACY_FALLBACK_HEADER = 'x-campo-legacy-fallback'
+const LEGACY_FALLBACK_MARK = '__legacyFallbackAttempted'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -261,8 +261,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   async (err) => {
-    const cfg = err.config as (typeof err.config & { headers?: Record<string, unknown> }) | undefined
-    const fallbackAttempted = Boolean(cfg?.headers?.[LEGACY_FALLBACK_HEADER])
+    const cfg = err.config as (AxiosRequestConfig & { [LEGACY_FALLBACK_MARK]?: boolean }) | undefined
+    const fallbackAttempted = Boolean(cfg?.[LEGACY_FALLBACK_MARK])
 
     if (
       err.response?.status === 404 &&
@@ -270,14 +270,13 @@ api.interceptors.response.use(
       legacyApiBaseUrl !== apiBaseUrl &&
       cfg
     ) {
-      return api.request({
+      const retryConfig = {
         ...cfg,
         baseURL: legacyApiBaseUrl,
-        headers: {
-          ...(cfg.headers ?? {}),
-          [LEGACY_FALLBACK_HEADER]: '1',
-        },
-      })
+      } as AxiosRequestConfig & { [LEGACY_FALLBACK_MARK]?: boolean }
+
+      retryConfig[LEGACY_FALLBACK_MARK] = true
+      return api.request(retryConfig)
     }
 
     const path = normalizePath(err.config?.url)
