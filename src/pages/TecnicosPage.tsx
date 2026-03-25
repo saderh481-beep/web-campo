@@ -5,7 +5,7 @@ import { tecnicosApi } from '../lib/api'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
-import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search, Users } from 'lucide-react'
+import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search, Users, Plus } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
@@ -70,14 +70,15 @@ function CodigoAcceso({ codigo, id, canManage }: { codigo: string; id: string | 
   )
 }
 
-function TecnicoModal({ tecnico, onClose }: { tecnico: Tecnico; onClose: () => void }) {
+function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => void }) {
   const qc = useQueryClient()
+  const isNew = !tecnico
   const [form, setForm] = useState<FormData>({
-    nombre: tecnico.nombre ?? '',
-    correo: tecnico.correo ?? '',
-    telefono: tecnico.telefono ?? '',
-    coordinador_id: tecnico.coordinador_id ?? '',
-    fecha_limite: tecnico.fecha_limite?.slice(0, 10) ?? '',
+    nombre: tecnico?.nombre ?? '',
+    correo: tecnico?.correo ?? '',
+    telefono: tecnico?.telefono ?? '',
+    coordinador_id: tecnico?.coordinador_id ?? '',
+    fecha_limite: tecnico?.fecha_limite?.slice(0, 10) ?? '',
   })
   const [err, setErr] = useState('')
 
@@ -90,17 +91,19 @@ function TecnicoModal({ tecnico, onClose }: { tecnico: Tecnico; onClose: () => v
         coordinador_id: form.coordinador_id || undefined,
         fecha_limite: form.fecha_limite || undefined,
       }
-      return tecnicosApi.update(tecnico.id, payload)
+      return isNew 
+        ? tecnicosApi.create(payload)
+        : tecnicosApi.update(tecnico!.id, payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
-    onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
+    onError: (e: unknown) => setErr(toErrorMessage(e, isNew ? 'Error al crear' : 'Error al guardar')),
   })
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>Editar técnico</h3>
+          <h3>{isNew ? 'Crear técnico' : 'Editar técnico'}</h3>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
@@ -115,7 +118,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico: Tecnico; onClose: () => v
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+            {save.isPending ? <><span className="spinner" />{isNew ? 'Creando...' : 'Guardando...'}</> : isNew ? 'Crear' : 'Guardar'}
           </button>
         </div>
       </div>
@@ -127,7 +130,7 @@ export default function TecnicosPage() {
   const { user } = useAuth()
   const canManage = canManageTecnicos(user?.rol)
   const qc = useQueryClient()
-  const [modal, setModal] = useState<Tecnico | null>(null)
+  const [modal, setModal] = useState<Tecnico | null | 'new'>(null)
   const [q, setQ] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
@@ -174,24 +177,20 @@ export default function TecnicosPage() {
           <h1 className="page-title">Técnicos</h1>
           <p className="page-subtitle">{tecnicos.length} técnico{tecnicos.length !== 1 ? 's' : ''} registrado{tecnicos.length !== 1 ? 's' : ''}</p>
         </div>
+        {canManage && (
+          <button className="btn btn-primary" onClick={() => setModal('new')}>
+            <Plus size={15} /> Nuevo técnico
+          </button>
+        )}
       </div>
 
       {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
 
       {canManage && (
-        <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={{ fontWeight: 700, marginBottom: 4 }}>Alta de técnicos</div>
-            <div style={{ fontSize: 12, color: 'var(--gray-500)' }}>El backend actual no crea técnicos desde /tecnicos. La alta se hace en Usuarios con rol técnico.</div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-secondary" onClick={() => window.location.assign('/usuarios')}>
-              <Users size={14} /> Ir a usuarios
-            </button>
-            <button className="btn btn-primary" onClick={() => aplicarCortes.mutate()} disabled={aplicarCortes.isPending}>
-              {aplicarCortes.isPending ? <><span className="spinner" />Aplicando...</> : 'Aplicar cortes'}
-            </button>
-          </div>
+        <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="btn btn-primary" onClick={() => aplicarCortes.mutate()} disabled={aplicarCortes.isPending}>
+            {aplicarCortes.isPending ? <><span className="spinner" />Aplicando...</> : 'Aplicar cortes'}
+          </button>
         </div>
       )}
 
@@ -252,7 +251,7 @@ export default function TecnicosPage() {
         </table>
       </div>
 
-      {modal && canManage && <TecnicoModal tecnico={modal} onClose={() => setModal(null)} />}
+      {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
     </div>
   )
 }
