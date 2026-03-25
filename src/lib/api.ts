@@ -411,6 +411,7 @@ export const bitacorasApi = {
   },
   get: (id: string | number) => api.get(`/bitacoras/${id}`),
   update: (id: string | number, data: unknown) => api.patch(`/bitacoras/${id}`, withBitacoraUpdateAliases(data)),
+  updatePdfConfig: (id: string | number, pdf_edicion: unknown) => api.patch(`/bitacoras/${id}/pdf-config`, { pdf_edicion }),
   pdfUrl: (id: string | number) => `${apiBaseUrl}/bitacoras/${id}/pdf`,
   pdfDownloadUrl: (id: string | number) => `${apiBaseUrl}/bitacoras/${id}/pdf/descargar`,
   imprimirPdf: (id: string | number) => api.post(`/bitacoras/${id}/pdf/imprimir`),
@@ -423,6 +424,11 @@ export const reportesApi = {
     api.get('/reportes/mensual', { params: normalizeMonthlyParams(params) }),
   tecnico: (id: string | number, params?: { desde?: string; hasta?: string }) =>
     api.get(`/reportes/tecnico/${id}`, { params }),
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+export const dashboardApi = {
+  coordinador: () => api.get('/dashboard/coordinador'),
 }
 
 // ── ARCHIVE ───────────────────────────────────────────────────────
@@ -441,6 +447,14 @@ export const localidadesApi = {
   remove: (id: string | number) => api.delete(`/localidades/${id}`),
 }
 
+// ── ZONAS ─────────────────────────────────────────────────────────
+export const zonasApi = {
+  list: () => api.get('/zonas'),
+  create: (data: unknown) => api.post('/zonas', data),
+  update: (id: string | number, data: unknown) => api.patch(`/zonas/${id}`, data),
+  remove: (id: string | number) => api.delete(`/zonas/${id}`),
+}
+
 // ── CONFIGURACIONES ──────────────────────────────────────────────
 export const configuracionesApi = {
   list: () => api.get('/configuraciones'),
@@ -455,6 +469,14 @@ export const documentosPlantillaApi = {
   create: (data: unknown) => api.post('/documentos-plantilla', data),
   update: (id: string | number, data: unknown) => api.patch(`/documentos-plantilla/${id}`, data),
   remove: (id: string | number) => api.delete(`/documentos-plantilla/${id}`),
+}
+
+// ── DOCUMENTOS PDF ────────────────────────────────────────────────
+export const documentosPdfApi = {
+  list: () => api.get('/documentos-pdf'),
+  create: (formData: FormData) => api.post('/documentos-pdf', formData),
+  update: (id: string | number, data: unknown) => api.patch(`/documentos-pdf/${id}`, data),
+  remove: (id: string | number) => api.delete(`/documentos-pdf/${id}`),
 }
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────
