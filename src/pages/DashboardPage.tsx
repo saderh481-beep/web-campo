@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { reportesApi, bitacorasApi, tecnicosApi, beneficiariosApi } from '../lib/api'
+import { reportesApi, bitacorasApi, tecnicosApi, beneficiariosApi, dashboardApi } from '../lib/api'
 import { pickArray, pickNumber } from '../lib/normalize'
 import { FileText, Users, UserCheck, TrendingUp, Activity } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useAuth } from '../hooks/useAuth'
+import { normalizeRole } from '../lib/authz'
 
 interface StatCardProps {
   label: string
@@ -73,6 +75,14 @@ function getPorcentaje(row: ReporteRow): number {
   return Math.round((getCerradas(row) / total) * 100)
 }
 
+function getDashboardResumenValue(source: unknown, key: 'tecnicos' | 'beneficiarios' | 'bitacoras'): number {
+  if (!source || typeof source !== 'object') return 0
+  const resumen = (source as Record<string, unknown>).resumen
+  if (!resumen || typeof resumen !== 'object') return 0
+  const value = (resumen as Record<string, unknown>)[key]
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
 function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
   return (
     <div className="card" style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
@@ -94,8 +104,17 @@ function StatCard({ label, value, icon: Icon, color, loading }: StatCardProps) {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const role = normalizeRole(user?.rol)
   const hoy = new Date()
   const mes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
+
+  const { data: coordinadorDashboard, isLoading: cLoad } = useQuery({
+    queryKey: ['dashboard', 'coordinador'],
+    queryFn: () => dashboardApi.coordinador().then(r => r.data),
+    staleTime: 60000,
+    enabled: role === 'coordinador',
+  })
 
   const { data: reporte, isLoading: rLoad } = useQuery({
     queryKey: ['reporte', mes],
@@ -127,12 +146,16 @@ export default function DashboardPage() {
   const reporteData = reporte as ReporteResponse | undefined
 
   const tecs = pickArray<TecnicoSummary>(tecnicosData, ['tecnicos', 'data', 'rows'])
-  const totalBenef = Array.isArray(benefData)
+  const totalBenef = role === 'coordinador'
+    ? getDashboardResumenValue(coordinadorDashboard, 'beneficiarios')
+    : Array.isArray(benefData)
     ? benefData.length
     : pickNumber(benefData, ['total'], pickArray(benefData, ['beneficiarios', 'rows', 'data']).length)
   const bitacorasRows = pickArray<BitacoraSummary>(bitacorasData, ['bitacoras', 'data', 'rows'])
-  const totalBit = Array.isArray(bitacorasData) ? bitacorasData.length : pickNumber(bitacorasData, ['total'], bitacorasRows.length)
-  const totalTecs = tecs.length
+  const totalBit = role === 'coordinador'
+    ? getDashboardResumenValue(coordinadorDashboard, 'bitacoras')
+    : (Array.isArray(bitacorasData) ? bitacorasData.length : pickNumber(bitacorasData, ['total'], bitacorasRows.length))
+  const totalTecs = role === 'coordinador' ? getDashboardResumenValue(coordinadorDashboard, 'tecnicos') : tecs.length
   const reporteRows = pickArray<ReporteRow>(reporteData, ['tecnicos', 'reporte', 'rows', 'data'])
   const cierrePromedio = reporteRows.length > 0 ? Math.round(reporteRows.reduce((sum, row) => sum + getPorcentaje(row), 0) / reporteRows.length) : 0
 
@@ -146,9 +169,9 @@ export default function DashboardPage() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 28 }}>
-        <StatCard label="Técnicos activos" value={totalTecs} icon={UserCheck} color="var(--guinda)" loading={tLoad} />
-        <StatCard label="Beneficiarios" value={totalBenef} icon={Users} color="var(--success)" loading={bLoad} />
-        <StatCard label="Bitácoras" value={totalBit} icon={FileText} color="var(--warning)" loading={biLoad} />
+        <StatCard label="Técnicos activos" value={totalTecs} icon={UserCheck} color="var(--guinda)" loading={role === 'coordinador' ? cLoad : tLoad} />
+        <StatCard label="Beneficiarios" value={totalBenef} icon={Users} color="var(--success)" loading={role === 'coordinador' ? cLoad : bLoad} />
+        <StatCard label="Bitácoras" value={totalBit} icon={FileText} color="var(--warning)" loading={role === 'coordinador' ? cLoad : biLoad} />
         <StatCard
           label="Cierre mensual"
           value={reporteRows.length > 0 ? `${cierrePromedio}%` : '—'}

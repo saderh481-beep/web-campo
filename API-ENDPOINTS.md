@@ -48,9 +48,10 @@ Los tecnicos tienen un campo `estado_corte` con tres valores posibles:
 - `baja` - dado de baja definitiva.
 
 Logica de bloqueo:
-- En cada request: el middleware verifica que `fecha_limite` de la sesion no haya expirado. Si expiro devuelve `401 { error: "periodo_vencido" }`.
-- En login: si `fecha_limite < NOW()` se actualiza `estado_corte = corte_aplicado` y se rechaza con `401 { error: "periodo_vencido" }`.
-- Extension de periodo: hacer PATCH `/tecnicos/:id` con `fecha_limite` futura resetea automaticamente `estado_corte = en_servicio`.
+- El corte se determina con `configuraciones.fecha_corte_global.valor.fecha` (no por `fecha_limite` individual).
+- En cada request: el middleware valida la fecha de corte global cargada en sesion.
+- En login: si la fecha de corte global ya vencio, se actualiza `estado_corte = corte_aplicado` y se rechaza con `401 { error: "periodo_vencido" }`.
+- Si no existe fecha de corte global configurada, login de tecnicos responde `401 { error: "periodo_no_configurado" }`.
 
 ## Scripts de utilidad
 
@@ -73,7 +74,14 @@ bun run typecheck
 ## Novedades recientes
 
 - Beneficiarios: se agrego soporte completo de `localidad_id` en `GET /beneficiarios`, `POST /beneficiarios` y `PATCH /beneficiarios/:id`.
+- Beneficiarios: el alcance para coordinador en listado, detalle y documentos ahora se determina por `beneficiarios.tecnico_id` + `tecnico_detalles.coordinador_id`.
+- Beneficiarios: al crear o reasignar un beneficiario se sincroniza tambien `asignaciones_beneficiario` para mantener consistencia con modulos de tecnicos/asignaciones.
+- Beneficiarios: `telefono_principal` y `telefono_secundario` se almacenan como `TEXT` normalizado, no como binario.
 - Usuarios (PATCH): `hash_codigo_acceso` solo se recalcula cuando se envia `codigo_acceso` nuevo.
+- Usuarios (PATCH): se agrego campo `activo` (boolean) para reactivar/desactivar desde PATCH.
+- Usuarios (POST): la validacion de correo duplicado solo bloquea con usuarios activos (permite reutilizar correos de usuarios inactivos).
+- Asignaciones (POST /beneficiario y POST /actividad): validan que tecnico y destino existan y esten activos.
+- Beneficiarios (POST/PATCH): creacion y reasignacion de tecnico ocurren en transaccion atomica con `asignaciones_beneficiario`.
 - Archive: `POST /archive/:periodo/confirmar` ahora actualiza el registro mas reciente del periodo (no inserta un duplicado).
 - Archive: `POST /archive/:periodo/forzar` retorna `409` si ya existe un archivado en progreso para ese periodo.
 - Notificaciones: accesibles para administrador y tecnico autenticados, siempre filtradas por `destino_id`.
@@ -157,8 +165,8 @@ Todas las rutas de esta seccion usan el prefijo base `/api/v1`.
 | Metodo | Ruta | Rol | Body minimo |
 |---|---|---|---|
 | GET | /usuarios | administrador | - |
-| POST | /usuarios | administrador | { correo, nombre, rol, telefono?, coordinador_id?, fecha_limite? } |
-| PATCH | /usuarios/:id | administrador | { nombre?, correo?, rol?, codigo_acceso?, telefono?, coordinador_id?, fecha_limite? } |
+| POST | /usuarios | administrador | { correo, nombre, rol, telefono? } |
+| PATCH | /usuarios/:id | administrador | { nombre?, correo?, rol?, codigo_acceso?, telefono?, activo? } |
 | DELETE | /usuarios/:id | administrador | - |
 
 ### Tecnicos
@@ -208,6 +216,9 @@ Todas las rutas de esta seccion usan el prefijo base `/api/v1`.
 
 | Metodo | Ruta | Rol | Body minimo |
 |---|---|---|---|
+| GET | /asignaciones/coordinador-tecnico?tecnico_id=uuid | administrador | - |
+| POST | /asignaciones/coordinador-tecnico | administrador | { tecnico_id, coordinador_id, fecha_limite } |
+| DELETE | /asignaciones/coordinador-tecnico/:tecnico_id | administrador | - |
 | POST | /asignaciones/beneficiario | administrador | { tecnico_id, beneficiario_id } |
 | DELETE | /asignaciones/beneficiario/:id | administrador | - |
 | POST | /asignaciones/actividad | administrador | { tecnico_id, actividad_id } |
@@ -220,6 +231,7 @@ Todas las rutas de esta seccion usan el prefijo base `/api/v1`.
 | GET | /bitacoras | administrador, coordinador | Query opcional: tecnico_id, mes, anio, estado, tipo |
 | GET | /bitacoras/:id | administrador, coordinador | - |
 | PATCH | /bitacoras/:id | administrador, coordinador | { observaciones?, actividades_realizadas? } |
+| PATCH | /bitacoras/:id/pdf-config | administrador, coordinador | { pdf_edicion: object } |
 | GET | /bitacoras/:id/pdf | administrador, coordinador | - |
 | GET | /bitacoras/:id/pdf/descargar | administrador, coordinador | - |
 | POST | /bitacoras/:id/pdf/imprimir | administrador, coordinador | - |

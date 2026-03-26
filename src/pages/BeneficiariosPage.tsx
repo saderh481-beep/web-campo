@@ -416,6 +416,14 @@ export default function BeneficiariosPage() {
         </button>
       </div>
 
+      <div style={{ marginBottom: 14 }}>
+        <FeedbackBanner
+          kind="info"
+          compact
+          message="Actualización API: el acceso de coordinador se filtra por técnico asignado y la asignación de beneficiario se sincroniza automáticamente al crear/reasignar técnico."
+        />
+      </div>
+
       <div className="card" style={{ marginBottom: 20, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Search size={15} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
         <input className="input" style={{ border: 'none', padding: 0, boxShadow: 'none' }}

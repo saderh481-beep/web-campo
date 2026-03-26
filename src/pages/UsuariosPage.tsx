@@ -31,6 +31,7 @@ interface UsuarioForm {
   telefono: string
   coordinador_id: string
   fecha_limite: string
+  activo: boolean
 }
 
 type AnyRecord = Record<string, unknown>
@@ -131,6 +132,7 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
     telefono: u?.telefono ?? '',
     coordinador_id: u?.coordinador_id ?? '',
     fecha_limite: u?.fecha_limite?.slice(0, 10) ?? '',
+    activo: u?.activo !== false,
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
@@ -142,6 +144,8 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
       rol: form.rol,
       telefono: form.telefono.trim() || undefined,
     }
+
+    if (u) payload.activo = form.activo
 
     return payload
   }
@@ -238,6 +242,15 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
               <div className="form-group"><label className="form-label">Fecha límite</label>
                 <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} /></div>
             </>
+          )}
+          {u && (
+            <div className="form-group">
+              <label className="form-label">Estado</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--gray-700)' }}>
+                <input type="checkbox" checked={form.activo} onChange={e => setForm(p => ({ ...p, activo: e.target.checked }))} />
+                Usuario activo
+              </label>
+            </div>
           )}
           {err && <FeedbackBanner kind="error" message={err} compact />}
           {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
