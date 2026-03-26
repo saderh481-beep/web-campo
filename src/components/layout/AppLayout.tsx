@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -37,15 +37,19 @@ const NAV = [
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
+  const location = useLocation()
   const qc = useQueryClient()
   const [notifOpen, setNotifOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 980 : false
   )
   const [menuOpen, setMenuOpen] = useState(false)
+  const [asignacionesOpen, setAsignacionesOpen] = useState(() => location.pathname.startsWith('/asignaciones'))
 
   const canSeeNotifications = canViewNotifications(user?.rol)
   const visibleNav = NAV.filter(({ allow }) => allow(user?.rol))
+  const showAsignacionesGroup = visibleNav.some((item) => item.to === '/asignaciones')
+  const regularNav = visibleNav.filter((item) => item.to !== '/asignaciones')
 
   const notifData = useQuery({
     queryKey: ['notificaciones'],
@@ -111,7 +115,7 @@ export default function AppLayout() {
         </div>
 
         <nav style={s.nav}>
-          {visibleNav.map(({ to, label, icon: Icon, end }) => (
+          {regularNav.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to} to={to} end={end}
               style={({ isActive }) => ({ ...s.navItem, ...(isActive ? s.navActive : {}) })}
@@ -127,6 +131,45 @@ export default function AppLayout() {
               )}
             </NavLink>
           ))}
+
+          {showAsignacionesGroup && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <button
+                type="button"
+                style={{ ...s.navItem, ...(location.pathname.startsWith('/asignaciones') ? s.navActive : {}), border: 'none', width: '100%', textAlign: 'left' }}
+                onClick={() => setAsignacionesOpen((prev) => !prev)}
+              >
+                {location.pathname.startsWith('/asignaciones') && <span style={s.activeLine} />}
+                <Link2 size={18} style={{ flexShrink: 0 }} />
+                <span>Asignaciones</span>
+                <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.6, transform: asignacionesOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }} />
+              </button>
+
+              {asignacionesOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginLeft: 12 }}>
+                  {[
+                    { to: '/asignaciones/coordinador-tecnico', label: 'Coordinador -> Técnico' },
+                    { to: '/asignaciones/tecnico-beneficiario', label: 'Técnico -> Beneficiario' },
+                    { to: '/asignaciones/tecnico-actividad', label: 'Técnico -> Actividad' },
+                  ].map((sub) => (
+                    <NavLink
+                      key={sub.to}
+                      to={sub.to}
+                      style={({ isActive }) => ({
+                        ...s.navItem,
+                        padding: '9px 12px 9px 36px',
+                        fontSize: 12,
+                        ...(isActive ? s.navActive : { background: 'rgba(255,255,255,0.08)' }),
+                      })}
+                      onClick={() => isMobile && setMenuOpen(false)}
+                    >
+                      {sub.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         <div style={s.sidebarUser}>
@@ -352,6 +395,7 @@ const s: Record<string, React.CSSProperties> = {
   notifUnread: { background: '#F5F5F5' },
   dot: { width: 6, height: 6, borderRadius: '50%', background: '#A02142', flexShrink: 0, marginTop: 4 },
 }
+
 
 
 

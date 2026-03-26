@@ -122,7 +122,10 @@ export default function App() {
                 <Route path="cadenas" element={<RoleRoute allow={canViewCadenas}><CadenasPage /></RoleRoute>} />
                 <Route path="reportes" element={<RoleRoute allow={canViewReports}><ReportesPage /></RoleRoute>} />
                 <Route path="actividades" element={<RoleRoute allow={canViewActividades}><ActividadesPage /></RoleRoute>} />
-                <Route path="asignaciones" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
+                <Route path="asignaciones" element={<RoleRoute allow={canViewAsignaciones}><Navigate to="/asignaciones/coordinador-tecnico" replace /></RoleRoute>} />
+                <Route path="asignaciones/coordinador-tecnico" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
+                <Route path="asignaciones/tecnico-beneficiario" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
+                <Route path="asignaciones/tecnico-actividad" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
                 <Route path="usuarios" element={<RoleRoute allow={canManageUsers}><UsuariosPage /></RoleRoute>} />
                 <Route path="localidades" element={<RoleRoute allow={canViewLocalidades}><LocalidadesPage /></RoleRoute>} />
                 <Route path="configuraciones" element={<RoleRoute allow={canViewConfiguraciones}><ConfiguracionesPage /></RoleRoute>} />
@@ -137,3 +140,6 @@ export default function App() {
     </QueryClientProvider>
   )
 }
+
+
+

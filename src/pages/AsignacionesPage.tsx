@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { actividadesApi, asignacionesApi, beneficiariosApi, tecnicosApi, usuariosApi, getApiErrorMessage } from '../lib/api'
 import { canManageAsignaciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
-import { ClipboardList, Link2, Pencil, Trash2, Users } from 'lucide-react'
+import { ChevronDown, ChevronRight, ClipboardList, Link2, Pencil, Trash2, Users } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
@@ -116,6 +117,37 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: typeof Link2; ti
         <h3 style={{ margin: 0, fontSize: 16 }}>{title}</h3>
         <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--gray-500)' }}>{subtitle}</p>
       </div>
+    </div>
+  )
+}
+
+function CollapsibleSection({
+  icon,
+  title,
+  subtitle,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  icon: typeof Link2
+  title: string
+  subtitle: string
+  isOpen: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
+  return (
+    <div className="card" style={{ marginTop: 20 }}>
+      <button
+        className="btn btn-ghost"
+        type="button"
+        onClick={onToggle}
+        style={{ width: '100%', justifyContent: 'space-between', padding: 0, border: 'none', background: 'transparent' }}
+      >
+        <SectionHeader icon={icon} title={title} subtitle={subtitle} />
+        <span style={{ marginTop: 4 }}>{isOpen ? <ChevronDown size={18} /> : <ChevronRight size={18} />}</span>
+      </button>
+      {isOpen && children}
     </div>
   )
 }
@@ -295,6 +327,7 @@ function EditAsignacionModal({
 }
 
 export default function AsignacionesPage() {
+  const location = useLocation()
   const { user } = useAuth()
   const canManage = canManageAsignaciones(user?.rol)
   const qc = useQueryClient()
@@ -306,6 +339,11 @@ export default function AsignacionesPage() {
   const [actividadFeedback, setActividadFeedback] = useState<Feedback>(null)
   const [tableFeedback, setTableFeedback] = useState<Feedback>(null)
   const [editState, setEditState] = useState<EditState>(null)
+  const [openSections, setOpenSections] = useState({
+    coordinadorTecnico: true,
+    tecnicoBeneficiario: true,
+    tecnicoActividad: true,
+  })
 
   const { data: tecnicosData, isLoading: loadingTecnicos } = useQuery({
     queryKey: ['tecnicos'],
@@ -410,12 +448,28 @@ export default function AsignacionesPage() {
   const loadingCreate = loadingTecnicos || loadingBeneficiarios || loadingActividades
   const loadingTables = loadingCoordinadorTecnico || loadingAsignacionesBeneficiario || loadingAsignacionesActividad || loadingUsuarios
 
+  const section = location.pathname.includes('/asignaciones/tecnico-beneficiario')
+    ? 'beneficiario'
+    : location.pathname.includes('/asignaciones/tecnico-actividad')
+      ? 'actividad'
+      : 'coordinador'
+
+  const showCoordinador = section === 'coordinador'
+  const showBeneficiario = section === 'beneficiario'
+  const showActividad = section === 'actividad'
+
+  const pageTitle = showCoordinador
+    ? 'Asignaciones: Coordinador -> Técnico'
+    : showBeneficiario
+      ? 'Asignaciones: Técnico -> Beneficiario'
+      : 'Asignaciones: Técnico -> Actividad'
+
   return (
     <div className="page animate-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Asignaciones</h1>
-          <p className="page-subtitle">Alta, consulta y edición rápida de asignaciones del módulo administrativo.</p>
+          <h1 className="page-title">{pageTitle}</h1>
+          <p className="page-subtitle">Alta, consulta y edición rápida para la relación seleccionada.</p>
         </div>
       </div>
 
@@ -425,7 +479,9 @@ export default function AsignacionesPage() {
 
       {canManage && (
         <>
+          {(showBeneficiario || showActividad) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            {showBeneficiario && (
             <div className="card">
               <SectionHeader icon={Link2} title="Asignar beneficiario" subtitle="Crea o reactiva la relación técnico-beneficiario." />
               <div className="form-group">
@@ -447,7 +503,9 @@ export default function AsignacionesPage() {
                 {asignarBeneficiario.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar beneficiario'}
               </button>
             </div>
+            )}
 
+            {showActividad && (
             <div className="card">
               <SectionHeader icon={ClipboardList} title="Asignar actividad" subtitle="Crea o reactiva la relación técnico-actividad." />
               <div className="form-group">
@@ -469,12 +527,20 @@ export default function AsignacionesPage() {
                 {asignarActividad.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar actividad'}
               </button>
             </div>
+            )}
           </div>
+          )}
 
           {tableFeedback && <div style={{ marginTop: 16 }}><FeedbackBanner kind={tableFeedback.kind} message={tableFeedback.message} /></div>}
 
-          <div className="card" style={{ marginTop: 20 }}>
-            <SectionHeader icon={Users} title="Coordinador a Técnico" subtitle="Consulta y ajusta coordinador, fecha límite y estado de la relación." />
+          {showCoordinador && (
+          <CollapsibleSection
+            icon={Users}
+            title="Coordinador a Técnico"
+            subtitle="Consulta y ajusta coordinador, fecha límite y estado de la relación."
+            isOpen={openSections.coordinadorTecnico}
+            onToggle={() => setOpenSections((prev) => ({ ...prev, coordinadorTecnico: !prev.coordinadorTecnico }))}
+          >
             <div className="table-wrap">
               <table>
                 <thead>
@@ -507,10 +573,17 @@ export default function AsignacionesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </CollapsibleSection>
+          )}
 
-          <div className="card" style={{ marginTop: 20 }}>
-            <SectionHeader icon={Link2} title="Técnico a Beneficiario" subtitle="Consulta, edita o desactiva asignaciones activas e históricas." />
+          {showBeneficiario && (
+          <CollapsibleSection
+            icon={Link2}
+            title="Técnico a Beneficiario"
+            subtitle="Consulta, edita o desactiva asignaciones activas e históricas."
+            isOpen={openSections.tecnicoBeneficiario}
+            onToggle={() => setOpenSections((prev) => ({ ...prev, tecnicoBeneficiario: !prev.tecnicoBeneficiario }))}
+          >
             <div className="table-wrap">
               <table>
                 <thead>
@@ -543,10 +616,17 @@ export default function AsignacionesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </CollapsibleSection>
+          )}
 
-          <div className="card" style={{ marginTop: 20 }}>
-            <SectionHeader icon={ClipboardList} title="Técnico a Actividad" subtitle="Consulta, edita o desactiva asignaciones de actividades." />
+          {showActividad && (
+          <CollapsibleSection
+            icon={ClipboardList}
+            title="Técnico a Actividad"
+            subtitle="Consulta, edita o desactiva asignaciones de actividades."
+            isOpen={openSections.tecnicoActividad}
+            onToggle={() => setOpenSections((prev) => ({ ...prev, tecnicoActividad: !prev.tecnicoActividad }))}
+          >
             <div className="table-wrap">
               <table>
                 <thead>
@@ -579,7 +659,8 @@ export default function AsignacionesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </CollapsibleSection>
+          )}
         </>
       )}
 
