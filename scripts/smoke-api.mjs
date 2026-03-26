@@ -59,7 +59,7 @@ const client = axios.create({
 
 const checks = [
   { method: 'post', path: '/auth/request-otp', data: { correo: '' }, expected: [400, 401, 422] },
-  { method: 'post', path: '/auth/verify-otp', data: { correo: '', otp: '' }, expected: [400, 401, 422] },
+  { method: 'post', path: '/auth/verify-otp', data: { correo: '', codigo_acceso: '' }, expected: [400, 401, 422] },
   { method: 'post', path: '/auth/logout', data: {}, expected: [200, 204, 401] },
   { method: 'get', path: '/usuarios/me', expected: [200, 401] },
   { method: 'get', path: '/usuarios', expected: [200, 401] },

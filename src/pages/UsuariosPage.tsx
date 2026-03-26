@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
-import { asignacionesApi, usuariosApi } from '../lib/api'
+import { asignacionesApi, usuariosApi, getApiErrorMessage } from '../lib/api'
 import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X, Copy, Check, Eye } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
@@ -88,8 +87,7 @@ function normalizeUsuarios(source: unknown): Usuario[] {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function toFormRole(role: string | undefined): Rol {

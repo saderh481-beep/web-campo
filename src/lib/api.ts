@@ -1,4 +1,4 @@
-import axios, { type AxiosResponse } from 'axios'
+import axios, { type AxiosError, type AxiosResponse } from 'axios'
 
 const DEFAULT_API_URL = 'https://campo-api-web-campo-saas.up.railway.app'
 const API_VERSION_PREFIX = '/api/v1'
@@ -18,6 +18,18 @@ const AUTH_USER_KEY = 'campo_auth_user'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
+}
+
+export function getApiErrorMessage(err: unknown, fallback: string): string {
+  const axiosErr = err as AxiosError<{ message?: string; error?: string }>
+  const payload = axiosErr.response?.data
+  if (isRecord(payload)) {
+    const error = payload.error
+    if (typeof error === 'string' && error.trim().length > 0) return error
+    const message = payload.message
+    if (typeof message === 'string' && message.trim().length > 0) return message
+  }
+  return fallback
 }
 
 function getStoredToken(): string | null {
@@ -370,6 +382,7 @@ export const beneficiariosApi = {
   get: (id: string | number) => api.get(`/beneficiarios/${id}`),
   create: (data: unknown) => api.post('/beneficiarios', withBeneficiarioPayload(data)),
   update: (id: string | number, data: unknown) => api.patch(`/beneficiarios/${id}`, withBeneficiarioPayload(data)),
+  remove: (id: string | number) => api.delete(`/beneficiarios/${id}`),
   asignarCadenas: (id: string, cadenaIds: string[]) =>
     api.post(`/beneficiarios/${id}/cadenas`, { cadena_ids: cadenaIds }),
   subirDocumento: (id: string, formData: FormData) =>
@@ -389,16 +402,34 @@ export const actividadesApi = {
 export const asignacionesApi = {
   obtenerCoordinadorTecnico: (tecnico_id: string) =>
     api.get('/asignaciones/coordinador-tecnico', { params: { tecnico_id } }),
+  listarCoordinadorTecnico: (tecnico_id?: string) =>
+    api.get('/asignaciones/coordinador-tecnico/lista', { params: tecnico_id ? { tecnico_id } : undefined }),
+  obtenerCoordinadorTecnicoPorPath: (tecnico_id: string) =>
+    api.get(`/asignaciones/coordinador-tecnico/${tecnico_id}`),
   asignarCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string }) =>
     api.post('/asignaciones/coordinador-tecnico', data),
+  actualizarCoordinadorTecnico: (tecnico_id: string, data: { coordinador_id?: string; fecha_limite?: string; activo?: boolean }) =>
+    api.patch(`/asignaciones/coordinador-tecnico/${tecnico_id}`, data),
   quitarCoordinadorTecnico: (tecnico_id: string) =>
     api.delete(`/asignaciones/coordinador-tecnico/${tecnico_id}`),
+  listarBeneficiario: (params?: { tecnico_id?: string; beneficiario_id?: string; activo?: boolean }) =>
+    api.get('/asignaciones/beneficiario', { params }),
+  obtenerBeneficiario: (id: string | number) =>
+    api.get(`/asignaciones/beneficiario/${id}`),
   asignarBeneficiario: (data: { tecnico_id: string; beneficiario_id: string }) =>
     api.post('/asignaciones/beneficiario', data),
+  actualizarBeneficiario: (id: string | number, data: { tecnico_id?: string; beneficiario_id?: string; activo?: boolean }) =>
+    api.patch(`/asignaciones/beneficiario/${id}`, data),
   quitarBeneficiario: (id: string | number) =>
     api.delete(`/asignaciones/beneficiario/${id}`),
+  listarActividad: (params?: { tecnico_id?: string; actividad_id?: string; activo?: boolean }) =>
+    api.get('/asignaciones/actividad', { params }),
+  obtenerActividad: (id: string | number) =>
+    api.get(`/asignaciones/actividad/${id}`),
   asignarActividad: (data: { tecnico_id: string; actividad_id: string }) =>
     api.post('/asignaciones/actividad', data),
+  actualizarActividad: (id: string | number, data: { tecnico_id?: string; actividad_id?: string; activo?: boolean }) =>
+    api.patch(`/asignaciones/actividad/${id}`, data),
   quitarActividad: (id: string | number) =>
     api.delete(`/asignaciones/actividad/${id}`),
 }
@@ -434,7 +465,7 @@ export const dashboardApi = {
 // ── ARCHIVE ───────────────────────────────────────────────────────
 export const archiveApi = {
   list: () => api.get('/archive'),
-  descargar: (periodo: string) => api.get(`/archive/${periodo}/descargar`),
+  descargar: (periodo: string) => api.get(`/archive/${periodo}/descargar`, { responseType: 'blob' }),
   confirmar: (periodo: string) => api.post(`/archive/${periodo}/confirmar`, { confirmar: true }),
   forzar: (periodo: string) => api.post(`/archive/${periodo}/forzar`),
 }

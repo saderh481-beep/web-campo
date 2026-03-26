@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
-import { cadenasApi } from '../lib/api'
+import { cadenasApi, getApiErrorMessage } from '../lib/api'
 import { canManageCadenas } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -19,8 +18,7 @@ interface CadenasResponse {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function CadenaModal({ cadena, onClose }: { cadena?: Cadena; onClose: () => void }) {

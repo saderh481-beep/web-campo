@@ -1,6 +1,6 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authApi } from '../lib/api'
+import { authApi, getApiErrorMessage } from '../lib/api'
 import { useAuth } from '../hooks/useAuth'
 
 export default function LoginPage() {
@@ -8,18 +8,9 @@ export default function LoginPage() {
   const [codigoAcceso, setCodigoAcceso] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 920 : false
-  )
   const { login } = useAuth()
   const nav = useNavigate()
 
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 920)
-    onResize()
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
@@ -35,145 +26,83 @@ export default function LoginPage() {
       const r = await authApi.login(correo.trim(), code)
       login(r.data)
       nav('/')
-    } catch {
-      setError('Correo o código de acceso inválidos.')
+    } catch (err) {
+      setError(getApiErrorMessage(err, 'Correo o código de acceso inválidos.'))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ ...styles.wrap, ...(isMobile ? styles.wrapMobile : {}) }}>
-      <div style={{ ...styles.left, ...(isMobile ? styles.leftMobile : {}) }}>
-        <div style={{ ...styles.leftInner, ...(isMobile ? styles.leftInnerMobile : {}) }}>
-          <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={styles.leftLogo} />
-          <h1 style={styles.brand}>CAMPO</h1>
-          <p style={styles.brandSub}>Sistema de Gestión de Técnicos y Beneficiarios</p>
-          <div style={styles.divider} />
-          <p style={styles.org}>Secretaría de Desarrollo Agropecuario — CAMPO</p>
-          <p style={styles.gov}>Gobierno del Estado de Hidalgo</p>
-          <p style={styles.motto}>Primero el Pueblo 2022-2028</p>
-          {!isMobile && <div style={styles.decorCircle} />}
-          {!isMobile && <div style={styles.decorCircle2} />}
-        </div>
-      </div>
-
-      <div style={{ ...styles.right, ...(isMobile ? styles.rightMobile : {}) }}>
-        <div style={{ ...styles.formCard, ...(isMobile ? styles.formCardMobile : {}) }}>
-          <div style={{ marginBottom: 32 }}>
-            <h2 style={styles.title}>Iniciar sesión</h2>
-            <p style={styles.subtitle}>Ingresa tu correo y tu código de acceso</p>
+    <>
+      <a href="#main-content" className="skip-nav">Saltar al contenido</a>
+      <div className="login-wrap animate-slide-in">
+        <div className="login-left">
+          <div className="login-left-inner">
+            <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" className="login-logo" />
+            <h1 className="login-brand">CAMPO</h1>
+            <p className="login-brand-sub">Sistema de Gestión de Técnicos y Beneficiarios</p>
+            <div className="login-divider" />
+            <p className="login-org">Secretaría de Desarrollo Agropecuario — CAMPO</p>
+            <p className="login-gov">Gobierno del Estado de Hidalgo</p>
+            <p className="login-motto">Primero el Pueblo 2022-2028</p>
+            <div className="login-decor1" />
+            <div className="login-decor2" />
           </div>
+        </div>
 
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Correo electrónico</label>
-              <input
-                className="input"
-                type="email"
-                value={correo}
-                onChange={e => setCorreo(e.target.value)}
-                placeholder="nombre@hidalgo.gob.mx"
-                autoComplete="username"
-                required
-              />
+        <div className="login-right">
+          <div className="login-form-card">
+            <div style={{ marginBottom: 32 }}>
+              <h2 className="login-title">Iniciar sesión</h2>
+              <p className="login-subtitle">Ingresa tu correo y tu código de acceso</p>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Código de acceso (5 o 6 dígitos)</label>
-              <input
-                className="input"
-                type="password"
-                value={codigoAcceso}
-                onChange={e => setCodigoAcceso(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="••••••"
-                inputMode="numeric"
-                pattern="[0-9]{5,6}"
-                maxLength={6}
-                autoComplete="current-password"
-                required
-              />
-            </div>
+            <form onSubmit={handleLogin}>
+              <div className="form-group">
+                <label className="form-label">Correo electrónico</label>
+                <input
+                  className="input"
+                  type="email"
+                  value={correo}
+                  onChange={e => setCorreo(e.target.value)}
+                  placeholder="nombre@hidalgo.gob.mx"
+                  autoComplete="username"
+                  required
+                />
+              </div>
 
-            {error && <p style={styles.err}>{error}</p>}
+              <div className="form-group">
+                <label className="form-label">Código de acceso (5 o 6 dígitos)</label>
+                <input
+                  className="input"
+                  type="password"
+                  value={codigoAcceso}
+                  onChange={e => setCodigoAcceso(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="••••••"
+                  inputMode="numeric"
+                  pattern="[0-9]{5,6}"
+                  maxLength={6}
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
 
-            <button
-              className="btn btn-primary"
-              type="submit"
-              disabled={loading || correo.trim().length === 0 || codigoAcceso.length < 5 || codigoAcceso.length > 6}
-              style={{ width: '100%', height: 44, fontSize: 14 }}
-            >
-              {loading ? <><span className="spinner" />Ingresando...</> : 'Acceder al sistema'}
-            </button>
-          </form>
+{error && <div className="login-err" id="main-content">{error}</div>}
+
+              <button
+                className="btn btn-primary login-btn"
+                type="submit"
+                disabled={loading || correo.trim().length === 0 || codigoAcceso.length < 5 || codigoAcceso.length > 6}
+              >
+                {loading ? <><span className="spinner" />Ingresando...</> : 'Acceder al sistema'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
-const styles: Record<string, React.CSSProperties> = {
-  wrap: {
-    display: 'flex', minHeight: '100vh', fontFamily: 'Montserrat, sans-serif',
-  },
-  wrapMobile: { flexDirection: 'column' },
-  left: {
-    width: '46%', background: 'linear-gradient(180deg, #691B31 0%, #A02142 100%)',
-    position: 'relative', overflow: 'hidden',
-    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-    padding: '60px 48px',
-  },
-  leftMobile: { width: '100%', minHeight: 'auto', padding: '40px 24px' },
-  leftInner: {
-    position: 'relative', zIndex: 1, color: 'white', textAlign: 'center',
-    maxWidth: 420,
-  },
-  leftInnerMobile: {},
-  leftLogo: {
-    width: 'max-content', height: 'max-content',
-    objectFit: 'contain',
-    marginBottom: 24,
-  },
-  brand: {
-    fontSize: 48, fontWeight: 600, letterSpacing: '-0.02em',
-    color: 'white', marginBottom: 16,
-  },
-  brandSub: {
-    fontSize: 15, color: 'rgba(255,255,255,0.85)',
-    lineHeight: 1.6, fontWeight: 400, marginBottom: 32,
-  },
-  divider: {
-    width: 60, height: 1, background: 'rgba(221,201,163,0.56)',
-    margin: '0 auto 32px',
-  },
-  org: { fontSize: 13, fontWeight: 700, color: '#DDC9A3', letterSpacing: '0.02em', textTransform: 'uppercase', marginBottom: 8 },
-  gov: { fontSize: 13, color: 'rgba(255,255,255,0.88)', fontWeight: 500, lineHeight: 1.5 },
-  motto: { fontSize: 12, color: '#DDC9A3', fontWeight: 600, marginTop: 8, letterSpacing: '0.03em', textTransform: 'uppercase' },
-  decorCircle: {
-    position: 'absolute', bottom: -100, right: -100,
-    width: 300, height: 300, borderRadius: '50%',
-    border: '1px solid rgba(212,193,156,0.1)',
-  },
-  decorCircle2: {
-    position: 'absolute', top: -80, left: -80,
-    width: 200, height: 200, borderRadius: '50%',
-    background: 'rgba(212,193,156,0.04)',
-    border: '1px solid rgba(212,193,156,0.08)',
-  },
-  right: {
-    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: 'linear-gradient(180deg, #F5F5F5 0%, #FFFFFF 100%)', padding: 32,
-  },
-  rightMobile: { padding: 20 },
-  formCard: {
-    background: '#FFFFFF', borderRadius: 8, padding: '48px 40px',
-    width: '100%', maxWidth: 440,
-    border: '1px solid #BC955B',
-    boxShadow: '0 10px 24px rgba(105,27,49,0.12)',
-  },
-  formCardMobile: { padding: '32px 24px', maxWidth: '100%' },
-  title: { fontSize: 24, fontWeight: 600, color: 'var(--gray-900)', marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: 'var(--gray-500)', textAlign: 'center', marginBottom: 8 },
-  err: { fontSize: 13, color: 'var(--danger)', marginBottom: 16, padding: '10px 14px', background: 'var(--danger-bg)', borderRadius: 4, border: '1px solid var(--danger)' },
-}
 

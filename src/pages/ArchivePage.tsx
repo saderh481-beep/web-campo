@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
-import { archiveApi } from '../lib/api'
+import { archiveApi, getApiErrorMessage } from '../lib/api'
 import { Download, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { pickArray } from '../lib/normalize'
 import FeedbackBanner from '../components/common/FeedbackBanner'
@@ -15,14 +14,9 @@ interface ArchiveRow {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
-function isHttpUrl(value: string | undefined): boolean {
-  if (!value) return false
-  return value.startsWith('http://') || value.startsWith('https://')
-}
 
 export default function ArchivePage() {
   const qc = useQueryClient()
@@ -55,6 +49,24 @@ export default function ArchivePage() {
     },
     onError: (e: unknown) => {
       setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo confirmar el archivado.') })
+    },
+  })
+
+  const descargar = useMutation({
+    mutationFn: async (value: string) => {
+      const response = await archiveApi.descargar(value)
+      const blob = response.data as Blob
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `archive-${value}.zip`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    },
+    onError: (e: unknown) => {
+      setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo descargar el archive.') })
     },
   })
 
@@ -105,22 +117,20 @@ export default function ArchivePage() {
               <tr key={i}>{Array(5).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
             )) : rowsFiltradas.length === 0 ? (
               <tr><td colSpan={5}><div className="empty-state"><p>Sin registros de archive</p></div></td></tr>
-            ) : rowsFiltradas.map((row) => {
-              const canDownload = isHttpUrl(row.r2_key_staging)
-              const periodoRow = row.periodo
+            ) : rowsFiltradas.map((row) => {              const periodoRow = row.periodo
               return (
                 <tr key={String(row.id ?? `${periodoRow}-${row.created_at ?? ''}`)}>
                   <td style={{ fontWeight: 600 }}>{periodoRow}</td>
                   <td><span className="badge badge-guinda">{row.estado ?? 'sin estado'}</span></td>
                   <td style={{ color: 'var(--gray-500)' }}>{row.created_at ? new Date(row.created_at).toLocaleString('es-MX') : '—'}</td>
                   <td>
-                    {canDownload ? (
-                      <button className="btn btn-ghost btn-sm" onClick={() => window.open(row.r2_key_staging, '_blank', 'noopener,noreferrer')}>
-                        <Download size={13} /> Descargar
-                      </button>
-                    ) : (
-                      <span style={{ color: 'var(--gray-400)' }}>No disponible</span>
-                    )}
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      disabled={descargar.isPending}
+                      onClick={() => descargar.mutate(periodoRow)}
+                    >
+                      <Download size={13} /> Descargar
+                    </button>
                   </td>
                   <td>
                     <button className="btn btn-ghost btn-sm" disabled={confirmar.isPending} onClick={() => confirm(`¿Confirmar archivado para ${periodoRow}?`) && confirmar.mutate(periodoRow)}>

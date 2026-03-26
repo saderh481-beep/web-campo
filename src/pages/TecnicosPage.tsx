@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
-import { tecnicosApi } from '../lib/api'
+import { tecnicosApi, getApiErrorMessage } from '../lib/api'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -37,8 +36,7 @@ const FORM_FIELDS: Array<{ key: keyof FormData; label: string; type: 'text' | 'e
 ]
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function toIsoDateTime(value: string): string | undefined {

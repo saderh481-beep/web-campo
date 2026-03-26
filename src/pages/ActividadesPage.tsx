@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
-import { actividadesApi } from '../lib/api'
+import { actividadesApi, getApiErrorMessage } from '../lib/api'
 import { canManageActividades } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -19,8 +18,7 @@ interface ActividadForm {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function ActividadModal({ actividad, onClose }: { actividad?: Actividad; onClose: () => void }) {

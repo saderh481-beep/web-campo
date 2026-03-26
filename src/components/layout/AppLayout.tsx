@@ -206,7 +206,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main style={s.content}>
+        <main id="main-content" style={s.content}>
           <Outlet />
         </main>
       </div>

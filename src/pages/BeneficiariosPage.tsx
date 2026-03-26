@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
-import { beneficiariosApi, cadenasApi, localidadesApi, tecnicosApi } from '../lib/api'
+import { beneficiariosApi, cadenasApi, localidadesApi, tecnicosApi, getApiErrorMessage } from '../lib/api'
 import { canAssignBeneficiarioCadenas, canUploadBeneficiarioDocumentos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray, pickNumber } from '../lib/normalize'
-import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
+import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon, Trash2 } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Cadena {
@@ -81,8 +80,7 @@ const FORM_FIELDS: Array<{ key: keyof Pick<BeneficiarioForm, 'nombre' | 'municip
 ]
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function getBeneficiarioAssets(source: unknown): AssetItem[] {
@@ -360,6 +358,7 @@ export default function BeneficiariosPage() {
   const { user } = useAuth()
   const canAssignCadenas = canAssignBeneficiarioCadenas(user?.rol)
   const canUploadDocs = canUploadBeneficiarioDocumentos(user?.rol)
+  const qc = useQueryClient()
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [modal, setModal] = useState<'new' | Beneficiario | null>(null)
@@ -388,6 +387,13 @@ export default function BeneficiariosPage() {
     queryKey: ['localidades'],
     queryFn: () => localidadesApi.list().then(r => r.data),
     staleTime: 300000,
+  })
+
+  const removeBeneficiario = useMutation({
+    mutationFn: (id: string | number) => beneficiariosApi.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['beneficiarios'] })
+    },
   })
 
   const benefData = data as BeneficiariosResponse | Beneficiario[] | undefined
@@ -466,6 +472,15 @@ export default function BeneficiariosPage() {
                   <div style={{ display: 'flex', gap: 4 }}>
                     <button className="btn btn-ghost btn-icon btn-sm" title="Documentos" onClick={() => setDocsModal(b)}><Paperclip size={13} /></button>
                     <button className="btn btn-ghost btn-icon btn-sm" title="Editar" onClick={() => setModal(b)}><Pencil size={13} /></button>
+                    <button
+                      className="btn btn-ghost btn-icon btn-sm"
+                      title="Desactivar"
+                      style={{ color: 'var(--danger)' }}
+                      disabled={removeBeneficiario.isPending}
+                      onClick={() => confirm(`¿Desactivar a ${b.nombre}?`) && removeBeneficiario.mutate(b.id)}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </td>
               </tr>

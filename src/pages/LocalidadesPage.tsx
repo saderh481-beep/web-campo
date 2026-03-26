@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
 import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
-import { localidadesApi } from '../lib/api'
+import { localidadesApi, getApiErrorMessage } from '../lib/api'
 import { canManageLocalidades } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -17,8 +16,7 @@ interface Localidad {
 }
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function LocalidadModal({ localidad, onClose }: { localidad?: Localidad; onClose: () => void }) {

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { AxiosError } from 'axios'
 import { Pencil, X, Search } from 'lucide-react'
-import { configuracionesApi } from '../lib/api'
+import { configuracionesApi, getApiErrorMessage } from '../lib/api'
 import { canManageConfiguraciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -18,8 +17,7 @@ interface ConfigItem {
 const PREDEFINED_KEYS = ['fecha_corte_global', 'ciclo_nombre', 'pdf_encabezado']
 
 function toErrorMessage(err: unknown, fallback: string): string {
-  const axiosErr = err as AxiosError<{ message?: string }>
-  return axiosErr.response?.data?.message ?? fallback
+  return getApiErrorMessage(err, fallback)
 }
 
 function normalizeConfigRows(source: unknown): ConfigItem[] {
