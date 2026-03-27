@@ -83,6 +83,18 @@ function toErrorMessage(err: unknown, fallback: string): string {
   return getApiErrorMessage(err, fallback)
 }
 
+function normalizeInput(value: string): string {
+  return value.trim()
+}
+
+function isValidPostalCode(value: string): boolean {
+  return /^\d{5}$/.test(value)
+}
+
+function isValidCoordParcela(value: string): boolean {
+  return /^\(?\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*\)?$/.test(value)
+}
+
 function getBeneficiarioAssets(source: unknown): AssetItem[] {
   if (Array.isArray(source)) return normalizeAssets(source, 'documentos-root')
   if (!isRecord(source)) return []
@@ -244,21 +256,35 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
 
   const save = useMutation({
     mutationFn: async () => {
+      if (normalizeInput(form.nombre).length === 0) {
+        throw new Error('Debes capturar el nombre del beneficiario.')
+      }
+      if (normalizeInput(form.municipio).length === 0) {
+        throw new Error('Debes capturar el municipio.')
+      }
       if (form.tecnico_id.trim().length === 0) {
         throw new Error('Debes seleccionar un técnico')
       }
+      if (form.cp.trim() && !isValidPostalCode(form.cp.trim())) {
+        throw new Error('El código postal debe tener exactamente 5 dígitos.')
+      }
+      if (form.coord_parcela.trim() && !isValidCoordParcela(form.coord_parcela.trim())) {
+        throw new Error('La coordenada de parcela debe tener formato x,y o (x,y).')
+      }
+
+      const selectedLocalidad = localidades.find((item) => String(item.id) === form.localidad_id)
 
       const payload = {
-        nombre: form.nombre,
-        municipio: form.municipio,
-        localidad: form.localidad || undefined,
+        nombre: normalizeInput(form.nombre),
+        municipio: normalizeInput(selectedLocalidad?.municipio ?? form.municipio),
+        localidad: selectedLocalidad ? undefined : normalizeInput(form.localidad) || undefined,
         localidad_id: form.localidad_id || undefined,
-        direccion: form.direccion || undefined,
-        cp: form.cp || undefined,
-        telefono_principal: form.telefono_principal || undefined,
-        telefono_secundario: form.telefono_secundario || undefined,
-        coord_parcela: form.coord_parcela || undefined,
-        tecnico_id: form.tecnico_id,
+        direccion: normalizeInput(form.direccion) || undefined,
+        cp: normalizeInput(form.cp) || undefined,
+        telefono_principal: normalizeInput(form.telefono_principal) || undefined,
+        telefono_secundario: normalizeInput(form.telefono_secundario) || undefined,
+        coord_parcela: normalizeInput(form.coord_parcela) || undefined,
+        tecnico_id: form.tecnico_id.trim(),
       }
 
       const response = b

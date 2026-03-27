@@ -199,15 +199,25 @@ function withBitacoraUpdateAliases(payload: unknown): unknown {
 function withBeneficiarioPayload(data: unknown): Record<string, unknown> {
   if (!isRecord(data)) return {}
 
+  const nombre = typeof data.nombre === 'string' ? data.nombre.trim() : data.nombre
+  const municipio = typeof data.municipio === 'string' ? data.municipio.trim() : data.municipio
+  const tecnicoId = typeof data.tecnico_id === 'string' ? data.tecnico_id.trim() : data.tecnico_id
+  const localidadId = typeof data.localidad_id === 'string' ? data.localidad_id.trim() : data.localidad_id
+  const localidad = typeof data.localidad === 'string' ? data.localidad.trim() : data.localidad
+
   const payload: Record<string, unknown> = {
-    nombre: data.nombre,
-    municipio: data.municipio,
-    tecnico_id: data.tecnico_id,
+    nombre,
+    municipio,
+    tecnico_id: tecnicoId,
+  }
+
+  if (localidadId) {
+    payload.localidad_id = localidadId
+  } else if (localidad) {
+    payload.localidad = localidad
   }
 
   const optionalKeys = [
-    'localidad_id',
-    'localidad',
     'direccion',
     'cp',
     'telefono_principal',
@@ -220,6 +230,21 @@ function withBeneficiarioPayload(data: unknown): Record<string, unknown> {
       payload[key] = data[key]
     }
   }
+
+  return payload
+}
+
+function withBeneficiarioMinimalPayload(data: unknown): Record<string, unknown> {
+  if (!isRecord(data)) return {}
+
+  const payload: Record<string, unknown> = {
+    nombre: typeof data.nombre === 'string' ? data.nombre.trim() : data.nombre,
+    municipio: typeof data.municipio === 'string' ? data.municipio.trim() : data.municipio,
+    tecnico_id: typeof data.tecnico_id === 'string' ? data.tecnico_id.trim() : data.tecnico_id,
+  }
+
+  const localidadId = typeof data.localidad_id === 'string' ? data.localidad_id.trim() : data.localidad_id
+  if (localidadId) payload.localidad_id = localidadId
 
   return payload
 }
@@ -368,6 +393,17 @@ async function updateUsuarioWithFallback(id: string | number, data: unknown): Pr
   return api.patch(`/usuarios/${id}`, payload)
 }
 
+async function createBeneficiarioWithFallback(data: unknown): Promise<AxiosResponse<unknown>> {
+  const payload = withBeneficiarioPayload(data)
+  try {
+    return await api.post('/beneficiarios', payload)
+  } catch (error) {
+    const axiosErr = error as AxiosError
+    if (axiosErr.response?.status !== 500) throw error
+    return api.post('/beneficiarios', withBeneficiarioMinimalPayload(data))
+  }
+}
+
 // ── USUARIOS ──────────────────────────────────────────────────────
 export const usuariosApi = {
   list: () => api.get('/usuarios'),
@@ -400,7 +436,7 @@ export const beneficiariosApi = {
   list: (params?: { page?: number; q?: string; tecnico_id?: string; cadena_id?: string }) =>
     api.get('/beneficiarios', { params }),
   get: (id: string | number) => api.get(`/beneficiarios/${id}`),
-  create: (data: unknown) => api.post('/beneficiarios', withBeneficiarioPayload(data)),
+  create: (data: unknown) => createBeneficiarioWithFallback(data),
   update: (id: string | number, data: unknown) => api.patch(`/beneficiarios/${id}`, withBeneficiarioPayload(data)),
   remove: (id: string | number) => api.delete(`/beneficiarios/${id}`),
   asignarCadenas: (id: string, cadenaIds: string[]) =>
