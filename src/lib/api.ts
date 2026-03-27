@@ -232,6 +232,26 @@ function withActividadPayload(data: unknown): Record<string, unknown> {
   }
 }
 
+function shouldRetryWithAlias(error: unknown, primaryPath: string): boolean {
+  const axiosErr = error as AxiosError
+  const status = axiosErr.response?.status
+  const path = normalizePath(axiosErr.config?.url)
+  return (status === 404 || status === 405 || status === 500) && path.includes(primaryPath)
+}
+
+async function requestWithPathFallback<T>(
+  primaryPath: string,
+  secondaryPath: string,
+  request: (path: string) => Promise<AxiosResponse<T>>,
+): Promise<AxiosResponse<T>> {
+  try {
+    return await request(primaryPath)
+  } catch (error) {
+    if (!shouldRetryWithAlias(error, primaryPath)) throw error
+    return request(secondaryPath)
+  }
+}
+
 export const api = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
@@ -403,7 +423,11 @@ export const asignacionesApi = {
   obtenerCoordinadorTecnico: (tecnico_id: string) =>
     api.get('/asignaciones/coordinador-tecnico', { params: { tecnico_id } }),
   listarCoordinadorTecnico: (tecnico_id?: string) =>
-    api.get('/asignaciones/coordinador-tecnico/lista', { params: tecnico_id ? { tecnico_id } : undefined }),
+    requestWithPathFallback(
+      '/asignaciones/coordinador-tecnico/lista',
+      '/asignaciones/coordinador-tecnico',
+      (path) => api.get(path, { params: tecnico_id ? { tecnico_id } : undefined }),
+    ),
   obtenerCoordinadorTecnicoPorPath: (tecnico_id: string) =>
     api.get(`/asignaciones/coordinador-tecnico/${tecnico_id}`),
   asignarCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string }) =>
@@ -495,11 +519,36 @@ export const configuracionesApi = {
 
 // ── DOCUMENTOS PLANTILLA ─────────────────────────────────────────
 export const documentosPlantillaApi = {
-  activos: () => api.get('/documentos-plantilla/activos'),
-  list: () => api.get('/documentos-plantilla'),
-  create: (data: unknown) => api.post('/documentos-plantilla', data),
-  update: (id: string | number, data: unknown) => api.patch(`/documentos-plantilla/${id}`, data),
-  remove: (id: string | number) => api.delete(`/documentos-plantilla/${id}`),
+  activos: () =>
+    requestWithPathFallback(
+      '/documentos-plantilla/activos',
+      '/documentos_plantilla/activos',
+      (path) => api.get(path),
+    ),
+  list: () =>
+    requestWithPathFallback(
+      '/documentos-plantilla',
+      '/documentos_plantilla',
+      (path) => api.get(path),
+    ),
+  create: (data: unknown) =>
+    requestWithPathFallback(
+      '/documentos-plantilla',
+      '/documentos_plantilla',
+      (path) => api.post(path, data),
+    ),
+  update: (id: string | number, data: unknown) =>
+    requestWithPathFallback(
+      `/documentos-plantilla/${id}`,
+      `/documentos_plantilla/${id}`,
+      (path) => api.patch(path, data),
+    ),
+  remove: (id: string | number) =>
+    requestWithPathFallback(
+      `/documentos-plantilla/${id}`,
+      `/documentos_plantilla/${id}`,
+      (path) => api.delete(path),
+    ),
 }
 
 // ── DOCUMENTOS PDF ────────────────────────────────────────────────

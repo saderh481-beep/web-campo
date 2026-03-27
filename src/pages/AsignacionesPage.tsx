@@ -331,10 +331,14 @@ export default function AsignacionesPage() {
   const { user } = useAuth()
   const canManage = canManageAsignaciones(user?.rol)
   const qc = useQueryClient()
+  const [coordinadorTecnicoId, setCoordinadorTecnicoId] = useState('')
+  const [coordinadorId, setCoordinadorId] = useState('')
+  const [fechaLimite, setFechaLimite] = useState('')
   const [tecnicoBeneficiarioId, setTecnicoBeneficiarioId] = useState('')
   const [beneficiarioId, setBeneficiarioId] = useState('')
   const [tecnicoActividadId, setTecnicoActividadId] = useState('')
   const [actividadId, setActividadId] = useState('')
+  const [coordinadorFeedback, setCoordinadorFeedback] = useState<Feedback>(null)
   const [beneficiarioFeedback, setBeneficiarioFeedback] = useState<Feedback>(null)
   const [actividadFeedback, setActividadFeedback] = useState<Feedback>(null)
   const [tableFeedback, setTableFeedback] = useState<Feedback>(null)
@@ -411,6 +415,28 @@ export default function AsignacionesPage() {
     onError: (e: unknown) => setActividadFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar la actividad.') }),
   })
 
+  const asignarCoordinador = useMutation({
+    mutationFn: () => {
+      if (!coordinadorTecnicoId || !coordinadorId || !fechaLimite) {
+        throw new Error('Debes seleccionar técnico, coordinador y fecha límite.')
+      }
+      return asignacionesApi.asignarCoordinadorTecnico({
+        tecnico_id: coordinadorTecnicoId,
+        coordinador_id: coordinadorId,
+        fecha_limite: toIsoDateTime(fechaLimite) ?? fechaLimite,
+      })
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['asignaciones', 'coordinador-tecnico'] })
+      qc.invalidateQueries({ queryKey: ['tecnicos'] })
+      setCoordinadorFeedback({ kind: 'success', message: 'Coordinador asignado correctamente.' })
+      setCoordinadorTecnicoId('')
+      setCoordinadorId('')
+      setFechaLimite('')
+    },
+    onError: (e: unknown) => setCoordinadorFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar el coordinador.') }),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: ({ kind, id }: { kind: 'coordinador' | 'beneficiario' | 'actividad'; id: string }) => {
       if (kind === 'coordinador') return asignacionesApi.quitarCoordinadorTecnico(id)
@@ -479,8 +505,36 @@ export default function AsignacionesPage() {
 
       {canManage && (
         <>
-          {(showBeneficiario || showActividad) && (
+          {(showCoordinador || showBeneficiario || showActividad) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            {showCoordinador && (
+            <div className="card">
+              <SectionHeader icon={Users} title="Asignar coordinador" subtitle="Crea o reemplaza la relación coordinador-técnico." />
+              <div className="form-group">
+                <label className="form-label">Técnico</label>
+                <select className="input" value={coordinadorTecnicoId} onChange={(e) => setCoordinadorTecnicoId(e.target.value)}>
+                  <option value="">Selecciona técnico</option>
+                  {tecnicos.map((t) => <option key={t.id} value={String(t.id)}>{t.nombre}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Coordinador</label>
+                <select className="input" value={coordinadorId} onChange={(e) => setCoordinadorId(e.target.value)}>
+                  <option value="">Selecciona coordinador</option>
+                  {coordinadores.map((c) => <option key={c.id} value={String(c.id)}>{c.nombre}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Fecha límite</label>
+                <input className="input" type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} />
+              </div>
+              {coordinadorFeedback && <FeedbackBanner kind={coordinadorFeedback.kind} message={coordinadorFeedback.message} compact />}
+              <button className="btn btn-primary" disabled={loadingTecnicos || loadingUsuarios || asignarCoordinador.isPending || !coordinadorTecnicoId || !coordinadorId || !fechaLimite} onClick={() => asignarCoordinador.mutate()}>
+                {asignarCoordinador.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar coordinador'}
+              </button>
+            </div>
+            )}
+
             {showBeneficiario && (
             <div className="card">
               <SectionHeader icon={Link2} title="Asignar beneficiario" subtitle="Crea o reactiva la relación técnico-beneficiario." />
