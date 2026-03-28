@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { authApi, getApiErrorMessage } from '../lib/api'
+import { canAccessWebApp, normalizeRole } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 
 export default function LoginPage() {
@@ -24,6 +25,16 @@ export default function LoginPage() {
     setError('')
     try {
       const r = await authApi.login(correo.trim(), code)
+      const rawUser = (r.data as { usuario?: { rol?: string }; user?: { rol?: string; role?: string }; rol?: string; role?: string }) ?? {}
+      const role = rawUser.usuario?.rol ?? rawUser.user?.rol ?? rawUser.user?.role ?? rawUser.rol ?? rawUser.role
+
+      if (!canAccessWebApp(role)) {
+        await authApi.logout().catch(() => {})
+        const roleLabel = normalizeRole(role) || 'sin rol habilitado'
+        setError(`El rol ${roleLabel} no tiene acceso a la aplicación web.`)
+        return
+      }
+
       login(r.data)
       nav('/')
     } catch (err) {

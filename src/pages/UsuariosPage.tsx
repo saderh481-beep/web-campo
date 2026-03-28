@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usuariosApi, getApiErrorMessage } from '../lib/api'
 import { pickArray } from '../lib/normalize'
-import { Plus, Pencil, Trash2, X, Copy, Check, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Copy, Check, Eye, Power } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 type Rol = 'administrador' | 'coordinador' | 'tecnico'
@@ -94,6 +94,11 @@ function toFormRole(role: string | undefined): Rol {
   if (role === 'coordinador' || role === 'tecnico' || role === 'administrador') return role
   if (role === 'admin') return 'administrador'
   return 'coordinador'
+}
+
+function maskAccessCode(value?: string): string {
+  if (!value) return '—'
+  return `${'•'.repeat(Math.max(0, value.length - 2))}${value.slice(-2)}`
 }
 
 function CodigoGenerado({ codigo }: { codigo: string }) {
@@ -252,7 +257,7 @@ function UsuarioInfoModal({ usuario, onClose }: { usuario: Usuario; onClose: () 
           <div><strong>Nombre:</strong> {usuario.nombre}</div>
           <div><strong>Correo:</strong> {usuario.correo}</div>
           <div><strong>Rol:</strong> {usuario.rol}</div>
-          <div><strong>Código de acceso:</strong> {usuario.codigo_acceso ?? '—'}</div>
+          <div><strong>Código de acceso:</strong> {maskAccessCode(usuario.codigo_acceso)}</div>
           <div><strong>Teléfono:</strong> {usuario.telefono ?? '—'}</div>
           <div><strong>Coordinador ID:</strong> {usuario.coordinador_id ?? '—'}</div>
           <div><strong>Fecha límite:</strong> {usuario.fecha_limite ?? '—'}</div>
@@ -276,13 +281,28 @@ export default function UsuariosPage() {
     queryFn: () => usuariosApi.list().then(r => r.data),
     staleTime: 60000,
   })
-  const remove = useMutation({
-    mutationFn: (id: string | number) => usuariosApi.remove(id),
+  const toggleActivo = useMutation({
+    mutationFn: ({ id, activo }: { id: string | number; activo: boolean }) => usuariosApi.update(id, { activo }),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ['usuarios'] })
+      setFeedback({
+        kind: 'success',
+        message: variables.activo ? 'Usuario activado correctamente.' : 'Usuario desactivado correctamente.',
+      })
+    },
+    onError: (e: unknown, variables) =>
+      setFeedback({
+        kind: 'error',
+        message: toErrorMessage(e, variables.activo ? 'No se pudo activar el usuario.' : 'No se pudo desactivar el usuario.'),
+      }),
+  })
+  const hardRemove = useMutation({
+    mutationFn: (id: string | number) => usuariosApi.hardRemove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['usuarios'] })
-      setFeedback({ kind: 'success', message: 'Usuario desactivado correctamente.' })
+      setFeedback({ kind: 'success', message: 'Usuario eliminado permanentemente.' })
     },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo desactivar el usuario.') }),
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo eliminar permanentemente el usuario.') }),
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
   const usuarios = normalizeUsuarios(usuariosData)
@@ -306,14 +326,34 @@ export default function UsuariosPage() {
                 <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
                 <td style={{ fontWeight: 600 }}>{u.nombre}</td>
                 <td style={{ color: 'var(--gray-500)' }}>{u.correo}</td>
-                <td><code style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--gray-700)' }}>{u.codigo_acceso ?? '—'}</code></td>
+                <td><code style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--gray-700)' }}>{maskAccessCode(u.codigo_acceso)}</code></td>
                 <td><span className={`badge badge-${(u.rol === 'administrador' || u.rol === 'admin') ? 'guinda' : 'dorado'}`}>{u.rol}</span></td>
                 <td><span className={`badge badge-${u.activo !== false ? 'green' : 'gray'}`}>{u.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
                 <td><div style={{ display: 'flex', gap: 4 }}>
                   <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(u)}><Eye size={13} /> Ver</button>
                   <button className="btn btn-ghost btn-sm" onClick={() => setModal(u)}><Pencil size={13} /> Editar</button>
-                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}
-                    onClick={() => confirm(`¿Desactivar a ${u.nombre}?`) && remove.mutate(u.id)}><Trash2 size={13} /> Eliminar</button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: u.activo !== false ? 'var(--warning)' : 'var(--success)' }}
+                    disabled={toggleActivo.isPending}
+                    onClick={() =>
+                      confirm(`¿${u.activo !== false ? 'Desactivar' : 'Activar'} a ${u.nombre}?`) &&
+                      toggleActivo.mutate({ id: u.id, activo: u.activo === false })
+                    }
+                  >
+                    <Power size={13} /> {u.activo !== false ? 'Desactivar' : 'Activar'}
+                  </button>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: 'var(--danger)' }}
+                    disabled={hardRemove.isPending}
+                    onClick={() =>
+                      confirm(`¿Eliminar permanentemente a ${u.nombre}? Esta acción no se puede deshacer.`) &&
+                      hardRemove.mutate(u.id)
+                    }
+                  >
+                    <Trash2 size={13} /> Eliminar permanente
+                  </button>
                 </div></td>
               </tr>
             ))}

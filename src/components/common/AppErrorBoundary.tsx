@@ -6,14 +6,14 @@ interface Props {
 
 interface State {
   hasError: boolean
-  message: string
 }
 
 export default class AppErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, message: '' }
+  state: State = { hasError: false }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, message: error.message }
+    void error
+    return { hasError: true }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -37,18 +37,6 @@ export default class AppErrorBoundary extends Component<Props, State> {
           <p style={{ color: 'var(--gray-500)', marginBottom: 16 }}>
             La vista falló al renderizar. Ya registramos el detalle en consola.
           </p>
-          {this.state.message && (
-            <p style={{
-              color: 'var(--danger)',
-              fontSize: 12,
-              marginBottom: 14,
-              background: 'var(--danger-bg)',
-              borderRadius: 8,
-              padding: '8px 10px',
-            }}>
-              {this.state.message}
-            </p>
-          )}
           <button className="btn btn-primary" onClick={() => window.location.reload()}>
             Recargar aplicación
           </button>

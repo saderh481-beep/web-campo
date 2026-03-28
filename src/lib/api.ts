@@ -47,17 +47,6 @@ function clearStoredToken() {
   window.localStorage.removeItem(AUTH_TOKEN_KEY)
 }
 
-function getStoredUser(): unknown {
-  if (typeof window === 'undefined') return null
-  const raw = window.localStorage.getItem(AUTH_USER_KEY)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
-}
-
 function setStoredUser(user: unknown) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
@@ -66,6 +55,11 @@ function setStoredUser(user: unknown) {
 function clearStoredUser() {
   if (typeof window === 'undefined') return
   window.localStorage.removeItem(AUTH_USER_KEY)
+}
+
+export function clearAuthStorage() {
+  clearStoredToken()
+  clearStoredUser()
 }
 
 function extractToken(data: unknown): string | null {
@@ -261,7 +255,7 @@ function shouldRetryWithAlias(error: unknown, primaryPath: string): boolean {
   const axiosErr = error as AxiosError
   const status = axiosErr.response?.status
   const path = normalizePath(axiosErr.config?.url)
-  return (status === 404 || status === 405 || status === 500) && path.includes(primaryPath)
+  return (status === 404 || status === 405) && path.includes(primaryPath)
 }
 
 async function requestWithPathFallback<T>(
@@ -313,8 +307,7 @@ api.interceptors.response.use(
       typeof window !== 'undefined' &&
       window.location.pathname !== '/login'
     ) {
-      clearStoredToken()
-      clearStoredUser()
+      clearAuthStorage()
       window.location.assign('/login')
     }
     return Promise.reject(err)
@@ -339,16 +332,28 @@ export const authApi = {
     try {
       await api.post('/auth/logout')
     } finally {
-      clearStoredToken()
-      clearStoredUser()
+      clearAuthStorage()
     }
   },
-  me: () => {
-    const cachedUser = getStoredUser()
-    if (cachedUser) {
-      return Promise.resolve({ data: { usuario: cachedUser } } as AxiosResponse<unknown>)
+  me: async () => {
+    const token = getStoredToken()
+    if (!token) {
+      clearAuthStorage()
+      return { data: { usuario: null } } as AxiosResponse<unknown>
     }
-    return Promise.resolve({ data: { usuario: null } } as AxiosResponse<unknown>)
+
+    try {
+      const response = await requestWithPathFallback(
+        '/usuarios/me',
+        '/auth/me',
+        (path) => api.get(path),
+      )
+      saveAuthFromResponse(response.data)
+      return response
+    } catch (error) {
+      clearAuthStorage()
+      throw error
+    }
   },
 }
 
@@ -419,6 +424,7 @@ export const usuariosApi = {
   create: (data: unknown) => createUsuarioWithFallback(data),
   update: (id: string | number, data: unknown) => updateUsuarioWithFallback(id, data),
   remove: (id: string | number) => api.delete(`/usuarios/${id}`),
+  hardRemove: (id: string | number) => api.delete(`/usuarios/${id}`, { params: { permanent: true, force: true, hard: true } }),
 }
 
 // ── TÉCNICOS ──────────────────────────────────────────────────────

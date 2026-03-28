@@ -29,12 +29,16 @@ export function isTecnico(role?: string | null): boolean {
   return normalizeRole(role) === 'tecnico'
 }
 
+export function canAccessWebApp(role?: string | null): boolean {
+  return isAdmin(role) || isCoordinator(role)
+}
+
 export function canManageUsers(role?: string | null): boolean {
   return isAdmin(role)
 }
 
 export function canViewDashboard(role?: string | null): boolean {
-  return normalizeRole(role) !== ''
+  return canAccessWebApp(role)
 }
 
 export function canViewTecnicos(role?: string | null): boolean {
@@ -42,7 +46,7 @@ export function canViewTecnicos(role?: string | null): boolean {
 }
 
 export function canManageTecnicos(role?: string | null): boolean {
-  return isAdmin(role)
+  return canAccessWebApp(role)
 }
 
 export function canViewBeneficiarios(role?: string | null): boolean {
@@ -86,19 +90,19 @@ export function canViewActividades(role?: string | null): boolean {
 }
 
 export function canManageActividades(role?: string | null): boolean {
-  return isAdmin(role)
+  return canAccessWebApp(role)
 }
 
 export function canViewAsignaciones(role?: string | null): boolean {
-  return isAdmin(role)
+  return canAccessWebApp(role)
 }
 
 export function canManageAsignaciones(role?: string | null): boolean {
-  return isAdmin(role)
+  return canAccessWebApp(role)
 }
 
 export function canViewNotifications(role?: string | null): boolean {
-  return isAdmin(role) || isCoordinator(role) || isTecnico(role)
+  return canAccessWebApp(role)
 }
 
 export function canViewLocalidades(role?: string | null): boolean {
@@ -136,7 +140,7 @@ export function getRoleHomePath(role?: string | null): string {
     case 'coordinador':
       return '/dashboard'
     case 'tecnico':
-      return '/dashboard'
+      return '/sin-acceso'
     default:
       return '/login'
   }

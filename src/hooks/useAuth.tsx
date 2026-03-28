@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { authApi } from '../lib/api'
+import { authApi, clearAuthStorage } from '../lib/api'
+import { canAccessWebApp } from '../lib/authz'
 
 interface User {
   id: number | string
@@ -53,12 +54,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     authApi.me()
-      .then((r) => setUser(normalizeUser(r.data)))
+      .then((r) => {
+        const normalizedUser = normalizeUser(r.data)
+        if (normalizedUser && !canAccessWebApp(normalizedUser.rol)) {
+          clearAuthStorage()
+          setUser(null)
+          return
+        }
+
+        setUser(normalizedUser)
+      })
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
 
-  const login = (u: unknown) => setUser(normalizeUser(u))
+  const login = (u: unknown) => {
+    const normalizedUser = normalizeUser(u)
+    if (normalizedUser && !canAccessWebApp(normalizedUser.rol)) {
+      clearAuthStorage()
+      setUser(null)
+      return
+    }
+
+    setUser(normalizedUser)
+  }
 
   const logout = async () => {
     await authApi.logout().catch(() => {})

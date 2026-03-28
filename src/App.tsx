@@ -18,6 +18,7 @@ import DocumentosPlantillaPage from './pages/DocumentosPlantillaPage'
 import ArchivePage from './pages/ArchivePage'
 import AppErrorBoundary from './components/common/AppErrorBoundary'
 import {
+  canAccessWebApp,
   canViewBeneficiarios,
   canViewBitacoras,
   canViewCadenas,
@@ -80,7 +81,7 @@ function RoleHomeRedirect() {
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <FullScreenLoader />
-  return user ? <>{children}</> : <Navigate to="/login" replace />
+  return user && canAccessWebApp(user.rol) ? <>{children}</> : <Navigate to="/login" replace />
 }
 
 function RoleRoute({
@@ -101,7 +102,7 @@ function RoleRoute({
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) return <FullScreenLoader />
-  return user ? <Navigate to={getRoleHomePath(user.rol)} replace /> : <>{children}</>
+  return user && canAccessWebApp(user.rol) ? <Navigate to={getRoleHomePath(user.rol)} replace /> : <>{children}</>
 }
 
 export default function App() {
