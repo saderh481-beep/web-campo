@@ -139,6 +139,9 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   })
   const [err, setErr] = useState('')
   const [codigoGenerado, setCodigoGenerado] = useState('')
+  const generatedCodeHelp = form.rol === 'tecnico'
+    ? 'Para técnicos, el sistema genera un código de acceso de 5 dígitos.'
+    : 'Para administradores y coordinadores, el sistema genera un código de acceso de 6 dígitos.'
 
   function buildPayload() {
     const payload: Record<string, unknown> = {
@@ -212,6 +215,11 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
               <option value="coordinador">Coordinador</option>
               <option value="tecnico">Técnico</option>
             </select></div>
+          {!u && (
+            <div style={{ marginTop: -4, marginBottom: 12, fontSize: 12, color: 'var(--gray-500)' }}>
+              {generatedCodeHelp}
+            </div>
+          )}
           {form.rol === 'tecnico' && (
             <>
               <div className="form-group"><label className="form-label">Teléfono (opcional)</label>
