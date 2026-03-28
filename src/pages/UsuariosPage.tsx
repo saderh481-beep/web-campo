@@ -27,6 +27,7 @@ interface UsuarioForm {
   nombre: string
   correo: string
   rol: Rol
+  codigo_acceso: string
   telefono: string
   coordinador_id: string
   fecha_limite: string
@@ -101,6 +102,14 @@ function maskAccessCode(value?: string): string {
   return `${'•'.repeat(Math.max(0, value.length - 2))}${value.slice(-2)}`
 }
 
+function getRequiredIdLength(role: Rol): number {
+  return role === 'tecnico' ? 5 : 6
+}
+
+function getIdLengthMessage(role: Rol): string {
+  return role === 'tecnico' ? 'El ID debe tener 5 dígitos' : 'El ID debe tener 6 dígitos'
+}
+
 function CodigoGenerado({ codigo }: { codigo: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -126,28 +135,38 @@ function CodigoGenerado({ codigo }: { codigo: string }) {
   )
 }
 
-function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
+function UsuarioModal({
+  u,
+  usuarios,
+  coordinadores,
+  onClose,
+  onSaved,
+}: {
+  u?: Usuario
+  usuarios: Usuario[]
+  coordinadores: Usuario[]
+  onClose: () => void
+  onSaved: (message: string) => void
+}) {
   const qc = useQueryClient()
   const [form, setForm] = useState<UsuarioForm>({
     nombre: u?.nombre ?? '',
     correo: u?.correo ?? '',
     rol: toFormRole(u?.rol),
+    codigo_acceso: u?.codigo_acceso ?? '',
     telefono: u?.telefono ?? '',
     coordinador_id: u?.coordinador_id ?? '',
     fecha_limite: u?.fecha_limite?.slice(0, 10) ?? '',
     activo: u?.activo !== false,
   })
   const [err, setErr] = useState('')
-  const [codigoGenerado, setCodigoGenerado] = useState('')
-  const generatedCodeHelp = form.rol === 'tecnico'
-    ? 'Para técnicos, el sistema genera un código de acceso de 5 dígitos.'
-    : 'Para administradores y coordinadores, el sistema genera un código de acceso de 6 dígitos.'
 
   function buildPayload() {
     const payload: Record<string, unknown> = {
       nombre: form.nombre.trim(),
       correo: form.correo.trim(),
       rol: form.rol,
+      codigo_acceso: form.codigo_acceso.trim(),
       telefono: form.telefono.trim() || undefined,
     }
 
@@ -167,14 +186,10 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
       const payload = buildPayload()
       return u ? await usuariosApi.update(u.id, payload) : await usuariosApi.create(payload)
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['usuarios'] })
-      if (u) {
-        onClose()
-        return
-      }
-      const maybeCode = (response.data as { codigo_acceso?: string })?.codigo_acceso ?? ''
-      setCodigoGenerado(maybeCode)
+      onSaved(u ? 'Usuario actualizado correctamente.' : 'Usuario creado correctamente.')
+      onClose()
     },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
@@ -182,6 +197,25 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
   const handleSave = () => {
     if (!form.nombre.trim() || !form.correo.trim()) {
       setErr('Nombre y correo son obligatorios.')
+      return
+    }
+
+    const codigo = form.codigo_acceso.trim()
+    if (!/^\d+$/.test(codigo)) {
+      setErr('El ID debe contener solo números.')
+      return
+    }
+
+    if (codigo.length !== getRequiredIdLength(form.rol)) {
+      setErr(getIdLengthMessage(form.rol))
+      return
+    }
+
+    const duplicated = usuarios.some((usuario) =>
+      String(usuario.id) !== String(u?.id) && usuario.codigo_acceso?.trim() === codigo
+    )
+    if (duplicated) {
+      setErr('El ID ya está en uso')
       return
     }
 
@@ -210,22 +244,40 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
             <select className="input" value={form.rol} onChange={e => setForm(p => ({
               ...p,
               rol: e.target.value as Rol,
+              codigo_acceso: '',
+              coordinador_id: e.target.value === 'tecnico' ? p.coordinador_id : '',
+              fecha_limite: e.target.value === 'tecnico' ? p.fecha_limite : '',
             }))}>
               <option value="administrador">Administrador</option>
               <option value="coordinador">Coordinador</option>
               <option value="tecnico">Técnico</option>
             </select></div>
-          {!u && (
-            <div style={{ marginTop: -4, marginBottom: 12, fontSize: 12, color: 'var(--gray-500)' }}>
-              {generatedCodeHelp}
+          <div className="form-group"><label className="form-label">ID</label>
+            <input
+              className="input"
+              inputMode="numeric"
+              maxLength={getRequiredIdLength(form.rol)}
+              placeholder={form.rol === 'tecnico' ? '00000' : '000000'}
+              value={form.codigo_acceso}
+              onChange={e => setForm(p => ({ ...p, codigo_acceso: e.target.value.replace(/\D/g, '').slice(0, getRequiredIdLength(p.rol)) }))}
+            />
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
+              {form.rol === 'tecnico' ? 'El ID del técnico debe ser numérico y de 5 dígitos.' : 'El ID debe ser numérico y de 6 dígitos.'}
             </div>
-          )}
+          </div>
           {form.rol === 'tecnico' && (
             <>
               <div className="form-group"><label className="form-label">Teléfono (opcional)</label>
                 <input className="input" value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} /></div>
               <div className="form-group"><label className="form-label">ID de coordinador</label>
-                <input className="input" value={form.coordinador_id} onChange={e => setForm(p => ({ ...p, coordinador_id: e.target.value }))} /></div>
+                <select className="input" value={form.coordinador_id} onChange={e => setForm(p => ({ ...p, coordinador_id: e.target.value }))}>
+                  <option value="">Selecciona un coordinador</option>
+                  {coordinadores.map((coordinador) => (
+                    <option key={coordinador.id} value={String(coordinador.id)}>
+                      {coordinador.nombre} ({coordinador.codigo_acceso ?? coordinador.correo})
+                    </option>
+                  ))}
+                </select></div>
               <div className="form-group"><label className="form-label">Fecha límite</label>
                 <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} /></div>
             </>
@@ -240,11 +292,11 @@ function UsuarioModal({ u, onClose }: { u?: Usuario; onClose: () => void }) {
             </div>
           )}
           {err && <FeedbackBanner kind="error" message={err} compact />}
-          {!u && codigoGenerado && <CodigoGenerado codigo={codigoGenerado} />}
+          {!u && form.codigo_acceso.trim() && <CodigoGenerado codigo={form.codigo_acceso.trim()} />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={save.isPending || (!u && codigoGenerado.length > 0)}>
+          <button className="btn btn-primary" onClick={handleSave} disabled={save.isPending}>
             {save.isPending ? <><span className="spinner" />Guardando...</> : (u ? 'Guardar' : 'Crear usuario')}
           </button>
         </div>
@@ -314,6 +366,7 @@ export default function UsuariosPage() {
   })
   const usuariosData = data as UsuariosResponse | Usuario[] | undefined
   const usuarios = normalizeUsuarios(usuariosData)
+  const coordinadores = usuarios.filter((usuario) => toFormRole(String(usuario.rol)) === 'coordinador')
 
   return (
     <div className="page animate-in">
@@ -321,6 +374,13 @@ export default function UsuariosPage() {
         <div><h1 className="page-title">Usuarios del sistema</h1>
           <p className="page-subtitle">{usuarios.length} usuario{usuarios.length !== 1 ? 's' : ''}</p></div>
         <button className="btn btn-primary" onClick={() => setModal('new')}><Plus size={15} /> Nuevo usuario</button>
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <FeedbackBanner
+          kind="info"
+          compact
+          message="Los administradores y coordinadores usan ID numérico de 6 dígitos; los técnicos usan 5. El ID debe ser único."
+        />
       </div>
       {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
       <div className="table-wrap">
@@ -368,7 +428,15 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
-      {modal && <UsuarioModal u={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
+      {modal && (
+        <UsuarioModal
+          u={modal === 'new' ? undefined : modal}
+          usuarios={usuarios}
+          coordinadores={coordinadores}
+          onClose={() => setModal(null)}
+          onSaved={(message) => setFeedback({ kind: 'success', message })}
+        />
+      )}
       {infoModal && <UsuarioInfoModal usuario={infoModal} onClose={() => setInfoModal(null)} />}
     </div>
   )

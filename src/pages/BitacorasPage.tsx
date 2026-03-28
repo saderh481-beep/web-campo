@@ -1,19 +1,26 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { bitacorasApi } from '../lib/api'
+import { bitacorasApi, getApiErrorMessage } from '../lib/api'
 import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
-import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon } from 'lucide-react'
+import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon, Printer, MapPin } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Bitacora {
   id: number | string
   beneficiario_nombre?: string
   beneficiario?: string
+  beneficiario_municipio?: string
+  beneficiario_localidad?: string
   tecnico_nombre?: string
   tecnico?: string
+  usuario_nombre?: string
+  usuario?: string
   fecha?: string
+  fecha_inicio?: string
+  creado_en?: string
+  created_at?: string
   estado?: string
   tipo?: string
   notas?: string
@@ -22,6 +29,10 @@ interface Bitacora {
   actividades_realizadas?: string
   actividades_desc?: string
   actividad?: string
+  ubicacion?: string
+  geolocalizacion?: string
+  latitud?: number | string
+  longitud?: number | string
   pdf_url?: string
   pdf_secure_url?: string
   pdf_download_url?: string
@@ -57,6 +68,50 @@ function getBitacoraAssets(bit: unknown): AssetItem[] {
   ])
 }
 
+function pickBitacoraText(bit: unknown, keys: string[]): string | null {
+  if (!isRecord(bit)) return null
+  for (const key of keys) {
+    const value = bit[key]
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim()
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value)
+    if (isRecord(value)) {
+      const nested = pickBitacoraText(value, ['nombre', 'name', 'descripcion', 'direccion'])
+      if (nested) return nested
+    }
+  }
+  return null
+}
+
+function getBitacoraDateTime(bit: unknown): string | null {
+  return pickBitacoraText(bit, ['fecha_inicio', 'creado_en', 'created_at', 'fecha', 'registrado_en'])
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return '—'
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return value
+  return parsed.toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })
+}
+
+function getBitacoraLocation(bit: unknown): string | null {
+  const explicit = pickBitacoraText(bit, ['geolocalizacion', 'ubicacion', 'direccion', 'coord_parcela'])
+  if (explicit) return explicit
+
+  if (!isRecord(bit)) return null
+  const nestedLocation = isRecord(bit.ubicacion) ? bit.ubicacion : null
+  const lat = bit.latitud ?? bit.lat ?? nestedLocation?.latitud ?? nestedLocation?.lat
+  const lng = bit.longitud ?? bit.lng ?? bit.lon ?? nestedLocation?.longitud ?? nestedLocation?.lng ?? nestedLocation?.lon
+  if ((typeof lat === 'string' || typeof lat === 'number') && (typeof lng === 'string' || typeof lng === 'number')) {
+    return `${lat}, ${lng}`
+  }
+  return null
+}
+
+function matchesText(value: string | null | undefined, query: string): boolean {
+  if (!query.trim()) return true
+  return value?.toLowerCase().includes(query.trim().toLowerCase()) ?? false
+}
+
 function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => void }) {
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
@@ -72,6 +127,12 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   const assets = useMemo(() => getBitacoraAssets(bit), [bit])
   const imageAssets = assets.filter((asset) => asset.kind === 'image')
   const fileAssets = assets.filter((asset) => asset.kind !== 'image')
+  const bitacoraDateTime = getBitacoraDateTime(bit)
+  const bitacoraLocation = getBitacoraLocation(bit)
+  const registradoPor = pickBitacoraText(bit, ['usuario_nombre', 'usuario', 'tecnico_nombre', 'tecnico', 'registrado_por', 'created_by'])
+  const beneficiarioDetalle = [pickBitacoraText(bit, ['beneficiario_nombre', 'beneficiario']), pickBitacoraText(bit, ['beneficiario_municipio', 'municipio']), pickBitacoraText(bit, ['beneficiario_localidad', 'localidad'])]
+    .filter(Boolean)
+    .join(' · ')
 
   const saveNotas = useMutation({
     mutationFn: () => bitacorasApi.update(id, { observaciones: notas }),
@@ -81,6 +142,12 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
       setEditNotas(false)
     },
     onError: () => setFeedback({ kind: 'error', message: 'No se pudieron actualizar las notas.' }),
+  })
+
+  const imprimirPdf = useMutation({
+    mutationFn: () => bitacorasApi.imprimirPdf(id),
+    onSuccess: () => setFeedback({ kind: 'success', message: 'PDF enviado a impresión correctamente.' }),
+    onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo imprimir el PDF.') }),
   })
 
   return (
@@ -95,6 +162,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
             <a href={pdfLinks.downloadUrl} download className="btn btn-primary btn-sm">
               <Download size={13} /> Descargar
             </a>
+            <button className="btn btn-secondary btn-sm" onClick={() => imprimirPdf.mutate()} disabled={imprimirPdf.isPending}>
+              {imprimirPdf.isPending ? <><span className="spinner" />Imprimiendo...</> : <><Printer size={13} /> Imprimir</>}
+            </button>
             <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
           </div>
         </div>
@@ -107,9 +177,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 {[
-                  ['Beneficiario', bit.beneficiario_nombre ?? bit.beneficiario ?? '—'],
-                  ['Técnico', bit.tecnico_nombre ?? bit.tecnico ?? '—'],
-                  ['Fecha', bit.fecha ? new Date(bit.fecha).toLocaleDateString('es-MX', { dateStyle: 'long' }) : '—'],
+                  ['Beneficiario', beneficiarioDetalle || '—'],
+                  ['Usuario registro', registradoPor ?? '—'],
+                  ['Fecha y hora', formatDateTime(bitacoraDateTime)],
                   ['Estado', bit.estado ?? '—'],
                   ['Tipo', bit.tipo ?? '—'],
                   ['Actividad', bit.actividad ?? '—'],
@@ -119,6 +189,14 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                     <div style={{ fontSize: 13, fontWeight: 500 }}>{v as string}</div>
                   </div>
                 ))}
+              </div>
+
+              <div className="card modal-soft-section" style={{ padding: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Geolocalización</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray-700)' }}>
+                  <MapPin size={14} />
+                  <span>{bitacoraLocation ?? 'No disponible en este registro.'}</span>
+                </div>
               </div>
 
               {imageAssets.length > 0 && (
@@ -205,6 +283,10 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
 export default function BitacorasPage() {
   const [filtros, setFiltros] = useState<{ mes?: string; estado?: string; tipo?: string }>({})
+  const [beneficiarioFiltro, setBeneficiarioFiltro] = useState('')
+  const [usuarioFiltro, setUsuarioFiltro] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [detalle, setDetalle] = useState<string | number | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -214,6 +296,21 @@ export default function BitacorasPage() {
   })
 
   const bitacoras = pickArray<Bitacora>(data, ['bitacoras', 'rows', 'data'])
+  const bitacorasFiltradas = bitacoras.filter((bitacora) => {
+    const beneficiario = bitacora.beneficiario_nombre ?? bitacora.beneficiario ?? ''
+    const usuario = bitacora.usuario_nombre ?? bitacora.usuario ?? bitacora.tecnico_nombre ?? bitacora.tecnico ?? ''
+    const fecha = getBitacoraDateTime(bitacora)
+    const parsedFecha = fecha ? new Date(fecha) : null
+    const parsedDesde = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null
+    const parsedHasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59`) : null
+
+    const matchesBeneficiario = matchesText(beneficiario, beneficiarioFiltro)
+    const matchesUsuario = matchesText(usuario, usuarioFiltro)
+    const matchesDesde = !parsedDesde || !parsedFecha || parsedFecha >= parsedDesde
+    const matchesHasta = !parsedHasta || !parsedFecha || parsedFecha <= parsedHasta
+
+    return matchesBeneficiario && matchesUsuario && matchesDesde && matchesHasta
+  })
 
   const estadoColor: Record<string, string> = {
     firmada: 'green', borrador: 'amber', cancelada: 'red', pendiente: 'gray',
@@ -224,8 +321,16 @@ export default function BitacorasPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Bitácoras</h1>
-          <p className="page-subtitle">{bitacoras.length} registro{bitacoras.length !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">{bitacorasFiltradas.length} registro{bitacorasFiltradas.length !== 1 ? 's' : ''}</p>
         </div>
+      </div>
+
+      <div style={{ marginBottom: 14 }}>
+        <FeedbackBanner
+          kind="info"
+          compact
+          message="Puedes filtrar por rango de fechas, usuario y beneficiario antes de descargar o mandar a imprimir cada PDF."
+        />
       </div>
 
       <div className="card" style={{ marginBottom: 20, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -256,8 +361,24 @@ export default function BitacorasPage() {
             <option value="B">Tipo B</option>
           </select>
         </div>
-        {(filtros.mes || filtros.estado || filtros.tipo) && (
-          <button className="btn btn-ghost btn-sm" onClick={() => setFiltros({})}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label className="form-label">Beneficiario</label>
+          <input className="input" style={{ width: 220 }} value={beneficiarioFiltro} onChange={e => setBeneficiarioFiltro(e.target.value)} placeholder="Buscar beneficiario" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label className="form-label">Usuario</label>
+          <input className="input" style={{ width: 220 }} value={usuarioFiltro} onChange={e => setUsuarioFiltro(e.target.value)} placeholder="Buscar usuario o técnico" />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label className="form-label">Desde</label>
+          <input className="input" type="date" style={{ width: 170 }} value={fechaDesde} onChange={e => setFechaDesde(e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label className="form-label">Hasta</label>
+          <input className="input" type="date" style={{ width: 170 }} value={fechaHasta} onChange={e => setFechaHasta(e.target.value)} />
+        </div>
+        {(filtros.mes || filtros.estado || filtros.tipo || beneficiarioFiltro || usuarioFiltro || fechaDesde || fechaHasta) && (
+          <button className="btn btn-ghost btn-sm" onClick={() => { setFiltros({}); setBeneficiarioFiltro(''); setUsuarioFiltro(''); setFechaDesde(''); setFechaHasta('') }}>
             <X size={13} /> Limpiar filtros
           </button>
         )}
@@ -271,16 +392,16 @@ export default function BitacorasPage() {
           <tbody>
             {isLoading ? Array(6).fill(0).map((_, i) => (
               <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : bitacoras.length === 0 ? (
+            )) : bitacorasFiltradas.length === 0 ? (
               <tr><td colSpan={7}><div className="empty-state"><FileText size={32} /><p>Sin bitácoras con los filtros seleccionados</p></div></td></tr>
-            ) : bitacoras.map(b => {
+            ) : bitacorasFiltradas.map(b => {
               const pdfLinks = getPdfLinks(b, b.id)
               return (
                 <tr key={b.id}>
                   <td style={{ color: 'var(--gray-400)', fontSize: 12, fontWeight: 700 }}>#{b.id}</td>
                   <td style={{ fontWeight: 600 }}>{b.beneficiario_nombre ?? b.beneficiario ?? '—'}</td>
-                  <td style={{ color: 'var(--gray-500)' }}>{b.tecnico_nombre ?? b.tecnico ?? '—'}</td>
-                  <td style={{ fontSize: 12 }}>{b.fecha ? new Date(b.fecha).toLocaleDateString('es-MX') : '—'}</td>
+                  <td style={{ color: 'var(--gray-500)' }}>{b.usuario_nombre ?? b.usuario ?? b.tecnico_nombre ?? b.tecnico ?? '—'}</td>
+                  <td style={{ fontSize: 12 }}>{formatDateTime(getBitacoraDateTime(b))}</td>
                   <td>{b.tipo ? <span className="badge badge-guinda">{b.tipo}</span> : '—'}</td>
                   <td>
                     <span className={`badge badge-${estadoColor[b.estado ?? ''] ?? 'gray'}`}>

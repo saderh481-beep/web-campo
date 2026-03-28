@@ -41,6 +41,8 @@ npm run smoke:api
 
 La documentación detallada de endpoints se encuentra en [API-ENDPOINTS.md](API-ENDPOINTS.md).
 
+La propuesta de cambios backend para cubrir validaciones de usuarios, control de acceso, bitácoras y exportación PDF está en [BACKEND-IMPLEMENTATION.md](BACKEND-IMPLEMENTATION.md).
+
 Incluye:
 
 - Prefijos y base de rutas
