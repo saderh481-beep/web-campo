@@ -394,14 +394,23 @@ async function updateUsuarioWithFallback(id: string | number, data: unknown): Pr
 }
 
 async function createBeneficiarioWithFallback(data: unknown): Promise<AxiosResponse<unknown>> {
-  const payload = withBeneficiarioPayload(data)
+  const minimalPayload = withBeneficiarioMinimalPayload(data)
+  const fullPayload = withBeneficiarioPayload(data)
+  const response = await api.post('/beneficiarios', minimalPayload)
+
+  const createdRecord = response.data as Record<string, unknown> | undefined
+  const createdId = createdRecord?.id ?? (isRecord(createdRecord?.beneficiario) ? createdRecord.beneficiario.id : undefined)
+
+  const hasExtendedFields = Object.keys(fullPayload).some((key) => !(key in minimalPayload))
+  if (!createdId || !hasExtendedFields) return response
+
   try {
-    return await api.post('/beneficiarios', payload)
-  } catch (error) {
-    const axiosErr = error as AxiosError
-    if (axiosErr.response?.status !== 500) throw error
-    return api.post('/beneficiarios', withBeneficiarioMinimalPayload(data))
+    await api.patch(`/beneficiarios/${createdId}`, fullPayload)
+  } catch {
+    // Keep create successful even if the backend rejects optional extended fields.
   }
+
+  return response
 }
 
 // ── USUARIOS ──────────────────────────────────────────────────────
