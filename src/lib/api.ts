@@ -320,7 +320,7 @@ export const authApi = {
   login: async (correo: string, clave: string) => {
     const payload = {
       correo,
-      codigo_acceso: clave,
+      clave,
     }
 
     const response = await api.post('/auth/login', payload)

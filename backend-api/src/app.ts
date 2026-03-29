@@ -108,13 +108,13 @@ app.get("/health", async (c) => {
   return c.json(health, statusCode);
 });
 
-app.route("/auth", authRoutes);
-app.route("/", datosRoutes);
-app.route("/bitacoras", bitacorasRoutes);
-app.route("/bitacoras", bitacorasExtendedRoutes);
-app.route("/usuarios", usuariosRoutes);
-app.route("/", syncRoutes);
-app.route("/notificaciones", notificacionesRoutes);
+app.route("/api/v1/auth", authRoutes);
+app.route("/api/v1", datosRoutes);
+app.route("/api/v1/bitacoras", bitacorasRoutes);
+app.route("/api/v1/bitacoras", bitacorasExtendedRoutes);
+app.route("/api/v1/usuarios", usuariosRoutes);
+app.route("/api/v1", syncRoutes);
+app.route("/api/v1/notificaciones", notificacionesRoutes);
 
 app.notFound((c) => c.json({ error: "Ruta no encontrada" }, 404));
 app.onError((err, c) => {

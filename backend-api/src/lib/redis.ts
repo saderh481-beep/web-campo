@@ -4,7 +4,7 @@ import { logger } from "./logger";
 
 const url = config.server.isProduction
   ? config.redis.url
-  : config.redis.publicUrl;
+  : (config.redis.publicUrl ?? config.redis.url);
 
 export const redis = new Redis(url, {
   maxRetriesPerRequest: 3,

@@ -12,7 +12,6 @@ export default defineConfig({
       '/api': {
         target: 'https://campo-api-web-campo-saas.up.railway.app',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
         secure: false,
       },
     },
