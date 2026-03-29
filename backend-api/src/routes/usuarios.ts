@@ -44,6 +44,24 @@ const schemaEliminarUsuario = z.object({
 
 app.use("*", authMiddleware);
 
+// Obtener perfil del usuario actual
+app.get("/me", async (c) => {
+  const tecnico = c.get("tecnico");
+  
+  const [usuario] = await sql`
+    SELECT id, nombre, correo, rol, telefono, coordinador_id, 
+           fecha_limite, activo, created_at, updated_at
+    FROM usuarios
+    WHERE id = ${tecnico.sub}
+  `;
+  
+  if (!usuario) {
+    return c.json({ error: "Usuario no encontrado" }, 404);
+  }
+  
+  return c.json(usuario);
+});
+
 // Listar usuarios (solo administradores pueden ver todos)
 app.get("/", async (c) => {
   const tecnico = c.get("tecnico");

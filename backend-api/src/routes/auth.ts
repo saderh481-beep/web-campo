@@ -55,4 +55,53 @@ app.post(
   }
 );
 
+// Obtener información del usuario actual (para compatibilidad con frontend)
+app.get("/me", async (c) => {
+  const token = c.req.header("Authorization")?.replace("Bearer ", "");
+  
+  if (!token) {
+    return c.json({ error: "Token no proporcionado" }, 401);
+  }
+
+  try {
+    // Verificar si el token está en Redis (sesión activa)
+    const sessionData = await redis.get(`session:${token}`);
+    if (!sessionData) {
+      return c.json({ error: "Sesión no válida o expirada" }, 401);
+    }
+
+    const payload = JSON.parse(sessionData);
+    
+    // Obtener información completa del usuario desde la base de datos
+    const [usuario] = await sql`
+      SELECT id, nombre, correo, rol, telefono, coordinador_id, 
+             fecha_limite, activo, created_at, updated_at
+      FROM usuarios
+      WHERE id = ${payload.sub}
+    `;
+
+    if (!usuario) {
+      return c.json({ error: "Usuario no encontrado" }, 404);
+    }
+
+    return c.json({
+      usuario: {
+        id: usuario.id,
+        nombre: usuario.nombre,
+        correo: usuario.correo,
+        rol: usuario.rol,
+        telefono: usuario.telefono,
+        coordinador_id: usuario.coordinador_id,
+        fecha_limite: usuario.fecha_limite,
+        activo: usuario.activo,
+        created_at: usuario.created_at,
+        updated_at: usuario.updated_at
+      }
+    });
+  } catch (error) {
+    console.error("Error al obtener información del usuario:", error);
+    return c.json({ error: "Error al obtener información del usuario" }, 500);
+  }
+});
+
 export default app;
