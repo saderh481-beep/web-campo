@@ -6,6 +6,8 @@ import { secureHeaders } from "hono/secure-headers";
 import authRoutes from "@/routes/auth";
 import datosRoutes from "@/routes/datos";
 import bitacorasRoutes from "@/routes/bitacoras";
+import bitacorasExtendedRoutes from "@/routes/bitacoras-extended";
+import usuariosRoutes from "@/routes/usuarios";
 import syncRoutes from "@/routes/sync";
 import notificacionesRoutes from "@/routes/notificaciones";
 
@@ -29,6 +31,8 @@ app.get("/health", (c) =>
 app.route("/auth", authRoutes);
 app.route("/", datosRoutes);
 app.route("/bitacoras", bitacorasRoutes);
+app.route("/bitacoras", bitacorasExtendedRoutes);
+app.route("/usuarios", usuariosRoutes);
 app.route("/", syncRoutes);
 app.route("/notificaciones", notificacionesRoutes);
 

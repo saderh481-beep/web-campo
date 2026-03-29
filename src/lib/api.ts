@@ -404,7 +404,7 @@ async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<u
   }
   
   try {
-    return await api.post('/auth/tecnico', payload)
+    return await api.post('/usuarios', payload)
   } catch (error) {
     // Si falla, intentar con alias de campos
     const aliasPayload = {
@@ -413,7 +413,7 @@ async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<u
       nombre: payload.nombre || payload.name,
       rol: payload.rol || payload.role,
     }
-    return api.post('/auth/tecnico', aliasPayload)
+    return api.post('/usuarios', aliasPayload)
   }
 }
 
