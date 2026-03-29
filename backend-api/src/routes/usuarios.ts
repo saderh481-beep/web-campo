@@ -42,10 +42,10 @@ const schemaEliminarUsuario = z.object({
   hard: z.boolean().default(false)
 });
 
-app.use("*", authMiddleware);
+// Middleware de autenticación solo para rutas que lo requieran
 
 // Obtener perfil del usuario actual
-app.get("/me", async (c) => {
+app.get("/me", authMiddleware, async (c) => {
   const tecnico = c.get("tecnico");
   
   const [usuario] = await sql`
@@ -100,8 +100,8 @@ app.get("/", async (c) => {
   return c.json(usuario ? [usuario] : []);
 });
 
-// Crear usuario
-app.post("/", zValidator("json", schemaCrearUsuario), async (c) => {
+// Crear usuario (solo para administradores)
+app.post("/", authMiddleware, zValidator("json", schemaCrearUsuario), async (c) => {
   const tecnico = c.get("tecnico");
   const body = c.req.valid("json");
   
