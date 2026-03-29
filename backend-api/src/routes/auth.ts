@@ -181,10 +181,10 @@ app.post(
   rateLimitMiddleware(5, 60),
   zValidator("json", z.object({
     correo: z.string().email("Correo inválido"),
-    clave: z.string().min(1, "Contraseña requerida")
+    codigo_acceso: z.string().min(1, "Código de acceso requerido")
   })),
   async (c) => {
-    const { correo, clave } = c.req.valid("json");
+    const { correo, codigo_acceso: clave } = c.req.valid("json");
 
     // Buscar usuario por correo
     const [usuario] = await sql`
