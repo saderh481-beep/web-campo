@@ -106,6 +106,11 @@ app.get("/me", async (c) => {
   }
 });
 
+// Ruta para compatibilidad con frontend (para evitar 404)
+app.get("/auth/me", async (c) => {
+  return c.json({ error: "Endpoint no disponible. Use /auth/me desde el frontend." }, 404);
+});
+
 // Registro de usuarios (solo para administradores)
 app.post(
   "/registro",
