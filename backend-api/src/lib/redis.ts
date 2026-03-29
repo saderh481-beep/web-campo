@@ -9,10 +9,19 @@ const url = config.server.isProduction
 export const redis = new Redis(url, {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
+  lazyConnect: true,
 });
 
 redis.on("error", (err) => {
   logger.error("Redis connection error", {
     error: err.message,
   });
+});
+
+redis.on("connect", () => {
+  logger.info("Redis connected successfully");
+});
+
+redis.on("ready", () => {
+  logger.info("Redis ready to use");
 });

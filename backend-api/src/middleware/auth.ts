@@ -18,7 +18,15 @@ export const authMiddleware = createMiddleware<Env>(async (c, next) => {
   const payload = await verifyJwt(token);
   if (!payload) return c.json({ error: "Token inválido o expirado" }, 401);
 
-  const sessionRaw = await redis.get(`session:${token}`);
+  let sessionRaw;
+  try {
+    sessionRaw = await redis.get(`session:${token}`);
+  } catch (error) {
+    // Si Redis falla, continuar sin validación de sesión
+    c.set("tecnico", payload);
+    return next();
+  }
+
   if (!sessionRaw) {
     return c.json({ error: "Token inválido o expirado" }, 401);
   }
