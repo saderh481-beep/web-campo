@@ -9,7 +9,7 @@
 
 	route {
 		# Proxy same-origin para evitar CORS del navegador.
-		handle_path /api/* {
+		handle /api/* {
 			reverse_proxy https://campo-api-web-campo-saas.up.railway.app {
 				header_up Host campo-api-web-campo-saas.up.railway.app
 			}
