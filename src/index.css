@@ -454,6 +454,7 @@ select.input {
 }
 
 @media (max-width: 768px) {
+  :root { --sidebar-w: 220px; }
   .page { padding: 16px 12px; }
   .page-header { flex-direction: column; align-items: stretch; margin-bottom: 20px; }
   .card { padding: 16px; }
@@ -468,5 +469,109 @@ select.input {
   .modal-footer { flex-wrap: wrap; }
   .modal-footer .btn { flex: 1 1 calc(50% - 6px); }
   .table-wrap table { min-width: 700px; }
+}
+
+@media (max-width: 640px) {
+  :root { --sidebar-w: 200px; }
+  .page { padding: 12px 8px; }
+  .page-title { font-size: 20px; }
+  .page-header { gap: 12px; }
+  .card { padding: 14px; }
+  .btn { font-size: 13px; padding: 8px 14px; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  .input { font-size: 13px; padding: 8px 10px; }
+  .form-label { font-size: 11px; }
+  .form-hint { font-size: 10px; }
+  .table-wrap table { min-width: 600px; }
+  .table-wrap thead th { font-size: 10px; padding: 8px 10px; }
+  .table-wrap tbody td { font-size: 12px; padding: 10px 10px; }
+  .badge { font-size: 10px; padding: 2px 8px; }
+  .login-brand { font-size: 36px; }
+  .login-brand-sub { font-size: 14px; }
+  .login-form-card { padding: 24px 16px; }
+  .login-title { font-size: 20px; }
+  .login-subtitle { font-size: 13px; }
+  .login-btn { height: 40px; font-size: 13px; }
+}
+
+@media (max-width: 480px) {
+  :root { --sidebar-w: 180px; }
+  .page { padding: 8px 6px; }
+  .page-title { font-size: 18px; }
+  .card { padding: 12px; }
+  .btn { font-size: 12px; padding: 7px 12px; }
+  .btn-sm { padding: 4px 8px; font-size: 10px; }
+  .input { font-size: 12px; padding: 7px 9px; }
+  .form-label { font-size: 10px; }
+  .form-hint { font-size: 9px; }
+  .table-wrap table { min-width: 500px; }
+  .table-wrap thead th { font-size: 9px; padding: 6px 8px; }
+  .table-wrap tbody td { font-size: 11px; padding: 8px 8px; }
+  .badge { font-size: 9px; padding: 2px 6px; }
+  .login-brand { font-size: 30px; }
+  .login-brand-sub { font-size: 12px; }
+  .login-form-card { padding: 20px 12px; }
+  .login-title { font-size: 18px; }
+  .login-subtitle { font-size: 12px; }
+  .login-btn { height: 38px; font-size: 12px; }
+}
+
+@media (max-width: 360px) {
+  :root { --sidebar-w: 160px; }
+  .page { padding: 6px 4px; }
+  .page-title { font-size: 16px; }
+  .card { padding: 10px; }
+  .btn { font-size: 11px; padding: 6px 10px; }
+  .btn-sm { padding: 3px 6px; font-size: 9px; }
+  .input { font-size: 11px; padding: 6px 8px; }
+  .form-label { font-size: 9px; }
+  .form-hint { font-size: 8px; }
+  .table-wrap table { min-width: 400px; }
+  .table-wrap thead th { font-size: 8px; padding: 5px 6px; }
+  .table-wrap tbody td { font-size: 10px; padding: 6px 6px; }
+  .badge { font-size: 8px; padding: 1px 5px; }
+  .login-brand { font-size: 24px; }
+  .login-brand-sub { font-size: 11px; }
+  .login-form-card { padding: 16px 10px; }
+  .login-title { font-size: 16px; }
+  .login-subtitle { font-size: 11px; }
+  .login-btn { height: 36px; font-size: 11px; }
+}
+
+/* Tablet landscape */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+  .page { padding: 20px 16px; }
+  .card { padding: 18px; }
+  .table-wrap table { min-width: 800px; }
+}
+
+/* Desktop small */
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .page { padding: 28px 24px; }
+  .card { padding: 18px; }
+}
+
+/* Desktop large */
+@media (min-width: 1281px) {
+  .page { padding: 32px 32px; }
+  .card { padding: 20px; }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .btn, .input, .card, .modal {
+    border-width: 0.5px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body { background: white; color: black; }
+  .skip-nav, .sidebar, .header, .feedback-banner, .btn, .modal-overlay { display: none !important; }
+  .page { padding: 0; background: white; }
+  .card { border: 1px solid #ccc; box-shadow: none; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: 8px; }
+  thead { background: #f5f5f5; }
 }
 

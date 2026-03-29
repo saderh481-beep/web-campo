@@ -351,8 +351,15 @@ export const authApi = {
       saveAuthFromResponse(response.data)
       return response
     } catch (error) {
-      clearAuthStorage()
-      throw error
+      // Si ambos endpoints fallan, intentar sin token para obtener error 401
+      try {
+        const response = await api.get('/auth/me')
+        saveAuthFromResponse(response.data)
+        return response
+      } catch (authError) {
+        clearAuthStorage()
+        throw authError
+      }
     }
   },
 }
