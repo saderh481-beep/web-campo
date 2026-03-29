@@ -116,6 +116,9 @@ app.route("/api/v1/usuarios", usuariosRoutes);
 app.route("/api/v1", syncRoutes);
 app.route("/api/v1/notificaciones", notificacionesRoutes);
 
+// Ruta para registro de usuarios (para compatibilidad con frontend)
+app.route("/api/v1/usuarios", usuariosRoutes);
+
 app.notFound((c) => c.json({ error: "Ruta no encontrada" }, 404));
 app.onError((err, c) => {
   logger.error("Unhandled error", {

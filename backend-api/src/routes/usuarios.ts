@@ -106,16 +106,38 @@ app.post("/", authMiddleware, zValidator("json", schemaCrearUsuario), async (c) 
   const body = c.req.valid("json");
   
   // Validar permisos
-  if (tecnico.rol === "tecnico") {
+  if (tecnico.rol !== "administrador") {
     return c.json({ error: "No tienes permisos para crear usuarios" }, 403);
   }
   
   // Validar que el correo no exista
-  const [existe] = await sql`
-    SELECT id FROM usuarios WHERE correo = ${body.correo}
-  `;
+  let existe;
+  try {
+    [existe] = await sql`
+      SELECT id FROM usuarios WHERE correo = ${body.correo}
+    `;
+  } catch (error) {
+    return c.json({ error: "Error al validar correo electrónico" }, 500);
+  }
+  
   if (existe) {
     return c.json({ error: "Ya existe un usuario con este correo" }, 400);
+  }
+  
+  // Validar que el coordinador_id exista si se proporciona
+  if (body.coordinador_id) {
+    let coordinador;
+    try {
+      [coordinador] = await sql`
+        SELECT id FROM usuarios WHERE id = ${body.coordinador_id} AND rol = 'coordinador'
+      `;
+    } catch (error) {
+      return c.json({ error: "Error al validar coordinador" }, 500);
+    }
+    
+    if (!coordinador) {
+      return c.json({ error: "Coordinador no encontrado" }, 400);
+    }
   }
   
   // Generar código de acceso si no se proporciona
@@ -124,18 +146,23 @@ app.post("/", authMiddleware, zValidator("json", schemaCrearUsuario), async (c) 
   // Encriptar código de acceso
   const hashCodigo = createHash("sha256").update(codigoAcceso).digest("hex");
   
-  const [nuevo] = await sql`
-    INSERT INTO usuarios (
-      nombre, correo, rol, telefono, coordinador_id, 
-      fecha_limite, codigo_acceso, activo
-    ) VALUES (
-      ${body.nombre}, ${body.correo}, ${body.rol}, ${body.telefono || null},
-      ${body.coordinador_id || null}, ${body.fecha_limite || null},
-      ${hashCodigo}, ${body.activo ?? true}
-    )
-    RETURNING id, nombre, correo, rol, telefono, coordinador_id, 
-              fecha_limite, activo, created_at, updated_at
-  `;
+  let nuevo;
+  try {
+    [nuevo] = await sql`
+      INSERT INTO usuarios (
+        nombre, correo, rol, telefono, coordinador_id, 
+        fecha_limite, codigo_acceso, activo
+      ) VALUES (
+        ${body.nombre}, ${body.correo}, ${body.rol}, ${body.telefono || null},
+        ${body.coordinador_id || null}, ${body.fecha_limite || null},
+        ${hashCodigo}, ${body.activo ?? true}
+      )
+      RETURNING id, nombre, correo, rol, telefono, coordinador_id, 
+                fecha_limite, activo, created_at, updated_at
+    `;
+  } catch (error) {
+    return c.json({ error: "Error al crear usuario" }, 500);
+  }
   
   // Devolver el código de acceso sin encriptar para que el administrador lo proporcione
   return c.json({
