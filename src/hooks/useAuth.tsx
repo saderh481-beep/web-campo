@@ -53,19 +53,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    authApi.me()
-      .then((r) => {
+    const checkAuth = async () => {
+      try {
+        const r = await authApi.me()
         const normalizedUser = normalizeUser(r.data)
         if (normalizedUser && !canAccessWebApp(normalizedUser.rol)) {
           clearAuthStorage()
           setUser(null)
           return
         }
-
         setUser(normalizedUser)
-      })
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
+      } catch (error) {
+        // Si falla la verificación de autenticación, limpiar el almacenamiento
+        clearAuthStorage()
+        setUser(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkAuth()
   }, [])
 
   const login = (u: unknown) => {
