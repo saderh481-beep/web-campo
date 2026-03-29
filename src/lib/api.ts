@@ -390,6 +390,12 @@ function buildUsuarioPayload(data: unknown): Record<string, unknown> {
 
 async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<unknown>> {
   const payload = buildUsuarioPayload(data)
+  
+  // Validar campos requeridos
+  if (!payload.nombre || !payload.correo || !payload.rol) {
+    throw new Error('Nombre, correo y rol son requeridos')
+  }
+  
   try {
     return await api.post('/usuarios', payload)
   } catch (error) {
