@@ -2,10 +2,15 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usuariosApi, getApiErrorMessage } from '../lib/api'
 import { pickArray } from '../lib/normalize'
-import { Plus, Pencil, Trash2, X, Copy, Check, Eye, Power } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Copy, Check, Eye, Power, RefreshCw } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
-
-type Rol = 'administrador' | 'coordinador' | 'tecnico'
+import { 
+  type Rol, 
+  validateCodigoAccesoCompleto, 
+  maskAccessCode, 
+  getRequiredIdLength
+} from '../lib/validation'
+import { generateUniqueId } from '../lib/id-generator'
 
 interface Usuario {
   id: number | string
@@ -97,18 +102,6 @@ function toFormRole(role: string | undefined): Rol {
   return 'coordinador'
 }
 
-function maskAccessCode(value?: string): string {
-  if (!value) return '—'
-  return `${'•'.repeat(Math.max(0, value.length - 2))}${value.slice(-2)}`
-}
-
-function getRequiredIdLength(role: Rol): number {
-  return role === 'tecnico' ? 5 : 6
-}
-
-function getIdLengthMessage(role: Rol): string {
-  return role === 'tecnico' ? 'El ID debe tener 5 dígitos' : 'El ID debe tener 6 dígitos'
-}
 
 function CodigoGenerado({ codigo }: { codigo: string }) {
   const [copied, setCopied] = useState(false)
@@ -180,6 +173,18 @@ function UsuarioModal({
     return payload
   }
 
+  const generateId = () => {
+    try {
+      const existingIds = usuarios.map(u => u.codigo_acceso).filter(Boolean) as string[]
+      const newId = generateUniqueId(form.rol, existingIds)
+      if (newId) {
+        setForm(prev => ({ ...prev, codigo_acceso: newId }))
+        setErr('')
+      }
+    } catch (error) {
+      setErr('No se pudo generar un ID único. Por favor, intente de nuevo.')
+    }
+  }
 
   const save = useMutation({
     mutationFn: async () => {
@@ -201,24 +206,15 @@ function UsuarioModal({
     }
 
     const codigo = form.codigo_acceso.trim()
-    if (!/^\d+$/.test(codigo)) {
-      setErr('El ID debe contener solo números.')
+    
+    // Validar formato, longitud y unicidad del código de acceso
+    const validation = validateCodigoAccesoCompleto(codigo, form.rol, usuarios, u?.id)
+    if (!validation.isValid) {
+      setErr(validation.message!)
       return
     }
 
-    if (codigo.length !== getRequiredIdLength(form.rol)) {
-      setErr(getIdLengthMessage(form.rol))
-      return
-    }
-
-    const duplicated = usuarios.some((usuario) =>
-      String(usuario.id) !== String(u?.id) && usuario.codigo_acceso?.trim() === codigo
-    )
-    if (duplicated) {
-      setErr('El ID ya está en uso')
-      return
-    }
-
+    // Validar campos obligatorios para técnicos
     if (form.rol === 'tecnico' && (!form.coordinador_id.trim() || !form.fecha_limite.trim())) {
       setErr('Para técnicos, coordinador y fecha límite son obligatorios.')
       return
@@ -253,14 +249,25 @@ function UsuarioModal({
               <option value="tecnico">Técnico</option>
             </select></div>
           <div className="form-group"><label className="form-label">ID</label>
-            <input
-              className="input"
-              inputMode="numeric"
-              maxLength={getRequiredIdLength(form.rol)}
-              placeholder={form.rol === 'tecnico' ? '00000' : '000000'}
-              value={form.codigo_acceso}
-              onChange={e => setForm(p => ({ ...p, codigo_acceso: e.target.value.replace(/\D/g, '').slice(0, getRequiredIdLength(p.rol)) }))}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                className="input"
+                inputMode="numeric"
+                maxLength={getRequiredIdLength(form.rol)}
+                placeholder={form.rol === 'tecnico' ? '00000' : '000000'}
+                value={form.codigo_acceso}
+                onChange={e => setForm(p => ({ ...p, codigo_acceso: e.target.value.replace(/\D/g, '').slice(0, getRequiredIdLength(p.rol)) }))}
+              />
+              {!u && (
+                <button 
+                  className="btn btn-secondary btn-sm" 
+                  onClick={generateId}
+                  title="Generar ID único automáticamente"
+                >
+                  <RefreshCw size={13} /> Generar
+                </button>
+              )}
+            </div>
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>
               {form.rol === 'tecnico' ? 'El ID del técnico debe ser numérico y de 5 dígitos.' : 'El ID debe ser numérico y de 6 dígitos.'}
             </div>

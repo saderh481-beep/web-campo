@@ -34,6 +34,7 @@ import {
   canViewArchive,
   getRoleHomePath,
 } from './lib/authz'
+import { AuthGuard } from './lib/auth-guard'
 
 const qc = new QueryClient({
   defaultOptions: {
@@ -78,11 +79,6 @@ function RoleHomeRedirect() {
   return <Navigate to={getRoleHomePath(user.rol)} replace />
 }
 
-function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  if (loading) return <FullScreenLoader />
-  return user && canAccessWebApp(user.rol) ? <>{children}</> : <Navigate to="/login" replace />
-}
 
 function RoleRoute({
   allow,
@@ -113,7 +109,7 @@ export default function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-              <Route path="/" element={<PrivateRoute><AppLayout /></PrivateRoute>}>
+              <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
                 <Route index element={<RoleHomeRedirect />} />
                 <Route path="sin-acceso" element={<NoAccessPage />} />
                 <Route path="dashboard" element={<RoleRoute allow={canViewDashboard}><DashboardPage /></RoleRoute>} />
@@ -141,6 +137,7 @@ export default function App() {
     </QueryClientProvider>
   )
 }
-
+
+
 
 
