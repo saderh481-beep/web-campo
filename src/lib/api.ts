@@ -344,8 +344,8 @@ export const authApi = {
 
     try {
       const response = await requestWithPathFallback(
-        '/usuarios/me',
         '/auth/me',
+        '/usuarios/me',
         (path) => api.get(path),
       )
       saveAuthFromResponse(response.data)
@@ -390,7 +390,18 @@ function buildUsuarioPayload(data: unknown): Record<string, unknown> {
 
 async function createUsuarioWithFallback(data: unknown): Promise<AxiosResponse<unknown>> {
   const payload = buildUsuarioPayload(data)
-  return api.post('/usuarios', payload)
+  try {
+    return await api.post('/usuarios', payload)
+  } catch (error) {
+    // Si falla, intentar con alias de campos
+    const aliasPayload = {
+      ...payload,
+      correo: payload.correo || payload.email,
+      nombre: payload.nombre || payload.name,
+      rol: payload.rol || payload.role,
+    }
+    return api.post('/usuarios', aliasPayload)
+  }
 }
 
 async function updateUsuarioWithFallback(id: string | number, data: unknown): Promise<AxiosResponse<unknown>> {
