@@ -1,10 +1,11 @@
+import "dotenv/config";
+import { config } from "./config/env";
+import { logger } from "./lib/logger";
 import app from "./app";
 
-const port = Number(process.env.PORT ?? 3002);
-
-console.log(`[api-app] Escuchando en http://0.0.0.0:${port}`);
+logger.info(`[api-app] Escuchando en http://0.0.0.0:${config.server.port}`);
 
 export default {
-  port,
+  port: config.server.port,
   fetch: app.fetch,
 };

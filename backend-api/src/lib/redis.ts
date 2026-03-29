@@ -1,9 +1,10 @@
 import { Redis } from "ioredis";
+import { config } from "../config/env";
+import { logger } from "./logger";
 
-const url =
-  process.env.NODE_ENV === "production"
-    ? process.env.REDIS_URL!
-    : (process.env.REDIS_PUBLIC_URL ?? process.env.REDIS_URL!);
+const url = config.server.isProduction
+  ? config.redis.url
+  : config.redis.publicUrl;
 
 export const redis = new Redis(url, {
   maxRetriesPerRequest: 3,
@@ -11,5 +12,7 @@ export const redis = new Redis(url, {
 });
 
 redis.on("error", (err) => {
-  console.error("[Redis] error:", err.message);
+  logger.error("Redis connection error", {
+    error: err.message,
+  });
 });

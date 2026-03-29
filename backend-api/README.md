@@ -1,6 +1,59 @@
-# API App - Documentacion de Endpoints
+# API App - Backend
 
-Esta API proporciona endpoints para la aplicacion movil de tecnicos y servicios de backend para trabajo online/offline.
+Backend API para la aplicación móvil de técnicos y servicios de backend para trabajo online/offline.
+
+## 🚀 Inicio Rápido
+
+### Prerrequisitos
+
+- Node.js 18 o superior
+- PostgreSQL
+- Redis
+
+### Configuración del Entorno
+
+1. **Copiar archivo de variables de entorno:**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Editar variables de entorno:**
+   Edita el archivo `.env` con tus configuraciones locales.
+
+3. **Instalar dependencias:**
+   ```bash
+   npm install
+   ```
+
+4. **Iniciar servidor en modo desarrollo:**
+   ```bash
+   npm run dev
+   ```
+
+### Scripts de Inicialización
+
+- **Desarrollo:** `./scripts/setup-dev.sh`
+  - Verifica prerrequisitos
+  - Configura variables de entorno
+  - Instala dependencias
+  - Verifica conexiones a base de datos y Redis
+
+- **Producción:** `./scripts/setup-prod.sh`
+  - Verifica variables de entorno requeridas
+  - Instala dependencias de producción
+  - Verifica conexiones a base de datos y Redis
+
+### Scripts Disponibles
+
+```bash
+npm run dev      # Iniciar servidor en modo desarrollo (con hot reload)
+npm run start    # Iniciar servidor en modo producción
+npm run typecheck # Verificar tipos de TypeScript
+```
+
+## 📚 Documentación de Endpoints
+
+Esta API proporciona endpoints para la aplicación móvil de técnicos y servicios de backend para trabajo online/offline.
 
 ## Flujo funcional esperado
 
