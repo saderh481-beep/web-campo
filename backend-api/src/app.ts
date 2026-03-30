@@ -18,20 +18,27 @@ import notificacionesRoutes from "@/routes/notificaciones";
 const app = new Hono();
 
 // Configuración de CORS segura
-const getCorsOrigins = (): string[] => {
+const getAllowedOrigin = (origin: string | undefined): string | undefined => {
+  // Rechazar requests sin origin en producción (permitir solo en desarrollo)
+  if (!origin) {
+    return config.server.isDevelopment ? "*" : undefined;
+  }
+  
+  // Si hay orígenes configurados explícitamente, usarlos
   if (config.cors.origins.length > 0) {
-    return config.cors.origins;
+    // Retornar undefined si el origin no está permitido (Hono rechazará la request)
+    return config.cors.origins.includes(origin) ? origin : undefined;
   }
-  // En desarrollo, permitir localhost
+  
+  // En desarrollo, permitir localhost y 127.0.0.1
   if (config.server.isDevelopment) {
-    return [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "http://localhost:3002",
-    ];
+    const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+    return isLocalhost ? origin : undefined;
   }
-  // En producción, sin orígenes por defecto (debe configurarse)
-  return [];
+  
+  // En producción, sin orígenes configurados = rechazar todo
+  logger.warn("No CORS origins configured for production");
+  return undefined;
 };
 
 app.use("*", honoLogger());
@@ -39,7 +46,7 @@ app.use("*", secureHeaders());
 app.use(
   "*",
   cors({
-    origin: getCorsOrigins(),
+    origin: getAllowedOrigin,
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
