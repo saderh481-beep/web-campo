@@ -60,6 +60,7 @@ function clearStoredUser() {
 export function clearAuthStorage() {
   clearStoredToken()
   clearStoredUser()
+  clearCsrfToken()
 }
 
 function extractToken(data: unknown): string | null {
@@ -271,18 +272,45 @@ async function requestWithPathFallback<T>(
   }
 }
 
+const CSRF_TOKEN_KEY = 'campo_csrf_token'
+
+function getStoredCsrfToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.localStorage.getItem(CSRF_TOKEN_KEY)
+}
+
+function setStoredCsrfToken(token: string) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(CSRF_TOKEN_KEY, token)
+}
+
+export function clearCsrfToken() {
+  if (typeof window === 'undefined') return
+  window.localStorage.removeItem(CSRF_TOKEN_KEY)
+}
+
 export const api = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
   timeout: 15000,
+  xsrfCookieName: 'campo_csrf',
+  xsrfHeaderName: 'X-CSRF-Token',
 })
 
 api.interceptors.request.use((config) => {
   const token = getStoredToken()
+  const csrfToken = getStoredCsrfToken()
+  
   if (token) {
     config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
   }
+  
+  if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
+    config.headers = config.headers ?? {}
+    config.headers['X-CSRF-Token'] = csrfToken
+  }
+  
   return config
 })
 
@@ -323,7 +351,7 @@ export const authApi = {
       codigo_acceso: clave,
     }
 
-    const response = await api.post('/auth/login', payload)
+    const response = await api.post('/auth/verify-codigo-acceso', payload)
 
     saveAuthFromResponse(response.data)
     return response
