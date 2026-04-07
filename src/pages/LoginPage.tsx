@@ -51,7 +51,7 @@ export default function LoginPage() {
       <div className="login-wrap animate-slide-in">
         <div className="login-left">
           <div className="login-left-inner">
-            <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" className="login-logo" />
+            <img src="/Mesa de trabajo 2_1.svg" alt="Logo CAMPO" className="login-logo" />
             <h1 className="login-brand">CAMPO</h1>
             <p className="login-brand-sub">Sistema de Gestión de Técnicos y Beneficiarios</p>
             <div className="login-divider" />

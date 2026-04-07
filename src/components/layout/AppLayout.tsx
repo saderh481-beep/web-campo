@@ -106,7 +106,7 @@ export default function AppLayout() {
         }}
       >
         <div style={s.sidebarLogo}>
-          <img src="/Mesa de trabajo 3.svg" alt="Logo CAMPO" style={s.logoImg} />
+          <img src="/Mesa de trabajo 2_1.svg" alt="Logo CAMPO" style={s.logoImg} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.logoName}>CAMPO</div>
             <div style={s.logoSub}>Secretaría de Desarrollo Agropecuario</div>
