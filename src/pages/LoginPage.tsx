@@ -12,13 +12,11 @@ export default function LoginPage() {
   const { login } = useAuth()
   const nav = useNavigate()
 
-  const loginCodeHelp = 'Administradores y coordinadores usan 6 dígitos; técnicos usan 5.'
-
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     const code = codigoAcceso.replace(/\D/g, '')
     if (code.length < 5 || code.length > 6) {
-      setError(loginCodeHelp)
+      setError('El código debe tener 5 o 6 dígitos')
       return
     }
 
@@ -67,7 +65,6 @@ export default function LoginPage() {
             <div style={{ marginBottom: 32 }}>
               <h2 className="login-title">Iniciar sesión</h2>
               <p className="login-subtitle">Ingresa tu correo y tu código de acceso</p>
-              <p className="login-subtitle" style={{ marginTop: 6, marginBottom: 0 }}>{loginCodeHelp}</p>
             </div>
 
             <form onSubmit={handleLogin}>
@@ -98,7 +95,6 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                 />
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gray-500)' }}>{loginCodeHelp}</div>
               </div>
 
 {error && <div className="login-err" id="main-content">{error}</div>}
