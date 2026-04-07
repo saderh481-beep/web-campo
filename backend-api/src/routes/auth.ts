@@ -14,6 +14,11 @@ const app = new Hono()
 app.use('*', securityHeaders())
 app.use('*', corsMiddleware(['*']))
 app.use('*', rateLimiter())
+
+app.options('*', async (c) => {
+  return c.text('', 204)
+})
+
 app.use('*', jwt({ secret: env.JWT_SECRET, cookie: 'token' }))
 
 app.post('/verify-codigo-acceso', zValidator('json', loginSchema), async (c) => {

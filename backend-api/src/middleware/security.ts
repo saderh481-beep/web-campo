@@ -8,7 +8,7 @@ export function securityHeaders() {
     c.res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
     c.res.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' data:;"
+      "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: *; font-src 'self' data:;"
     )
     c.res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
     
@@ -27,7 +27,7 @@ export function corsMiddleware(allowedOrigins: string[] = ['*']) {
     }
     
     c.res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
-    c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    c.res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin')
     c.res.headers.set('Access-Control-Max-Age', '86400')
     c.res.headers.set('Access-Control-Allow-Credentials', 'true')
     
