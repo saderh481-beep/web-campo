@@ -50,12 +50,11 @@ export default function LoginPage() {
       <a href="#main-content" className="skip-nav">Saltar al contenido</a>
       <div className="login-wrap animate-slide-in">
         <div className="login-left">
-          <div className="login-left-inner">
-            <img src="/Mesa de trabajo 2_1.svg" alt="Logo CAMPO" className="login-logo" />
-            <h1 className="login-brand">CAMPO</h1>
+          <div className="login-left-inner" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <img src="/Mesa de trabajo 2_1.svg" alt="Logo CAMPO" className="login-logo" style={{ alignSelf: 'center' }} />
             <p className="login-brand-sub">Sistema de Gestión de Técnicos y Beneficiarios</p>
             <div className="login-divider" />
-            <p className="login-org">Secretaría de Desarrollo Agropecuario — CAMPO</p>
+            <p className="login-org">Secretaría de Desarrollo Agropecuario</p>
             <p className="login-gov">Gobierno del Estado de Hidalgo</p>
             <p className="login-motto">Primero el Pueblo 2022-2028</p>
             <div className="login-decor1" />

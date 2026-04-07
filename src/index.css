@@ -347,6 +347,7 @@ tbody tr.table-row-hover:hover {
 }
 .login-logo { 
   width: max-content; height: max-content; object-fit: contain; margin-bottom: 24px; 
+  align-self: center;
 }
 .login-brand { 
   font-size: 52px; font-weight: 700; letter-spacing: '-0.02em'; color: white; margin-bottom: 16px; 
