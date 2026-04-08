@@ -1,5 +1,7 @@
 export { authService } from './auth'
 export { usuariosService } from './usuarios'
+export { gestionUsuariosService } from './gestion-usuarios'
+export { registroService } from './registro'
 export { tecnicosService } from './tecnicos'
 export { beneficiariosService } from './beneficiarios'
 export { asignacionesService } from './asignaciones'
