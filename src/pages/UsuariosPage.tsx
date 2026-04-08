@@ -103,6 +103,15 @@ function toFormRole(role: string | undefined): Rol {
   return 'coordinador'
 }
 
+/** Convierte "YYYY-MM-DD" a ISO 8601 que acepta el backend */
+function toIsoDateTime(value: string): string | undefined {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const d = new Date(`${trimmed}T00:00:00`)
+  if (Number.isNaN(d.getTime())) return undefined
+  return d.toISOString()
+}
+
 
 function CodigoGenerado({ codigo }: { codigo: string }) {
   const [copied, setCopied] = useState(false)
@@ -166,7 +175,7 @@ function UsuarioModal({
 
     if (form.rol === 'tecnico') {
       payload.coordinador_id = form.coordinador_id.trim() || undefined
-      payload.fecha_limite = form.fecha_limite.trim() || undefined
+      payload.fecha_limite = toIsoDateTime(form.fecha_limite)
     }
 
     if (u) payload.activo = form.activo
@@ -216,9 +225,19 @@ function UsuarioModal({
     }
 
     // Validar campos obligatorios para técnicos
-    if (form.rol === 'tecnico' && (!form.coordinador_id.trim() || !form.fecha_limite.trim())) {
-      setErr('Para técnicos, coordinador y fecha límite son obligatorios.')
-      return
+    if (form.rol === 'tecnico') {
+      if (!form.coordinador_id.trim()) {
+        setErr('Para técnicos, el coordinador es obligatorio.')
+        return
+      }
+      if (!form.fecha_limite.trim()) {
+        setErr('Para técnicos, la fecha límite es obligatoria.')
+        return
+      }
+      if (!toIsoDateTime(form.fecha_limite)) {
+        setErr('La fecha límite no tiene un formato válido.')
+        return
+      }
     }
 
     setErr('')

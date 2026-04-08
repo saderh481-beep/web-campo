@@ -1,7 +1,5 @@
 export { authService } from './auth'
 export { usuariosService } from './usuarios'
-export { gestionUsuariosService } from './gestion-usuarios'
-export { registroService } from './registro'
 export { tecnicosService } from './tecnicos'
 export { beneficiariosService } from './beneficiarios'
 export { asignacionesService } from './asignaciones'
@@ -15,3 +13,7 @@ export {
   reportesService,
   archiveService,
 } from './extra'
+
+// NOTA: registroService eliminado — los endpoints de registro público
+// (register, verify-email, resend-verification) no existen en el backend.
+// Ver: src/lib/servicios/registro.ts

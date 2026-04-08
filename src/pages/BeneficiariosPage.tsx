@@ -295,8 +295,11 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
         : await beneficiariosService.create(payload)
 
       if (canAssignCadenas && form.cadenas_ids.length > 0) {
-        const createdId = String((response.data as { id?: string | number })?.id ?? b?.id ?? '')
-        if (createdId) {
+        const raw = response.data as Record<string, unknown> | null | undefined
+        const createdId = String(
+          raw?.id ?? raw?.beneficiario_id ?? raw?.id_beneficiario ?? b?.id ?? ''
+        )
+        if (createdId && createdId !== 'undefined' && createdId !== '') {
           await beneficiariosService.asignarCadenas(createdId, form.cadenas_ids)
         }
       }

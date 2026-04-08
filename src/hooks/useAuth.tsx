@@ -32,7 +32,7 @@ function normalizeUser(value: unknown): User | null {
       ? value.user
       : value
 
-  const rawId = container.id
+  const rawId = container.id ?? container.usuario_id ?? container.id_usuario ?? container.user_id
   const rawNombre = container.nombre ?? container.name
   const rawCorreo = container.correo ?? container.email
   const rawRol = container.rol ?? container.role
