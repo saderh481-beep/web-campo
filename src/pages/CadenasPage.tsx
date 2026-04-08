@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { cadenasApi, getApiErrorMessage } from '../lib/api'
+import { cadenasService } from '../lib/servicios/catalogos'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageCadenas } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -26,7 +27,7 @@ function CadenaModal({ cadena, onClose }: { cadena?: Cadena; onClose: () => void
   const [form, setForm] = useState({ nombre: cadena?.nombre ?? '', descripcion: cadena?.descripcion ?? '' })
   const [err, setErr] = useState('')
   const save = useMutation({
-    mutationFn: () => cadena ? cadenasApi.update(cadena.id, form) : cadenasApi.create(form),
+    mutationFn: () => cadena ? cadenasService.update(cadena.id, form) : cadenasService.create(form),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cadenas'] }); onClose() },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
@@ -65,7 +66,7 @@ export default function CadenasPage() {
   const [modal, setModal] = useState<'new' | Cadena | null>(null)
   const { data, isLoading } = useQuery({
     queryKey: ['cadenas'],
-    queryFn: () => cadenasApi.list().then(r => r.data),
+    queryFn: () => cadenasService.list().then(r => r.data),
     staleTime: 60000,
   })
   const cadenasData = data as CadenasResponse | Cadena[] | undefined

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { actividadesApi, getApiErrorMessage } from '../lib/api'
+import { actividadesService } from '../lib/servicios/catalogos'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageActividades } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -35,7 +36,7 @@ function ActividadModal({ actividad, onClose }: { actividad?: Actividad; onClose
         nombre: form.nombre,
         descripcion: form.descripcion || undefined,
       }
-      return actividad ? actividadesApi.update(actividad.id, payload) : actividadesApi.create(payload)
+      return actividad ? actividadesService.update(actividad.id, payload) : actividadesService.create(payload)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['actividades'] })
@@ -81,12 +82,12 @@ export default function ActividadesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['actividades'],
-    queryFn: () => actividadesApi.list().then((r) => r.data),
+    queryFn: () => actividadesService.list().then((r) => r.data),
     staleTime: 30000,
   })
 
   const remove = useMutation({
-    mutationFn: (id: string | number) => actividadesApi.remove(id),
+    mutationFn: (id: string | number) => actividadesService.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['actividades'] }),
   })
 

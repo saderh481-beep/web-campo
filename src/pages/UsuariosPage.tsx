@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { usuariosApi, getApiErrorMessage } from '../lib/api'
+import { usuariosService } from '../lib/servicios/usuarios'
+import { getApiErrorMessage } from '../lib/axios'
 import { pickArray } from '../lib/normalize'
 import { Plus, Pencil, Trash2, X, Copy, Check, Eye, Power, RefreshCw } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
@@ -189,7 +190,7 @@ function UsuarioModal({
   const save = useMutation({
     mutationFn: async () => {
       const payload = buildPayload()
-      return u ? await usuariosApi.update(u.id, payload) : await usuariosApi.create(payload)
+      return u ? await usuariosService.update(u.id, payload) : await usuariosService.create(payload)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['usuarios'] })
@@ -345,11 +346,11 @@ export default function UsuariosPage() {
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const { data, isLoading } = useQuery({
     queryKey: ['usuarios'],
-    queryFn: () => usuariosApi.list().then(r => r.data),
+    queryFn: () => usuariosService.list().then(r => r.data),
     staleTime: 60000,
   })
   const toggleActivo = useMutation({
-    mutationFn: ({ id, activo }: { id: string | number; activo: boolean }) => usuariosApi.update(id, { activo }),
+    mutationFn: ({ id, activo }: { id: string | number; activo: boolean }) => usuariosService.update(id, { activo }),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['usuarios'] })
       setFeedback({
@@ -364,7 +365,7 @@ export default function UsuariosPage() {
       }),
   })
   const hardRemove = useMutation({
-    mutationFn: (id: string | number) => usuariosApi.hardRemove(id),
+    mutationFn: (id: string | number) => usuariosService.hardRemove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['usuarios'] })
       setFeedback({ kind: 'success', message: 'Usuario eliminado permanentemente.' })

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { bitacorasApi, getApiErrorMessage } from '../lib/api'
+import { bitacorasService } from '../lib/servicios/bitacoras'
+import { getApiErrorMessage } from '../lib/axios'
 import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
@@ -49,8 +50,8 @@ interface Bitacora {
 }
 
 function getPdfLinks(bit: unknown, id: string | number) {
-  const viewUrl = firstUrl(bit, ['pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasApi.pdfUrl(id)
-  const downloadUrl = firstUrl(bit, ['pdf_download_url', 'download_url', 'pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasApi.pdfDownloadUrl(id)
+  const viewUrl = firstUrl(bit, ['pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasService.pdfUrl(id)
+  const downloadUrl = firstUrl(bit, ['pdf_download_url', 'download_url', 'pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasService.pdfDownloadUrl(id)
   return { viewUrl, downloadUrl }
 }
 
@@ -116,12 +117,12 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ['bitacora', id],
-    queryFn: () => bitacorasApi.get(id).then(r => r.data),
+    queryFn: () => bitacorasService.get(id).then(r => r.data),
   })
   const [editNotas, setEditNotas] = useState(false)
   const [notas, setNotas] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
-  const bit = data?.bitacora ?? data
+  const bit = data
 
   const pdfLinks = useMemo(() => getPdfLinks(bit, id), [bit, id])
   const assets = useMemo(() => getBitacoraAssets(bit), [bit])
@@ -135,7 +136,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     .join(' · ')
 
   const saveNotas = useMutation({
-    mutationFn: () => bitacorasApi.update(id, { observaciones: notas }),
+    mutationFn: () => bitacorasService.update(id, { observaciones: notas }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bitacora', id] })
       setFeedback({ kind: 'success', message: 'Notas actualizadas correctamente.' })
@@ -145,7 +146,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   })
 
   const imprimirPdf = useMutation({
-    mutationFn: () => bitacorasApi.imprimirPdf(id),
+    mutationFn: () => bitacorasService.imprimirPdf(id),
     onSuccess: () => setFeedback({ kind: 'success', message: 'PDF enviado a impresión correctamente.' }),
     onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo imprimir el PDF.') }),
   })
@@ -282,7 +283,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 }
 
 export default function BitacorasPage() {
-  const [filtros, setFiltros] = useState<{ mes?: string; estado?: string; tipo?: string }>({})
+  const [filtros, setFiltros] = useState<{ mes?: string; anio?: number; estado?: string; tipo?: string; tecnico_id?: string }>({})
   const [beneficiarioFiltro, setBeneficiarioFiltro] = useState('')
   const [usuarioFiltro, setUsuarioFiltro] = useState('')
   const [fechaDesde, setFechaDesde] = useState('')
@@ -291,7 +292,15 @@ export default function BitacorasPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['bitacoras', filtros],
-    queryFn: () => bitacorasApi.list(filtros).then(r => r.data),
+    queryFn: () => {
+      const params: Record<string, unknown> = { ...filtros }
+      if (params.mes) {
+        const [anio, mesNum] = String(params.mes).split('-').map(Number)
+        params.mes = mesNum
+        params.anio = anio
+      }
+      return bitacorasService.list(params as Parameters<typeof bitacorasService.list>[0]).then(r => r.data)
+    },
     staleTime: 30000,
   })
 

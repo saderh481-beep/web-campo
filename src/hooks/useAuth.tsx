@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { authApi, clearAuthStorage } from '../lib/api'
+import { authService } from '../lib/servicios/auth'
+import { clearAuthStorage } from '../lib/axios'
 import { canAccessWebApp } from '../lib/authz'
 
 interface User {
@@ -55,8 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const r = await authApi.me()
-        const normalizedUser = normalizeUser(r.data)
+        const userData = await authService.me()
+        const normalizedUser = normalizeUser(userData)
         if (normalizedUser && !canAccessWebApp(normalizedUser.rol)) {
           clearAuthStorage()
           setUser(null)
@@ -64,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(normalizedUser)
       } catch (error) {
-        // Si falla la verificación de autenticación, limpiar el almacenamiento
         clearAuthStorage()
         setUser(null)
       } finally {
@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    await authApi.logout().catch(() => {})
+    await authService.logout()
     setUser(null)
     window.location.href = '/login'
   }

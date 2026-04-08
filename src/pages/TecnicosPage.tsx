@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { tecnicosApi, getApiErrorMessage } from '../lib/api'
+import { tecnicosService } from '../lib/servicios/tecnicos'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -48,7 +49,7 @@ function CodigoAcceso({ codigo, id, canManage }: { codigo: string; id: string | 
   const [copied, setCopied] = useState(false)
   const qc = useQueryClient()
   const regen = useMutation({
-    mutationFn: () => tecnicosApi.generarCodigoAcceso(id),
+    mutationFn: () => tecnicosService.generarCodigoAcceso(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tecnicos'] }),
   })
 
@@ -93,7 +94,7 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
         coordinador_id: form.coordinador_id || undefined,
         fecha_limite: toIsoDateTime(form.fecha_limite) || undefined,
       }
-      return tecnicosApi.update(tecnico!.id, payload)
+      return tecnicosService.update(tecnico!.id, payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
@@ -136,12 +137,12 @@ export default function TecnicosPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['tecnicos'],
-    queryFn: () => tecnicosApi.list().then(r => r.data),
+    queryFn: () => tecnicosService.list().then(r => r.data),
     staleTime: 30000,
   })
 
   const remove = useMutation({
-    mutationFn: (id: string | number) => tecnicosApi.remove(id),
+    mutationFn: (id: string | number) => tecnicosService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
       setFeedback({ kind: 'success', message: 'Tecnico desactivado correctamente.' })
@@ -150,7 +151,7 @@ export default function TecnicosPage() {
   })
 
   const aplicarCortes = useMutation({
-    mutationFn: () => tecnicosApi.aplicarCortes(),
+    mutationFn: () => tecnicosService.aplicarCortes(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
       setFeedback({ kind: 'success', message: 'Cortes aplicados correctamente.' })
@@ -159,7 +160,7 @@ export default function TecnicosPage() {
   })
 
   const cerrarCorte = useMutation({
-    mutationFn: (id: string | number) => tecnicosApi.cerrarCorte(id),
+    mutationFn: (id: string | number) => tecnicosService.cerrarCorte(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
       setFeedback({ kind: 'success', message: 'Corte cerrado correctamente.' })

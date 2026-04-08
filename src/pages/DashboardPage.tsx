@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { reportesApi, bitacorasApi, tecnicosApi, beneficiariosApi, dashboardApi } from '../lib/api'
+import { reportesService } from '../lib/servicios/extra'
+import { bitacorasService } from '../lib/servicios/bitacoras'
+import { tecnicosService } from '../lib/servicios/tecnicos'
+import { beneficiariosService } from '../lib/servicios/beneficiarios'
+import { dashboardService } from '../lib/servicios/extra'
 import { pickArray, pickNumber } from '../lib/normalize'
 import { FileText, Users, UserCheck, TrendingUp, Activity } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
@@ -111,32 +115,35 @@ export default function DashboardPage() {
 
   const { data: coordinadorDashboard, isLoading: cLoad } = useQuery({
     queryKey: ['dashboard', 'coordinador'],
-    queryFn: () => dashboardApi.coordinador().then(r => r.data),
+    queryFn: () => dashboardService.coordinador().then(r => r.data),
     staleTime: 60000,
     enabled: role === 'coordinador',
   })
 
   const { data: reporte, isLoading: rLoad } = useQuery({
     queryKey: ['reporte', mes],
-    queryFn: () => reportesApi.mensual({ mes }).then(r => r.data),
+    queryFn: () => {
+      const [anio, mesNum] = mes.split('-').map(Number)
+      return reportesService.mensual({ mes: mesNum, anio }).then(r => r.data)
+    },
     staleTime: 60000,
   })
 
   const { data: tecnicos, isLoading: tLoad } = useQuery({
     queryKey: ['tecnicos'],
-    queryFn: () => tecnicosApi.list().then(r => r.data),
+    queryFn: () => tecnicosService.list().then(r => r.data),
     staleTime: 60000,
   })
 
   const { data: benef, isLoading: bLoad } = useQuery({
     queryKey: ['beneficiarios', { page: 1 }],
-    queryFn: () => beneficiariosApi.list({ page: 1 }).then(r => r.data),
+    queryFn: () => beneficiariosService.list({ page: 1 }).then(r => r.data),
     staleTime: 60000,
   })
 
   const { data: bitacoras, isLoading: biLoad } = useQuery({
     queryKey: ['bitacoras', {}],
-    queryFn: () => bitacorasApi.list().then(r => r.data),
+    queryFn: () => bitacorasService.list().then(r => r.data),
     staleTime: 60000,
   })
 

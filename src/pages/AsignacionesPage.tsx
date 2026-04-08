@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { actividadesApi, asignacionesApi, beneficiariosApi, tecnicosApi, usuariosApi, getApiErrorMessage } from '../lib/api'
+import { actividadesService, asignacionesService } from '../lib/servicios/asignaciones'
+import { beneficiariosService } from '../lib/servicios/beneficiarios'
+import { tecnicosService } from '../lib/servicios/tecnicos'
+import { usuariosService } from '../lib/servicios/usuarios'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageAsignaciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -201,7 +205,7 @@ function EditAsignacionModal({
           fecha_limite: toIsoDateTime(form.fecha_limite ?? ''),
           activo: form.activo,
         }
-        return asignacionesApi.actualizarCoordinadorTecnico(state.row.tecnico_id, payload)
+        return asignacionesService.actualizarCoordinadorTecnico(state.row.tecnico_id, payload)
       }
 
       if (state.kind === 'beneficiario') {
@@ -210,7 +214,7 @@ function EditAsignacionModal({
           beneficiario_id: form.beneficiario_id || undefined,
           activo: form.activo,
         }
-        return asignacionesApi.actualizarBeneficiario(state.row.id, payload)
+        return asignacionesService.actualizarBeneficiario(state.row.id, payload)
       }
 
       const payload = {
@@ -218,7 +222,7 @@ function EditAsignacionModal({
         actividad_id: form.actividad_id || undefined,
         activo: form.activo,
       }
-      return asignacionesApi.actualizarActividad(state.row.id, payload)
+      return asignacionesService.actualizarActividad(state.row.id, payload)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asignaciones', 'coordinador-tecnico'] })
@@ -351,52 +355,52 @@ export default function AsignacionesPage() {
 
   const { data: tecnicosData, isLoading: loadingTecnicos } = useQuery({
     queryKey: ['tecnicos'],
-    queryFn: () => tecnicosApi.list().then((r) => r.data),
+    queryFn: () => tecnicosService.list().then((r) => r.data),
     staleTime: 120000,
   })
 
   const { data: beneficiariosData, isLoading: loadingBeneficiarios } = useQuery({
     queryKey: ['beneficiarios', { page: 1 }],
-    queryFn: () => beneficiariosApi.list({ page: 1 }).then((r) => r.data),
+    queryFn: () => beneficiariosService.list({ page: 1 }).then((r) => r.data),
     staleTime: 120000,
   })
 
   const { data: actividadesData, isLoading: loadingActividades } = useQuery({
     queryKey: ['actividades'],
-    queryFn: () => actividadesApi.list().then((r) => r.data),
+    queryFn: () => actividadesService.list().then((r) => r.data),
     staleTime: 120000,
   })
 
   const { data: usuariosData, isLoading: loadingUsuarios } = useQuery({
     queryKey: ['usuarios'],
-    queryFn: () => usuariosApi.list().then((r) => r.data),
+    queryFn: () => usuariosService.list().then((r) => r.data),
     staleTime: 120000,
     enabled: canManage,
   })
 
   const { data: coordinadorTecnicoData, isLoading: loadingCoordinadorTecnico } = useQuery({
     queryKey: ['asignaciones', 'coordinador-tecnico'],
-    queryFn: () => asignacionesApi.listarCoordinadorTecnico().then((r) => r.data),
+    queryFn: () => asignacionesService.listarCoordinadorTecnico().then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
 
   const { data: asignacionesBeneficiarioData, isLoading: loadingAsignacionesBeneficiario } = useQuery({
     queryKey: ['asignaciones', 'beneficiario'],
-    queryFn: () => asignacionesApi.listarBeneficiario().then((r) => r.data),
+    queryFn: () => asignacionesService.listarBeneficiario().then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
 
   const { data: asignacionesActividadData, isLoading: loadingAsignacionesActividad } = useQuery({
     queryKey: ['asignaciones', 'actividad'],
-    queryFn: () => asignacionesApi.listarActividad().then((r) => r.data),
+    queryFn: () => asignacionesService.listarActividad().then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
 
   const asignarBeneficiario = useMutation({
-    mutationFn: () => asignacionesApi.asignarBeneficiario({ tecnico_id: tecnicoBeneficiarioId, beneficiario_id: beneficiarioId }),
+    mutationFn: () => asignacionesService.asignarBeneficiario({ tecnico_id: tecnicoBeneficiarioId, beneficiario_id: beneficiarioId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asignaciones', 'beneficiario'] })
       setBeneficiarioFeedback({ kind: 'success', message: 'Beneficiario asignado correctamente.' })
@@ -406,7 +410,7 @@ export default function AsignacionesPage() {
   })
 
   const asignarActividad = useMutation({
-    mutationFn: () => asignacionesApi.asignarActividad({ tecnico_id: tecnicoActividadId, actividad_id: actividadId }),
+    mutationFn: () => asignacionesService.asignarActividad({ tecnico_id: tecnicoActividadId, actividad_id: actividadId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asignaciones', 'actividad'] })
       setActividadFeedback({ kind: 'success', message: 'Actividad asignada correctamente.' })
@@ -420,7 +424,7 @@ export default function AsignacionesPage() {
       if (!coordinadorTecnicoId || !coordinadorId || !fechaLimite) {
         throw new Error('Debes seleccionar técnico, coordinador y fecha límite.')
       }
-      return asignacionesApi.asignarCoordinadorTecnico({
+      return asignacionesService.asignarCoordinadorTecnico({
         tecnico_id: coordinadorTecnicoId,
         coordinador_id: coordinadorId,
         fecha_limite: toIsoDateTime(fechaLimite) ?? fechaLimite,
@@ -439,9 +443,9 @@ export default function AsignacionesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: ({ kind, id }: { kind: 'coordinador' | 'beneficiario' | 'actividad'; id: string }) => {
-      if (kind === 'coordinador') return asignacionesApi.quitarCoordinadorTecnico(id)
-      if (kind === 'beneficiario') return asignacionesApi.quitarBeneficiario(id)
-      return asignacionesApi.quitarActividad(id)
+      if (kind === 'coordinador') return asignacionesService.quitarCoordinadorTecnico(id)
+      if (kind === 'beneficiario') return asignacionesService.quitarBeneficiario(id)
+      return asignacionesService.quitarActividad(id)
     },
     onSuccess: (_, variables) => {
       if (variables.kind === 'coordinador') qc.invalidateQueries({ queryKey: ['asignaciones', 'coordinador-tecnico'] })

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { archiveApi, getApiErrorMessage } from '../lib/api'
+import { archiveService } from '../lib/servicios/extra'
+import { getApiErrorMessage } from '../lib/axios'
 import { Download, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { pickArray } from '../lib/normalize'
 import FeedbackBanner from '../components/common/FeedbackBanner'
@@ -26,12 +27,12 @@ export default function ArchivePage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['archive'],
-    queryFn: () => archiveApi.list().then((r) => r.data),
+    queryFn: () => archiveService.list().then((r) => r.data),
     staleTime: 30000,
   })
 
   const forzar = useMutation({
-    mutationFn: (value: string) => archiveApi.forzar(value),
+    mutationFn: (value: string) => archiveService.forzar(value),
     onSuccess: () => {
       setFeedback({ kind: 'success', message: 'Archivado forzado enviado correctamente.' })
       qc.invalidateQueries({ queryKey: ['archive'] })
@@ -42,7 +43,7 @@ export default function ArchivePage() {
   })
 
   const confirmar = useMutation({
-    mutationFn: (value: string) => archiveApi.confirmar(value),
+    mutationFn: (value: string) => archiveService.confirmar(value),
     onSuccess: () => {
       setFeedback({ kind: 'success', message: 'Archivado confirmado correctamente.' })
       qc.invalidateQueries({ queryKey: ['archive'] })
@@ -54,7 +55,7 @@ export default function ArchivePage() {
 
   const descargar = useMutation({
     mutationFn: async (value: string) => {
-      const response = await archiveApi.descargar(value)
+      const response = await archiveService.descargar(value)
       const blob = response.data as Blob
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')

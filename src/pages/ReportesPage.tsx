@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { reportesApi } from '../lib/api'
+import { reportesService } from '../lib/servicios/extra'
 import { pickArray } from '../lib/normalize'
 import { Download } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
@@ -49,7 +49,10 @@ export default function ReportesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['reporte', mes],
-    queryFn: () => reportesApi.mensual({ mes }).then(r => r.data),
+    queryFn: () => {
+      const [anio, mesNum] = mes.split('-').map(Number)
+      return reportesService.mensual({ mes: mesNum, anio }).then(r => r.data)
+    },
     staleTime: 60000,
   })
 

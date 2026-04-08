@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { authApi, getApiErrorMessage } from '../lib/api'
+import { authService } from '../lib/servicios/auth'
+import { getApiErrorMessage } from '../lib/axios'
 import { canAccessWebApp, normalizeRole } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 
@@ -23,18 +24,18 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     try {
-      const r = await authApi.login(correo.trim(), code)
-      const rawUser = (r.data as { usuario?: { rol?: string }; user?: { rol?: string; role?: string }; rol?: string; role?: string }) ?? {}
-      const role = rawUser.usuario?.rol ?? rawUser.user?.rol ?? rawUser.user?.role ?? rawUser.rol ?? rawUser.role
+      const result = await authService.login(correo.trim(), code)
+      const usuario = result.usuario
+      const role = usuario?.rol as string
 
       if (!canAccessWebApp(role)) {
-        await authApi.logout().catch(() => {})
+        await authService.logout()
         const roleLabel = normalizeRole(role) || 'sin rol habilitado'
         setError(`El rol ${roleLabel} no tiene acceso a la aplicación web.`)
         return
       }
 
-      login(r.data)
+      login(usuario)
       nav('/')
     } catch (err) {
       setError(getApiErrorMessage(err, 'Correo o código de acceso inválidos.'))
@@ -97,7 +98,7 @@ export default function LoginPage() {
                 />
               </div>
 
-{error && <div className="login-err" id="main-content">{error}</div>}
+              {error && <div className="login-err" id="main-content">{error}</div>}
 
               <button
                 className="btn btn-primary login-btn"
@@ -113,5 +114,3 @@ export default function LoginPage() {
     </>
   )
 }
-
-

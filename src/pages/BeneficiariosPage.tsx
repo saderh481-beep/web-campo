@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { beneficiariosApi, cadenasApi, localidadesApi, tecnicosApi, getApiErrorMessage } from '../lib/api'
+import { beneficiariosService } from '../lib/servicios/beneficiarios'
+import { cadenasService, localidadesService } from '../lib/servicios/catalogos'
+import { tecnicosService } from '../lib/servicios/tecnicos'
+import { getApiErrorMessage } from '../lib/axios'
 import { canAssignBeneficiarioCadenas, canUploadBeneficiarioDocumentos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
@@ -118,7 +121,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
 
   const { data, isLoading } = useQuery({
     queryKey: ['beneficiarios', beneficiario.id, 'documentos'],
-    queryFn: () => beneficiariosApi.getDocumentos(String(beneficiario.id)).then((r) => r.data),
+    queryFn: () => beneficiariosService.getDocumentos(String(beneficiario.id)).then((r) => r.data),
     staleTime: 30000,
   })
 
@@ -128,7 +131,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
       const formData = new FormData()
       formData.append('archivo', selectedFile)
       formData.append('tipo', tipo)
-      return beneficiariosApi.subirDocumento(String(beneficiario.id), formData)
+      return beneficiariosService.subirDocumento(String(beneficiario.id), formData)
     },
     onSuccess: () => {
       setSelectedFile(null)
@@ -288,13 +291,13 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
       }
 
       const response = b
-        ? await beneficiariosApi.update(b.id, payload)
-        : await beneficiariosApi.create(payload)
+        ? await beneficiariosService.update(b.id, payload)
+        : await beneficiariosService.create(payload)
 
       if (canAssignCadenas && form.cadenas_ids.length > 0) {
         const createdId = String((response.data as { id?: string | number })?.id ?? b?.id ?? '')
         if (createdId) {
-          await beneficiariosApi.asignarCadenas(createdId, form.cadenas_ids)
+          await beneficiariosService.asignarCadenas(createdId, form.cadenas_ids)
         }
       }
 
@@ -392,31 +395,31 @@ export default function BeneficiariosPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['beneficiarios', { page, q }],
-    queryFn: () => beneficiariosApi.list({ page, q: q || undefined }).then(r => r.data),
+    queryFn: () => beneficiariosService.list({ page, q: q || undefined }).then(r => r.data),
     placeholderData: keepPreviousData,
     staleTime: 30000,
   })
 
   const { data: cadenasData } = useQuery({
     queryKey: ['cadenas'],
-    queryFn: () => cadenasApi.list().then(r => r.data),
+    queryFn: () => cadenasService.list().then(r => r.data),
     staleTime: 300000,
   })
 
   const { data: tecnicosData } = useQuery({
     queryKey: ['tecnicos'],
-    queryFn: () => tecnicosApi.list().then(r => r.data),
+    queryFn: () => tecnicosService.list().then(r => r.data),
     staleTime: 300000,
   })
 
   const { data: localidadesData } = useQuery({
     queryKey: ['localidades'],
-    queryFn: () => localidadesApi.list().then(r => r.data),
+    queryFn: () => localidadesService.list().then(r => r.data),
     staleTime: 300000,
   })
 
   const removeBeneficiario = useMutation({
-    mutationFn: (id: string | number) => beneficiariosApi.remove(id),
+    mutationFn: (id: string | number) => beneficiariosService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['beneficiarios'] })
     },

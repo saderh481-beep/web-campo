@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { canViewActividades, canViewAsignaciones, canViewBeneficiarios, canViewBitacoras, canViewCadenas, canViewDashboard, canViewNotifications, canViewReports, canViewTecnicos, canManageUsers, canViewLocalidades, canViewConfiguraciones, canViewDocumentosPlantilla, canViewArchive } from '../../lib/authz'
-import { notificacionesApi } from '../../lib/api'
+import { notificacionesService } from '../../lib/servicios/extra'
 import { pickArray } from '../../lib/normalize'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -53,7 +53,7 @@ export default function AppLayout() {
 
   const notifData = useQuery({
     queryKey: ['notificaciones'],
-    queryFn: () => notificacionesApi.list().then((r: { data: unknown }) => r.data),
+    queryFn: () => notificacionesService.list().then((r: { data: unknown }) => r.data),
     refetchInterval: 30000,
     enabled: canSeeNotifications,
   }).data
@@ -62,12 +62,12 @@ export default function AppLayout() {
   const unread = notifs.filter((n) => !n.leida).length
 
   const marcarTodas = useMutation({
-    mutationFn: () => notificacionesApi.marcarTodas(),
+    mutationFn: () => notificacionesService.marcarTodas(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
   })
 
   const marcarLeida = useMutation({
-    mutationFn: (id: string | number) => notificacionesApi.marcarLeida(String(id)),
+    mutationFn: (id: string | number) => notificacionesService.marcarLeida(String(id)),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notificaciones'] }),
   })
 

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil, X, Search } from 'lucide-react'
-import { configuracionesApi, getApiErrorMessage } from '../lib/api'
+import { configuracionesService } from '../lib/servicios/extra'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageConfiguraciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -48,7 +49,7 @@ function ConfigModal({ item, onClose }: { item: ConfigItem; onClose: () => void 
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
         throw new Error('El valor debe ser un objeto JSON.')
       }
-      return configuracionesApi.update(item.clave, parsed)
+      return configuracionesService.update(item.clave, parsed)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['configuraciones'] })
@@ -109,15 +110,15 @@ export default function ConfiguracionesPage() {
     queryKey: ['configuraciones', canManage],
     queryFn: async () => {
       if (canManage) {
-        const response = await configuracionesApi.list()
+        const response = await configuracionesService.list()
         return normalizeConfigRows(response.data)
       }
 
-      const results = await Promise.allSettled(PREDEFINED_KEYS.map((clave) => configuracionesApi.get(clave)))
+      const results = await Promise.allSettled(PREDEFINED_KEYS.map((clave) => configuracionesService.get(clave)))
       const resolved: ConfigItem[] = []
       for (const result of results) {
         if (result.status !== 'fulfilled') continue
-        const payload = result.value.data as Record<string, unknown>
+        const payload = result.value.data as unknown as Record<string, unknown>
         const row = (payload.configuracion ?? payload) as Record<string, unknown>
         const clave = typeof row.clave === 'string' ? row.clave : ''
         if (!clave) continue

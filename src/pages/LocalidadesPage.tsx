@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
-import { localidadesApi, getApiErrorMessage } from '../lib/api'
+import { localidadesService } from '../lib/servicios/catalogos'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageLocalidades } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -35,7 +36,7 @@ function LocalidadModal({ localidad, onClose }: { localidad?: Localidad; onClose
         nombre: form.nombre,
         cp: form.cp || undefined,
       }
-      return localidad ? localidadesApi.update(localidad.id, payload) : localidadesApi.create(payload)
+      return localidad ? localidadesService.update(localidad.id, payload) : localidadesService.create(payload)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['localidades'] })
@@ -100,12 +101,12 @@ export default function LocalidadesPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['localidades'],
-    queryFn: () => localidadesApi.list().then((r) => r.data),
+    queryFn: () => localidadesService.list().then((r) => r.data),
     staleTime: 60000,
   })
 
   const remove = useMutation({
-    mutationFn: (id: string | number) => localidadesApi.remove(id),
+    mutationFn: (id: string | number) => localidadesService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['localidades'] })
       setFeedback({ kind: 'success', message: 'Localidad desactivada correctamente.' })

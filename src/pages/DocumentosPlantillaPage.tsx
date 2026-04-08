@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
-import { documentosPlantillaApi, getApiErrorMessage } from '../lib/api'
+import { documentosPlantillaService } from '../lib/servicios/extra'
+import { getApiErrorMessage } from '../lib/axios'
 import { canManageDocumentosPlantilla } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
@@ -40,7 +41,7 @@ function DocumentoModal({ item, onClose }: { item?: DocumentoPlantilla; onClose:
         orden: Number(form.orden || 0),
         ...(item ? { activo: form.activo } : {}),
       }
-      return item ? documentosPlantillaApi.update(item.id, payload) : documentosPlantillaApi.create(payload)
+      return item ? documentosPlantillaService.update(item.id, payload) : documentosPlantillaService.create(payload)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documentos-plantilla'] })
@@ -111,12 +112,12 @@ export default function DocumentosPlantillaPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['documentos-plantilla', canManage],
-    queryFn: () => (canManage ? documentosPlantillaApi.list() : documentosPlantillaApi.activos()).then((r) => r.data),
+    queryFn: () => (canManage ? documentosPlantillaService.list() : documentosPlantillaService.activos()).then((r) => r.data),
     staleTime: 60000,
   })
 
   const remove = useMutation({
-    mutationFn: (id: string | number) => documentosPlantillaApi.remove(id),
+    mutationFn: (id: string | number) => documentosPlantillaService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['documentos-plantilla'] })
       setFeedback({ kind: 'success', message: 'Documento plantilla eliminado correctamente.' })
