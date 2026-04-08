@@ -421,13 +421,17 @@ export default function AsignacionesPage() {
 
   const asignarCoordinador = useMutation({
     mutationFn: () => {
-      if (!coordinadorTecnicoId || !coordinadorId || !fechaLimite) {
+      if (!coordinadorTecnicoId || !coordinadorId || !fechaLimite?.trim()) {
         throw new Error('Debes seleccionar técnico, coordinador y fecha límite.')
+      }
+      const isoDate = toIsoDateTime(fechaLimite)
+      if (!isoDate) {
+        throw new Error('Fecha límite inválida.')
       }
       return asignacionesService.asignarCoordinadorTecnico({
         tecnico_id: coordinadorTecnicoId,
         coordinador_id: coordinadorId,
-        fecha_limite: toIsoDateTime(fechaLimite) ?? fechaLimite,
+        fecha_limite: isoDate,
       })
     },
     onSuccess: () => {
