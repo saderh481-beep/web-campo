@@ -16,7 +16,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gestionUsuariosService } from '../lib/servicios/gestion-usuarios'
 import { getApiErrorMessage } from '../lib/axios'
-import { Plus, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 import { type Rol } from '../lib/validation'
 
@@ -75,7 +75,7 @@ export default function GestionUsuariosPage() {
       gestionUsuariosService.create({
         nombre: data.nombre,
         correo: data.correo,
-        rol: data.rol as 'admin' | 'coordinador' | 'tecnico',
+        rol: mapRolToApi(data.rol),
         codigo_acceso: data.codigo_acceso || undefined,
         telefono: data.telefono || undefined,
         coordinador_id: data.coordinador_id || undefined,
@@ -99,7 +99,7 @@ export default function GestionUsuariosPage() {
       gestionUsuariosService.update(data.id, {
         nombre: data.form.nombre,
         correo: data.form.correo,
-        rol: data.form.rol as 'admin' | 'coordinador' | 'tecnico',
+        rol: mapRolToApi(data.form.rol),
         codigo_acceso: data.form.codigo_acceso || undefined,
         telefono: data.form.telefono || undefined,
         coordinador_id: data.form.coordinador_id || undefined,
@@ -140,7 +140,7 @@ export default function GestionUsuariosPage() {
     setForm({
       nombre: usuario.nombre,
       correo: usuario.correo,
-      rol: usuario.rol,
+      rol: usuario.rol as Rol,
       codigo_acceso: '',
       telefono: usuario.telefono || '',
       coordinador_id: usuario.coordinador_id || '',
@@ -160,6 +160,10 @@ export default function GestionUsuariosPage() {
     }
   }
 
+  const mapRolToApi = (rol: Rol): 'administrador' | 'coordinador' | 'tecnico' => {
+    return rol as 'administrador' | 'coordinador' | 'tecnico'
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
@@ -177,9 +181,8 @@ export default function GestionUsuariosPage() {
 
       {feedback && (
         <FeedbackBanner
-          type={feedback.type}
+          kind={feedback.type}
           message={feedback.message}
-          onClose={() => setFeedback(null)}
         />
       )}
 

@@ -9,7 +9,7 @@ export interface Usuario {
   usuario_id: string
   nombre: string
   correo: string
-  rol: 'admin' | 'coordinador' | 'tecnico'
+  rol: 'administrador' | 'coordinador' | 'tecnico'
   telefono?: string
   coordinador_id?: string
   fecha_limite?: string
@@ -21,7 +21,7 @@ export interface Usuario {
 export interface CreateUsuarioPayload {
   nombre: string
   correo: string
-  rol: 'admin' | 'coordinador' | 'tecnico'
+  rol: 'administrador' | 'coordinador' | 'tecnico'
   codigo_acceso?: string
   telefono?: string
   coordinador_id?: string
@@ -31,7 +31,7 @@ export interface CreateUsuarioPayload {
 export interface UpdateUsuarioPayload {
   nombre?: string
   correo?: string
-  rol?: 'admin' | 'coordinador' | 'tecnico'
+  rol?: 'administrador' | 'coordinador' | 'tecnico'
   codigo_acceso?: string
   activo?: boolean
   telefono?: string

@@ -65,7 +65,7 @@ export default function RegistroPage() {
         telefono: data.telefono || undefined,
       })
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       setEmailVerificacion(form.correo)
       setRegistroExitoso(true)
       setFeedback({
@@ -123,9 +123,8 @@ export default function RegistroPage() {
 
             {feedback && (
               <FeedbackBanner
-                type={feedback.type}
+                kind={feedback.type}
                 message={feedback.message}
-                onClose={() => setFeedback(null)}
               />
             )}
 
@@ -156,9 +155,8 @@ export default function RegistroPage() {
 
           {feedback && (
             <FeedbackBanner
-              type={feedback.type}
+              kind={feedback.type}
               message={feedback.message}
-              onClose={() => setFeedback(null)}
             />
           )}
 
