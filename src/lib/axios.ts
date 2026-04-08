@@ -146,7 +146,7 @@ api.interceptors.response.use(
       '/auth/login',
       '/auth/verify-codigo-acceso',
       '/auth/logout',
-      '/usuarios/me'
+      '/auth/me'
     ].includes(normalizedPath)
 
     if (

@@ -17,7 +17,7 @@ export const authService = {
   },
   
   me: async () => {
-    const response = await api.get('/usuarios/me')
+    const response = await api.get('/auth/me')
     saveAuthFromResponse(response.data)
     return extractUser(response.data)
   },
