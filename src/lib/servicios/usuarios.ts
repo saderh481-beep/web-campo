@@ -6,6 +6,9 @@ export interface Usuario {
   nombre: string
   rol: 'admin' | 'coordinador' | 'tecnico' | 'administrador'
   activo: boolean
+  telefono?: string
+  coordinador_id?: string
+  fecha_limite?: string
   created_at?: string
   updated_at?: string
 }

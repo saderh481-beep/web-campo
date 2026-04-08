@@ -295,7 +295,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
         : await beneficiariosService.create(payload)
 
       if (canAssignCadenas && form.cadenas_ids.length > 0) {
-        const raw = response.data as Record<string, unknown> | null | undefined
+        const raw = response.data as unknown as Record<string, unknown> | null | undefined
         const createdId = String(
           raw?.id ?? raw?.beneficiario_id ?? raw?.id_beneficiario ?? b?.id ?? ''
         )

@@ -21,10 +21,10 @@ import FeedbackBanner from '../components/common/FeedbackBanner'
 import { type Rol } from '../lib/validation'
 
 interface Usuario {
-  usuario_id: string
+  id: string
   nombre: string
   correo: string
-  rol: Rol
+  rol: 'admin' | 'coordinador' | 'tecnico' | 'administrador'
   telefono?: string
   coordinador_id?: string
   fecha_limite?: string
@@ -147,7 +147,7 @@ export default function GestionUsuariosPage() {
       fecha_limite: usuario.fecha_limite || '',
       activo: usuario.activo,
     })
-    setEditingId(usuario.usuario_id)
+    setEditingId(usuario.id)
     setShowForm(true)
   }
 
@@ -314,7 +314,7 @@ export default function GestionUsuariosPage() {
             </thead>
             <tbody>
               {usuarios.map((usuario) => (
-                <tr key={usuario.usuario_id}>
+                <tr key={usuario.id}>
                   <td>{usuario.nombre}</td>
                   <td>{usuario.correo}</td>
                   <td>
@@ -336,7 +336,7 @@ export default function GestionUsuariosPage() {
                     <button
                       onClick={() => {
                         if (confirm('¿Está seguro de eliminar este usuario?')) {
-                          deleteMutation.mutate(usuario.usuario_id)
+                          deleteMutation.mutate(usuario.id)
                         }
                       }}
                       disabled={deleteMutation.isPending}
