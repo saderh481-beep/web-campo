@@ -1,0 +1,38 @@
+From 2142e23b3e1162b503ef6167e9343ab461cdbfd8 Mon Sep 17 00:00:00 2001
+From: Erick-arch-bit <tenorioalcantaraerickangel@gmail.com>
+Date: Tue, 7 Apr 2026 19:46:52 -0600
+Subject: [PATCH 2/3] fix: resolve build errors - import path and unused
+ variable
+
+---
+ src/components/auth/AuthGuard.tsx | 2 +-
+ src/lib/api.ts                    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/components/auth/AuthGuard.tsx b/src/components/auth/AuthGuard.tsx
+index b350cee..e1b3e4b 100644
+--- a/src/components/auth/AuthGuard.tsx
++++ b/src/components/auth/AuthGuard.tsx
+@@ -1,5 +1,5 @@
+ import { Navigate, useLocation } from 'react-router-dom'
+-import { useAuth } from '../hooks/useAuth'
++import { useAuth } from '../../hooks/useAuth'
+ import { canAccessWebApp, type NormalizedRole } from '../lib/authz'
+ import { Loader } from '../components/ui'
+ 
+diff --git a/src/lib/api.ts b/src/lib/api.ts
+index 8d5769e..9830df8 100644
+--- a/src/lib/api.ts
++++ b/src/lib/api.ts
+@@ -279,7 +279,7 @@ function getStoredCsrfToken(): string | null {
+   return window.localStorage.getItem(CSRF_TOKEN_KEY)
+ }
+ 
+-function setStoredCsrfToken(token: string) {
++function _setStoredCsrfToken(token: string) {
+   if (typeof window === 'undefined') return
+   window.localStorage.setItem(CSRF_TOKEN_KEY, token)
+ }
+-- 
+2.53.0
+
