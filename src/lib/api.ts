@@ -279,11 +279,6 @@ function getStoredCsrfToken(): string | null {
   return window.localStorage.getItem(CSRF_TOKEN_KEY)
 }
 
-function _setStoredCsrfToken(token: string) {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(CSRF_TOKEN_KEY, token)
-}
-
 export function clearCsrfToken() {
   if (typeof window === 'undefined') return
   window.localStorage.removeItem(CSRF_TOKEN_KEY)

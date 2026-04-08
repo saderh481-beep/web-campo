@@ -1,14 +1,14 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { canAccessWebApp, type NormalizedRole } from '../lib/authz'
-import { Loader } from '../components/ui'
+import { canAccessWebApp, type NormalizedRole } from '../../lib/authz'
+import { Loader } from '../ui'
 
 interface AuthGuardProps {
   children: React.ReactNode
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { usuario, isLoading } = useAuth()
+  const { user: usuario, loading: isLoading } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -36,7 +36,7 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ children, allowedRoles }: RoleGuardProps) {
-  const { usuario, isLoading } = useAuth()
+  const { user: usuario, loading: isLoading } = useAuth()
 
   if (isLoading) {
     return (
