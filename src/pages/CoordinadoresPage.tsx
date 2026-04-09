@@ -12,13 +12,6 @@ interface CoordinadorForm {
   activo: boolean
 }
 
-const INITIAL_FORM: CoordinadorForm = {
-  nombre: '',
-  correo: '',
-  telefono: '',
-  activo: true,
-}
-
 function toErrorMessage(err: unknown, fallback: string): string {
   return getApiErrorMessage(err, fallback)
 }

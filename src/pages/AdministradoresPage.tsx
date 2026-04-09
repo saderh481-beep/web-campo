@@ -12,13 +12,6 @@ interface AdministradorForm {
   activo: boolean
 }
 
-const INITIAL_FORM: AdministradorForm = {
-  nombre: '',
-  correo: '',
-  telefono: '',
-  activo: true,
-}
-
 function toErrorMessage(err: unknown, fallback: string): string {
   return getApiErrorMessage(err, fallback)
 }

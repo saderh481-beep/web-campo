@@ -29,14 +29,6 @@ interface FormData {
   fecha_limite: string
 }
 
-const FORM_FIELDS: Array<{ key: keyof FormData; label: string; type: 'text' | 'email' | 'date' }> = [
-  { key: 'nombre', label: 'Nombre completo', type: 'text' },
-  { key: 'correo', label: 'Correo electrónico', type: 'email' },
-  { key: 'telefono', label: 'Teléfono (opcional)', type: 'text' },
-  { key: 'coordinador_id', label: 'ID de coordinador', type: 'text' },
-  { key: 'fecha_limite', label: 'Fecha límite de acceso', type: 'date' },
-]
-
 function toErrorMessage(err: unknown, fallback: string): string {
   return getApiErrorMessage(err, fallback)
 }
