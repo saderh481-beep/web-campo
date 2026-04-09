@@ -29,6 +29,7 @@ export interface CreateTecnicoPayload {
   telefono?: string
   coordinador_id?: string
   fecha_limite?: string
+  codigo_acceso?: string
 }
 
 export interface UpdateTecnicoPayload {
@@ -43,6 +44,8 @@ export const tecnicosService = {
   list: () => api.get<Tecnico[]>('/tecnicos'),
   
   get: (id: string | number) => api.get<Tecnico>(`/tecnicos/${id}`),
+  
+  create: (data: CreateTecnicoPayload) => api.post<Tecnico>('/tecnicos', data),
   
   update: (id: string | number, data: UpdateTecnicoPayload) => api.patch<Tecnico>(`/tecnicos/${id}`, data),
   
