@@ -12,6 +12,8 @@ import ReportesPage from './pages/ReportesPage'
 import ActividadesPage from './pages/ActividadesPage'
 import AsignacionesPage from './pages/AsignacionesPage'
 import UsuariosPage from './pages/UsuariosPage'
+import AdministradoresPage from './pages/AdministradoresPage'
+import CoordinadoresPage from './pages/CoordinadoresPage'
 import LocalidadesPage from './pages/LocalidadesPage'
 import ConfiguracionesPage from './pages/ConfiguracionesPage'
 import DocumentosPlantillaPage from './pages/DocumentosPlantillaPage'
@@ -28,7 +30,10 @@ import {
   canViewAsignaciones,
   canViewTecnicos,
   canManageUsers,
-  canViewLocalidades,
+  canView localidades,
+  canManageAdministradores,
+  canManageCoordinadores,
+  canManageTecnicos,
   canViewConfiguraciones,
   canViewDocumentosPlantilla,
   canViewArchive,

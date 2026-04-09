@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { tecnicosService } from '../lib/servicios/tecnicos'
+import { tecnicosService, type CreateTecnicoPayload } from '../lib/servicios/tecnicos'
+import { coordinadoresService } from '../lib/servicios/coordinadores'
 import { getApiErrorMessage } from '../lib/axios'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
-import { RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
+import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
@@ -74,7 +75,7 @@ function CodigoAcceso({ codigo, id, canManage }: { codigo: string; id: string | 
   )
 }
 
-function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => void }) {
+function TecnicoModal({ tecnico, coordinadores, onClose }: { tecnico?: Tecnico; coordinadores: { id: string; nombre: string }[]; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<FormData>({
     nombre: tecnico?.nombre ?? '',
@@ -87,39 +88,78 @@ function TecnicoModal({ tecnico, onClose }: { tecnico?: Tecnico; onClose: () => 
 
   const save = useMutation({
     mutationFn: () => {
-      const payload = {
+      const payload: CreateTecnicoPayload = {
         nombre: form.nombre,
         correo: form.correo,
         telefono: form.telefono || undefined,
         coordinador_id: form.coordinador_id || undefined,
         fecha_limite: toIsoDateTime(form.fecha_limite) || undefined,
       }
-      return tecnicosService.update(tecnico!.id, payload)
+      if (tecnico) {
+        return tecnicosService.update(tecnico.id, payload)
+      }
+      return tecnicosService.create(payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
 
+  const handleSave = () => {
+    if (!form.nombre.trim() || !form.correo.trim()) {
+      setErr('Nombre y correo son obligatorios.')
+      return
+    }
+    if (!form.coordinador_id.trim()) {
+      setErr('Selecciona un coordinador.')
+      return
+    }
+    if (!form.fecha_limite.trim()) {
+      setErr('La fecha límite es obligatoria.')
+      return
+    }
+    setErr('')
+    save.mutate()
+  }
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <h3>Editar técnico</h3>
+          <h3>{tecnico ? 'Editar técnico' : 'Nuevo técnico'}</h3>
           <button className="btn btn-ghost btn-icon btn-sm" onClick={onClose}><X size={16} /></button>
         </div>
         <div className="modal-body">
-          {FORM_FIELDS.map(({ key, label, type }) => (
-            <div className="form-group" key={key}>
-              <label className="form-label">{label}</label>
-              <input className="input" type={type} value={form[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
-            </div>
-          ))}
+          <div className="form-group">
+            <label className="form-label">Nombre completo</label>
+            <input className="input" type="text" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Correo electrónico</label>
+            <input className="input" type="email" value={form.correo} onChange={e => setForm(p => ({ ...p, correo: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Teléfono (opcional)</label>
+            <input className="input" type="text" value={form.telefono} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Coordinador</label>
+            <select className="input" value={form.coordinador_id} onChange={e => setForm(p => ({ ...p, coordinador_id: e.target.value }))}>
+              <option value="">Selecciona un coordinador</option>
+              {coordinadores.map((c) => (
+                <option key={c.id} value={c.id}>{c.nombre}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Fecha límite de acceso</label>
+            <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} />
+          </div>
           {err && <FeedbackBanner kind="error" message={err} compact />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-          <button className="btn btn-primary" onClick={() => save.mutate()} disabled={save.isPending}>
-            {save.isPending ? <><span className="spinner" />Guardando...</> : 'Guardar'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={save.isPending}>
+            {save.isPending ? <><span className="spinner" />Guardando...</> : tecnico ? 'Guardar' : 'Crear técnico'}
           </button>
         </div>
       </div>
@@ -131,7 +171,7 @@ export default function TecnicosPage() {
   const { user } = useAuth()
   const canManage = canManageTecnicos(user?.rol)
   const qc = useQueryClient()
-  const [modal, setModal] = useState<Tecnico | null>(null)
+  const [modal, setModal] = useState<Tecnico | 'new' | null>(null)
   const [q, setQ] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
@@ -140,6 +180,13 @@ export default function TecnicosPage() {
     queryFn: () => tecnicosService.list().then(r => r.data),
     staleTime: 30000,
   })
+
+  const { data: coordsData } = useQuery({
+    queryKey: ['coordinadores'],
+    queryFn: () => coordinadoresService.list().then(r => r.data),
+  })
+
+  const coordinadores = pickArray<{ id: string; nombre: string }>(coordsData, ['coordinadores', 'rows', 'data'])
 
   const remove = useMutation({
     mutationFn: (id: string | number) => tecnicosService.remove(id),
@@ -178,10 +225,11 @@ export default function TecnicosPage() {
           <h1 className="page-title">Técnicos</h1>
           <p className="page-subtitle">{tecnicos.length} técnico{tecnicos.length !== 1 ? 's' : ''} registrado{tecnicos.length !== 1 ? 's' : ''}</p>
         </div>
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <FeedbackBanner kind="info" message="La creación de técnicos se realiza desde la sección Usuarios." compact />
+        {canManage && (
+          <button className="btn btn-primary" onClick={() => setModal('new')}>
+            <Plus size={15} /> Nuevo técnico
+          </button>
+        )}
       </div>
 
       {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
@@ -251,7 +299,7 @@ export default function TecnicosPage() {
         </table>
       </div>
 
-      {modal && canManage && <TecnicoModal tecnico={modal} onClose={() => setModal(null)} />}
+      {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} />}
     </div>
   )
 }
