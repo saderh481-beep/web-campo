@@ -526,7 +526,7 @@ export default function AsignacionesPage() {
                 <label className="form-label">Coordinador</label>
                 <select className="input" value={coordinadorId} onChange={(e) => setCoordinadorId(e.target.value)}>
                   <option value="">Selecciona coordinador</option>
-                  {coordinadores.map((c) => <option key={c.id} value={String(c.id)}>{c.nombre}</option>)}
+                  {coordinadores.filter(c => c.rol === 'coordinador').map((c) => <option key={c.id} value={String(c.id)}>{c.nombre}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -623,7 +623,7 @@ export default function AsignacionesPage() {
                         <td>
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'coordinador', row })}><Pencil size={13} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending || !row.tecnico_id} onClick={() => row.tecnico_id && confirm(`¿Eliminar la asignación de ${tecnicoNombre}?`) && deleteMutation.mutate({ kind: 'coordinador', id: row.tecnico_id })}><Trash2 size={13} /></button>
+                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending || !row.tecnico_id} onClick={() => confirm(`¿Eliminar la asignación de ${tecnicoNombre}?`) && deleteMutation.mutate({ kind: 'coordinador', id: row.tecnico_id })}><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
