@@ -35,6 +35,7 @@ interface Coordinador {
 
 interface CoordinadorTecnicoAsignacion {
   tecnico_id: string
+  tecnico_nombre?: string
   coordinador_id?: string
   coordinador_nombre?: string
   fecha_limite?: string
@@ -176,6 +177,7 @@ function EditAsignacionModal({
   const [form, setForm] = useState<EditFormState>(() => {
     if (state.kind === 'coordinador') {
       return {
+        tecnico_id: state.row.tecnico_id ?? '',
         coordinador_id: state.row.coordinador_id ?? '',
         fecha_limite: toDateInput(state.row.fecha_limite),
         activo: isActive(state.row.activo),
@@ -251,10 +253,19 @@ function EditAsignacionModal({
           {state.kind === 'coordinador' && (
             <>
               <div className="form-group">
+                <label className="form-label">Técnico</label>
+                <select className="input" value={form.tecnico_id ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, tecnico_id: e.target.value }))}>
+                  <option value="">Selecciona técnico</option>
+                  {tecnicos.map((item) => (
+                    <option key={item.id} value={String(item.id)}>{item.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
                 <label className="form-label">Coordinador</label>
                 <select className="input" value={form.coordinador_id ?? ''} onChange={(e) => setForm((prev) => ({ ...prev, coordinador_id: e.target.value }))}>
                   <option value="">Sin coordinador</option>
-                  {coordinadores.map((item) => (
+                  {coordinadores.filter(c => c.rol === 'coordinador').map((item) => (
                     <option key={item.id} value={String(item.id)}>{item.nombre}</option>
                   ))}
                 </select>
@@ -611,7 +622,7 @@ export default function AsignacionesPage() {
                   ) : coordinadorTecnico.length === 0 ? (
                     <tr><td colSpan={6}><div className="empty-state"><p>Sin asignaciones coordinador-técnico.</p></div></td></tr>
                   ) : coordinadorTecnico.map((row) => {
-                    const tecnicoNombre = tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id
+                    const tecnicoNombre = row.tecnico_nombre ?? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id
                     const coordinadorNombre = row.coordinador_nombre ?? (row.coordinador_id ? coordinadorMap.get(String(row.coordinador_id)) : undefined) ?? '—'
                     return (
                       <tr key={row.tecnico_id}>
