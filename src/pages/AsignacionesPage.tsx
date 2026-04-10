@@ -387,7 +387,7 @@ export default function AsignacionesPage() {
 
   const { data: asignacionesBeneficiarioData, isLoading: loadingAsignacionesBeneficiario } = useQuery({
     queryKey: ['asignaciones', 'beneficiario'],
-    queryFn: () => asignacionesService.listarBeneficiario({}).then((r) => r.data),
+    queryFn: () => asignacionesService.listarBeneficiario({ activo: true }).then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
