@@ -39,7 +39,7 @@ export interface AsignacionActividad {
 export const asignacionesService = {
   // ─── Coordinador -> Técnico ───────────────────────────────────────────────
 
-  /** GET /asignaciones/coordinador-tecnico */
+  /** GET /asignaciones/coordinador-tecnico?tecnico_id=uuid */
   listarCoordinadorTecnico: (tecnico_id?: string) =>
     api.get<AsignacionCoordinadorTecnico[]>('/asignaciones/coordinador-tecnico', { params: { tecnico_id } }),
 
@@ -52,9 +52,9 @@ export const asignacionesService = {
     api.get<AsignacionCoordinadorTecnico>(`/asignaciones/coordinador-tecnico/${tecnico_id}`),
 
   /** POST /asignaciones/coordinador-tecnico */
-  crearCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string }) =>
+  crearCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string; activo?: boolean }) =>
     api.post<AsignacionCoordinadorTecnico>('/asignaciones/coordinador-tecnico', data),
-  asignarCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string }) =>
+  asignarCoordinadorTecnico: (data: { tecnico_id: string; coordinador_id: string; fecha_limite: string; activo?: boolean }) =>
     api.post<AsignacionCoordinadorTecnico>('/asignaciones/coordinador-tecnico', data),
 
   /** PATCH /asignaciones/coordinador-tecnico/:tecnico_id */
@@ -69,7 +69,7 @@ export const asignacionesService = {
 
   // ─── Técnico -> Beneficiario ──────────────────────────────────────────────
 
-  /** GET /asignaciones/beneficiario */
+  /** GET /asignaciones/beneficiario?tecnico_id=uuid&beneficiario_id=uuid&activo=true|false */
   listarBeneficiario: (params?: { tecnico_id?: string; beneficiario_id?: string; activo?: boolean }) =>
     api.get<AsignacionBeneficiario[]>('/asignaciones/beneficiario', { params }),
 
@@ -95,7 +95,7 @@ export const asignacionesService = {
 
   // ─── Técnico -> Actividad ─────────────────────────────────────────────────
 
-  /** GET /asignaciones/actividad */
+  /** GET /asignaciones/actividad?tecnico_id=uuid&actividad_id=uuid&activo=true|false */
   listarActividad: (params?: { tecnico_id?: string; actividad_id?: string; activo?: boolean }) =>
     api.get<AsignacionActividad[]>('/asignaciones/actividad', { params }),
 

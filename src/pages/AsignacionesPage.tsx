@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { actividadesService, asignacionesService } from '../lib/servicios/asignaciones'
 import { beneficiariosService } from '../lib/servicios/beneficiarios'
 import { tecnicosService } from '../lib/servicios/tecnicos'
-import { usuariosService } from '../lib/servicios/usuarios'
+import { coordinadoresService } from '../lib/servicios/coordinadores'
 import { getApiErrorMessage } from '../lib/axios'
 import { canManageAsignaciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
@@ -371,9 +371,9 @@ export default function AsignacionesPage() {
     staleTime: 120000,
   })
 
-  const { data: usuariosData, isLoading: loadingUsuarios } = useQuery({
-    queryKey: ['usuarios'],
-    queryFn: () => usuariosService.list().then((r) => r.data),
+  const { data: coordinadoresData, isLoading: loadingCoordinadores } = useQuery({
+    queryKey: ['coordinadores'],
+    queryFn: () => coordinadoresService.list().then((r) => r.data),
     staleTime: 120000,
     enabled: canManage,
   })
@@ -465,10 +465,7 @@ export default function AsignacionesPage() {
   const tecnicos = pickArray<Tecnico>(tecnicosData as unknown, ['tecnicos', 'rows', 'data'])
   const beneficiarios = pickArray<Beneficiario>(beneficiariosData as unknown, ['beneficiarios', 'rows', 'data'])
   const actividades = pickArray<Actividad>(actividadesData as unknown, ['actividades', 'rows', 'data'])
-  const coordinadores = useMemo(
-    () => pickArray<Coordinador>(usuariosData as unknown, ['usuarios', 'rows', 'data']).filter((item) => item.rol === 'coordinador'),
-    [usuariosData]
-  )
+  const coordinadores = pickArray<Coordinador>(coordinadoresData as unknown, ['coordinadores', 'rows', 'data'])
 
   const tecnicoMap = useMemo(() => new Map(tecnicos.map((item) => [String(item.id), item.nombre])), [tecnicos])
   const beneficiarioMap = useMemo(() => new Map(beneficiarios.map((item) => [String(item.id), item.nombre])), [beneficiarios])
@@ -480,7 +477,7 @@ export default function AsignacionesPage() {
   const asignacionesActividad = pickArray<ActividadAsignacion>(asignacionesActividadData as unknown, ['asignaciones_actividad', 'asignaciones', 'rows', 'data'])
 
   const loadingCreate = loadingTecnicos || loadingBeneficiarios || loadingActividades
-  const loadingTables = loadingCoordinadorTecnico || loadingAsignacionesBeneficiario || loadingAsignacionesActividad || loadingUsuarios
+  const loadingTables = loadingCoordinadorTecnico || loadingAsignacionesBeneficiario || loadingAsignacionesActividad || loadingCoordinadores
 
   const section = location.pathname.includes('/asignaciones/tecnico-beneficiario')
     ? 'beneficiario'
@@ -537,7 +534,7 @@ export default function AsignacionesPage() {
                 <input className="input" type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} />
               </div>
               {coordinadorFeedback && <FeedbackBanner kind={coordinadorFeedback.kind} message={coordinadorFeedback.message} compact />}
-              <button className="btn btn-primary" disabled={loadingTecnicos || loadingUsuarios || asignarCoordinador.isPending || !coordinadorTecnicoId || !coordinadorId || !fechaLimite} onClick={() => asignarCoordinador.mutate()}>
+              <button className="btn btn-primary" disabled={loadingTecnicos || loadingCoordinadores || asignarCoordinador.isPending || !coordinadorTecnicoId || !coordinadorId || !fechaLimite} onClick={() => asignarCoordinador.mutate()}>
                 {asignarCoordinador.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar coordinador'}
               </button>
             </div>
