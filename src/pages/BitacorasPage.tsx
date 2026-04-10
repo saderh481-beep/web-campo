@@ -151,6 +151,26 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo imprimir el PDF.') }),
   })
 
+  const downloadPdf = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(pdfLinks.downloadUrl, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      if (!response.ok) throw new Error('Error al descargar')
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bitacora-${id}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    },
+    onSuccess: () => setFeedback({ kind: 'success', message: 'PDF descargado correctamente.' }),
+    onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo descargar el PDF.') }),
+  })
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-wide">
@@ -160,9 +180,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
             <a href={pdfLinks.viewUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
               <Eye size={13} /> Ver PDF
             </a>
-            <a href={pdfLinks.downloadUrl} download className="btn btn-primary btn-sm">
-              <Download size={13} /> Descargar
-            </a>
+            <button className="btn btn-primary btn-sm" onClick={() => downloadPdf.mutate()} disabled={downloadPdf.isPending}>
+              {downloadPdf.isPending ? <><span className="spinner" />Descargando...</> : <><Download size={13} /> Descargar</>}
+            </button>
             <button className="btn btn-secondary btn-sm" onClick={() => imprimirPdf.mutate()} disabled={imprimirPdf.isPending}>
               {imprimirPdf.isPending ? <><span className="spinner" />Imprimiendo...</> : <><Printer size={13} /> Imprimir</>}
             </button>
@@ -283,6 +303,20 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 }
 
 export default function BitacorasPage() {
+  const downloadPdfFromUrl = async (url: string) => {
+    try {
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      if (!response.ok) throw new Error('Error al descargar')
+      const blob = await response.blob()
+      const a = document.createElement('a')
+      a.href = window.URL.createObjectURL(blob)
+      a.download = url.split('/').pop() || 'bitacora.pdf'
+      a.click()
+    } catch { alert('Error al descargar PDF') }
+  }
+
   const [filtros, setFiltros] = useState<{ mes?: string; anio?: number; estado?: string; tipo?: string; tecnico_id?: string }>({})
   const [beneficiarioFiltro, setBeneficiarioFiltro] = useState('')
   const [usuarioFiltro, setUsuarioFiltro] = useState('')
@@ -422,9 +456,9 @@ export default function BitacorasPage() {
                       <button className="btn btn-ghost btn-icon btn-sm" title="Ver detalle" onClick={() => setDetalle(b.id)}>
                         <Eye size={13} />
                       </button>
-                      <a href={pdfLinks.downloadUrl} download className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF">
+                      <button className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF" onClick={() => downloadPdfFromUrl(pdfLinks.downloadUrl)}>
                         <Download size={13} />
-                      </a>
+                      </button>
                     </div>
                   </td>
                 </tr>
