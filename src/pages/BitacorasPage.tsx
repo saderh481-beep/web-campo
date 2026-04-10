@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bitacorasService } from '../lib/servicios/bitacoras'
-import { getApiErrorMessage, api } from '../lib/axios'
+import { getApiErrorMessage } from '../lib/axios'
 import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
-import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon, Printer, MapPin, Upload, Trash2, User, PenTool } from 'lucide-react'
+import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon, Printer, MapPin } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Bitacora {
@@ -47,11 +47,6 @@ interface Bitacora {
   adjuntos?: unknown[]
   archivos?: unknown[]
   documentos?: unknown[]
-  foto_rostro_url?: string
-  firma_url?: string
-  fotos_campo?: unknown[]
-  fotos_campo_urls?: string[]
-  pdf_actividades_url?: string
 }
 
 function getPdfLinks(bit: unknown, id: string | number) {
@@ -71,27 +66,7 @@ function getBitacoraAssets(bit: unknown): AssetItem[] {
     normalizeAssets(bit.adjuntos, 'adjuntos'),
     normalizeAssets(bit.archivos, 'archivos'),
     normalizeAssets(bit.documentos, 'documentos'),
-    normalizeAssets(bit.fotos_campo, 'fotos-campo'),
-    normalizeAssets(bit.fotos_campo_urls, 'fotos-campo-url'),
   ])
-}
-
-function getFotoRostroUrl(bit: unknown): string | undefined {
-  if (!isRecord(bit)) return undefined
-  const url = bit.foto_rostro_url ?? bit.foto_rostro
-  return typeof url === 'string' && url.startsWith('http') ? url : undefined
-}
-
-function getFirmaUrl(bit: unknown): string | undefined {
-  if (!isRecord(bit)) return undefined
-  const url = bit.firma_url ?? bit.firma
-  return typeof url === 'string' && url.startsWith('http') ? url : undefined
-}
-
-function getPdfActividadesUrl(bit: unknown): string | undefined {
-  if (!isRecord(bit)) return undefined
-  const url = bit.pdf_actividades_url ?? bit.pdf_actividades
-  return typeof url === 'string' && url.startsWith('http') ? url : undefined
 }
 
 function pickBitacoraText(bit: unknown, keys: string[]): string | null {
@@ -153,9 +128,6 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   const assets = useMemo(() => getBitacoraAssets(bit), [bit])
   const imageAssets = assets.filter((asset) => asset.kind === 'image')
   const fileAssets = assets.filter((asset) => asset.kind !== 'image')
-  const fotoRostroUrl = useMemo(() => getFotoRostroUrl(bit), [bit])
-  const firmaUrl = useMemo(() => getFirmaUrl(bit), [bit])
-  const pdfActividadesUrl = useMemo(() => getPdfActividadesUrl(bit), [bit])
   const bitacoraDateTime = getBitacoraDateTime(bit)
   const bitacoraLocation = getBitacoraLocation(bit)
   const registradoPor = pickBitacoraText(bit, ['usuario_nombre', 'usuario', 'tecnico_nombre', 'tecnico', 'registrado_por', 'created_by'])
@@ -177,93 +149,6 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     mutationFn: () => bitacorasService.imprimirPdf(id),
     onSuccess: () => setFeedback({ kind: 'success', message: 'PDF enviado a impresión correctamente.' }),
     onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo imprimir el PDF.') }),
-  })
-
-  const [selectedFotoRostro, setSelectedFotoRostro] = useState<File | null>(null)
-  const [selectedFirma, setSelectedFirma] = useState<File | null>(null)
-  const [selectedFotosCampo, setSelectedFotosCampo] = useState<File[]>([])
-)
-  const [selectedPdfActividades, setSelectedPdfActividades] = useState<File | null>(null)
-
-  const uploadFotoRostro = useMutation({
-    mutationFn: async () => {
-      if (!selectedFotoRostro) throw new Error('Selecciona una imagen primero')
-      const formData = new FormData()
-      formData.append('archivo', selectedFotoRostro)
-      return bitacorasService.subirFotoRostro(id, selectedFotoRostro)
-    },
-    onSuccess: () => {
-      setSelectedFotoRostro(null)
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'Foto del rostro subida correctamente.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudo subir la foto.') }),
-  })
-
-  const uploadFirma = useMutation({
-    mutationFn: async () => {
-      if (!selectedFirma) throw new Error('Selecciona una imagen primero')
-      return bitacorasService.subirFirma(id, selectedFirma)
-    },
-    onSuccess: () => {
-      setSelectedFirma(null)
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'Firma subida correctamente.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudo subir la firma.') }),
-  })
-
-  const uploadFotosCampo = useMutation({
-    mutationFn: async () => {
-      if (selectedFotosCampo.length === 0) throw new Error('Selecciona imágenes primero')
-      return bitacorasService.subirFotosCampo(id, selectedFotosCampo)
-    },
-    onSuccess: () => {
-      setSelectedFotosCampo([])
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'Fotos de campo subidas correctamente.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudieron subir las fotos.') }),
-  })
-
-  const uploadPdfActividades = useMutation({
-    mutationFn: async () => {
-      if (!selectedPdfActividades) throw new Error('Selecciona un PDF primero')
-      return bitacorasService.subirPdfActividades(id, selectedPdfActividades)
-    },
-    onSuccess: () => {
-      setSelectedPdfActividades(null)
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'PDF de actividades subido correctamente.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudo subir el PDF.') }),
-  })
-
-  const deleteFotoRostro = useMutation({
-    mutationFn: () => api.delete(`/bitacoras/${id}/foto-rostro`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'Foto del rostro eliminada.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudo eliminar.') }),
-  })
-
-  const deleteFirma = useMutation({
-    mutationFn: () => api.delete(`/bitacoras/${id}/firma`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'Firma eliminada.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudo eliminar.') }),
-  })
-
-  const deletePdfActividades = useMutation({
-    mutationFn: () => bitacorasService.eliminarPdfActividades(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'PDF de actividades eliminado.' })
-    },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(e, 'No se pudo eliminar.') }),
   })
 
   const downloadPdf = useMutation({
@@ -335,117 +220,6 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                   <span>{bitacoraLocation ?? 'No disponible en este registro.'}</span>
                 </div>
               </div>
-
-              {(fotoRostroUrl || firmaUrl || bit.estado === 'borrador') && (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Identificación del Beneficiario</div>
-                    {bit.estado === 'borrador' && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gray-500)', cursor: 'pointer' }}>
-                        <Upload size={12} />
-                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setSelectedFotoRostro(e.target.files?.[0] ?? null)} />
-                      </label>
-                    )}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
-                    {fotoRostroUrl ? (
-                      <div style={{ position: 'relative' }}>
-                        <a href={fotoRostroUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-                          <div style={{ border: '1px solid var(--gray-200)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-                            <img src={fotoRostroUrl} alt="Foto rostro" style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block', background: 'var(--gray-100)' }} />
-                            <div style={{ padding: 8, fontSize: 12, fontWeight: 500, color: 'var(--gray-700)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <User size={13} />
-                              <span>Foto rosto</span>
-                            </div>
-                          </div>
-                        </a>
-                        {bit.estado === 'borrador' && (
-                          <button className="btn btn-ghost btn-icon btn-sm" style={{ position: 'absolute', top: 4, right: 4 }} onClick={() => deleteFotoRostro.mutate()} title="Eliminar">
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                    ) : bit.estado === 'borrador' && selectedFotoRostro ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <img src={URL.createObjectURL(selectedFotoRostro)} alt="Preview" style={{ width: '100%', height: 120, objectFit: 'cover', borderRadius: 8, background: 'var(--gray-100)' }} />
-                        <button className="btn btn-primary btn-sm" onClick={() => uploadFotoRostro.mutate()} disabled={uploadFotoRostro.isPending}>
-                          {uploadFotoRostro.isPending ? <><span className="spinner" />Subiendo...</> : <><Upload size={12} /> Confirmar</>}
-                        </button>
-                      </div>
-                    ) : !fotoRostroUrl && bit.estado !== 'borrador' && (
-                      <div style={{ border: '1px dashed var(--gray-300)', borderRadius: 8, padding: 20, textAlign: 'center', color: 'var(--gray-400)', fontSize: 12 }}>Sin foto</div>
-                    )}
-                    {firmaUrl ? (
-                      <div style={{ position: 'relative' }}>
-                        <a href={firmaUrl} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
-                          <div style={{ border: '1px solid var(--gray-200)', borderRadius: 8, overflow: 'hidden', background: 'white' }}>
-                            <img src={firmaUrl} alt="Firma" style={{ width: '100%', height: 120, objectFit: 'contain', display: 'block', background: 'var(--gray-100)' }} />
-                            <div style={{ padding: 8, fontSize: 12, fontWeight: 500, color: 'var(--gray-700)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <PenTool size={13} />
-                              <span>Firma</span>
-                            </div>
-                          </div>
-                        </a>
-                        {bit.estado === 'borrador' && (
-                          <button className="btn btn-ghost btn-icon btn-sm" style={{ position: 'absolute', top: 4, right: 4 }} onClick={() => deleteFirma.mutate()} title="Eliminar">
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                    ) : bit.estado === 'borrador' && selectedFirma ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <img src={URL.createObjectURL(selectedFirma)} alt="Preview" style={{ width: '100%', height: 120, objectFit: 'contain', borderRadius: 8, background: 'var(--gray-100)' }} />
-                        <button className="btn btn-primary btn-sm" onClick={() => uploadFirma.mutate()} disabled={uploadFirma.isPending}>
-                          {uploadFirma.isPending ? <><span className="spinner" />Subiendo...</> : <><Upload size={12} /> Confirmar</>}
-                        </button>
-                      </div>
-                    ) : bit.estado === 'borrador' && !firmaUrl && (
-                      <label style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 16, border: '1px dashed var(--gray-300)', borderRadius: 8, color: 'var(--gray-400)' }}>
-                        <PenTool size={24} />
-                        <span style={{ fontSize: 11 }}>Subir firma</span>
-                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setSelectedFirma(e.target.files?.[0] ?? null)} />
-                      </label>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {(pdfActividadesUrl || bit.estado === 'borrador') && (
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>PDF de Actividades</div>
-                    {bit.estado === 'borrador' && !pdfActividadesUrl && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--gray-500)', cursor: 'pointer' }}>
-                        <Upload size={12} />
-                        <span>Subir PDF</span>
-                        <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => setSelectedPdfActividades(e.target.files?.[0] ?? null)} />
-                      </label>
-                    )}
-                  </div>
-                  {pdfActividadesUrl ? (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--gray-200)', background: 'white' }}>
-                      <a href={pdfActividadesUrl} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'var(--gray-700)', flex: 1 }}>
-                        <FileText size={15} />
-                        <span>Actividades realizadas</span>
-                      </a>
-                      {bit.estado === 'borrador' && (
-                        <button className="btn btn-ghost btn-icon btn-sm" onClick={() => deletePdfActividades.mutate()} title="Eliminar">
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                  ) : bit.estado === 'borrador' && selectedPdfActividades ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 12, color: 'var(--gray-600)' }}>{selectedPdfActividades.name}</span>
-                      <button className="btn btn-primary btn-sm" onClick={() => uploadPdfActividades.mutate()} disabled={uploadPdfActividades.isPending}>
-                        {uploadPdfActividades.isPending ? <><span className="spinner" />Subiendo...</> : <><Upload size={12} /> Confirmar</>}
-                      </button>
-                    </div>
-                  ) : !pdfActividadesUrl && bit.estado !== 'borrador' && (
-                    <div style={{ border: '1px dashed var(--gray-300)', borderRadius: 8, padding: 20, textAlign: 'center', color: 'var(--gray-400)', fontSize: 12 }}>Sin PDF</div>
-                  )}
-                </div>
-              )}
 
               {imageAssets.length > 0 && (
                 <div>
