@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { beneficiariosService } from '../lib/servicios/beneficiarios'
-import { cadenasService, localidadesService } from '../lib/servicios/catalogos'
-import { tecnicosService } from '../lib/servicios/tecnicos'
+import { localidadesService } from '../lib/servicios/catalogos'
 import { getApiErrorMessage } from '../lib/axios'
-import { canAssignBeneficiarioCadenas, canUploadBeneficiarioDocumentos } from '../lib/authz'
+import { canUploadBeneficiarioDocumentos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
@@ -15,12 +14,6 @@ import FeedbackBanner from '../components/common/FeedbackBanner'
 interface Cadena {
   id: number | string
   nombre: string
-}
-
-interface Tecnico {
-  id: number | string
-  nombre: string
-  correo?: string
 }
 
 interface Localidad {
@@ -50,14 +43,6 @@ interface BeneficiariosResponse {
   per_page?: number
 }
 
-interface CadenasResponse {
-  cadenas?: Cadena[]
-}
-
-interface TecnicosResponse {
-  tecnicos?: Tecnico[]
-}
-
 interface BeneficiarioForm {
   nombre: string
   curp: string
@@ -69,8 +54,6 @@ interface BeneficiarioForm {
   telefono_principal: string
   telefono_secundario: string
   coord_parcela: string
-  tecnico_id: string
-  cadenas_ids: string[]
 }
 
 function formatTelefono(value: string): string {
@@ -251,7 +234,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
   )
 }
 
-function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas, onClose }: { b?: Beneficiario; cadenas: Cadena[]; tecnicos: Tecnico[]; localidades: Localidad[]; canAssignCadenas: boolean; onClose: () => void }) {
+function BeneficiarioModal({ b, localidades, onClose }: { b?: Beneficiario; localidades: Localidad[]; onClose: () => void }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
@@ -264,8 +247,6 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
     telefono_principal: '',
     telefono_secundario: '',
     coord_parcela: '',
-    tecnico_id: b?.tecnico_id ?? '',
-    cadenas_ids: (b?.cadenas ?? []).map((c) => String(typeof c === 'object' ? c.id : c)),
   })
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
@@ -305,24 +286,15 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
         coord_parcela: normalizeInput(form.coord_parcela) || undefined,
       }
 
-      if (b && canAssignCadenas && form.cadenas_ids.length > 0) {
-        await beneficiariosService.asignarCadenas(String(b.id), form.cadenas_ids)
-      }
-
       const response = b
         ? await beneficiariosService.update(b.id, payload)
-        : await beneficiariosService.create(payload as { nombre: string; municipio: string; tecnico_id: string })
+        : await beneficiariosService.create(payload as { nombre: string; municipio: string })
 
       return response
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiarios'] }); onClose() },
     onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, (e as Error).message || 'Error al guardar') }),
   })
-
-  const toggleCadena = (id: string) => setForm(p => ({
-    ...p,
-    cadenas_ids: p.cadenas_ids.includes(id) ? p.cadenas_ids.filter(c => c !== id) : [...p.cadenas_ids, id],
-  }))
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -385,7 +357,6 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
 
 export default function BeneficiariosPage() {
   const { user } = useAuth()
-  const canAssignCadenas = canAssignBeneficiarioCadenas(user?.rol)
   const canUploadDocs = canUploadBeneficiarioDocumentos(user?.rol)
   const qc = useQueryClient()
   const [page, setPage] = useState(1)
@@ -398,18 +369,6 @@ export default function BeneficiariosPage() {
     queryFn: () => beneficiariosService.list({ page, q: q || undefined }).then(r => r.data),
     placeholderData: keepPreviousData,
     staleTime: 30000,
-  })
-
-  const { data: cadenasData } = useQuery({
-    queryKey: ['cadenas'],
-    queryFn: () => cadenasService.list().then(r => r.data),
-    staleTime: 300000,
-  })
-
-  const { data: tecnicosData } = useQuery({
-    queryKey: ['tecnicos'],
-    queryFn: () => tecnicosService.list().then(r => r.data),
-    staleTime: 300000,
   })
 
   const { data: localidadesData } = useQuery({
@@ -430,12 +389,6 @@ export default function BeneficiariosPage() {
   const total = Array.isArray(benefData) ? benefData.length : pickNumber(benefData, ['total'], benefs.length)
   const perPage = Array.isArray(benefData) ? 20 : pickNumber(benefData, ['per_page'], 20)
   const pages = Math.ceil(total / perPage) || 1
-
-  const rawCadenas = cadenasData as CadenasResponse | Cadena[] | undefined
-  const cadenas = pickArray<Cadena>(rawCadenas, ['cadenas', 'rows', 'data'])
-
-  const rawTecnicos = tecnicosData as TecnicosResponse | Tecnico[] | undefined
-  const tecnicos = pickArray<Tecnico>(rawTecnicos, ['tecnicos', 'rows', 'data'])
 
   const localidades = pickArray<Localidad>(localidadesData as unknown, ['localidades', 'rows', 'data'])
 
@@ -533,10 +486,7 @@ export default function BeneficiariosPage() {
       {modal && (
         <BeneficiarioModal
           b={modal === 'new' ? undefined : modal}
-          cadenas={cadenas}
-          tecnicos={tecnicos}
           localidades={localidades}
-          canAssignCadenas={canAssignCadenas}
           onClose={() => setModal(null)}
         />
       )}

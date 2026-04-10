@@ -42,7 +42,7 @@ export interface CreateBeneficiarioPayload {
   telefono_principal?: string
   telefono_secundario?: string
   coord_parcela?: string
-  tecnico_id: string
+  tecnico_id?: string
 }
 
 export interface UpdateBeneficiarioPayload {
