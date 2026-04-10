@@ -49,7 +49,7 @@ export interface BitacoraVersion {
 }
 
 async function downloadBlob(url: string, filename: string): Promise<void> {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('campo_auth_token')
   const response = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${token}`
