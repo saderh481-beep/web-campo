@@ -43,6 +43,8 @@ interface CoordinadorTecnicoAsignacion {
   activo?: boolean
 }
 
+type CoordinatorTecnicoAsignacion = CoordinadorTecnicoAsignacion
+
 interface BeneficiarioAsignacion {
   id: string
   tecnico_id?: string
@@ -483,7 +485,21 @@ export default function AsignacionesPage() {
   const actividadMap = useMemo(() => new Map(actividades.map((item) => [String(item.id), item.nombre])), [actividades])
   const coordinadorMap = useMemo(() => new Map(coordinadores.map((item) => [String(item.id), item.nombre])), [coordinadores])
 
-  const coordinadorTecnico = pickArray<CoordinadorTecnicoAsignacion>(coordinadorTecnicoData as unknown, ['tecnico_detalles', 'asignaciones', 'rows', 'data'])
+  const getCoordTecnicoData = (data: unknown): CoordinatorTecnicoAsignacion[] => {
+    if (Array.isArray(data)) return data as CoordinatorTecnicoAsignacion[]
+    if (data && typeof data === 'object') {
+      const d = data as Record<string, unknown>
+      if (Array.isArray(d.data)) return d.data as CoordinatorTecnicoAsignacion[]
+      if (Array.isArray(d.rows)) return d.rows as CoordinatorTecnicoAsignacion[]
+      if (Array.isArray(d.asignaciones)) return d.asignaciones as CoordinatorTecnicoAsignacion[]
+      const keys = Object.keys(d)
+      for (const k of keys) {
+        if (Array.isArray(d[k])) return d[k] as CoordinatorTecnicoAsignacion[]
+      }
+    }
+    return []
+  }
+  const coordinadorTecnico = getCoordTecnicoData(coordinadorTecnicoData)
   const asignacionesBeneficiario = pickArray<BeneficiarioAsignacion>(asignacionesBeneficiarioData as unknown, ['asignaciones_beneficiario', 'asignaciones', 'rows', 'data'])
   const asignacionesActividad = pickArray<ActividadAsignacion>(asignacionesActividadData as unknown, ['asignaciones_actividad', 'asignaciones', 'rows', 'data'])
 
@@ -634,7 +650,7 @@ export default function AsignacionesPage() {
                         <td>
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'coordinador', row })}><Pencil size={13} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending} onClick={() => { console.log('Delete coordinator tecnico:', { id: row.tecnico_id, row }); confirm(`¿Eliminar la asignación de ${tecnicoNombre}?`) && deleteMutation.mutate({ kind: 'coordinador', id: row.tecnico_id }) }}><Trash2 size={13} /></button>
+                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending || !row.tecnico_id} onClick={() => { if (!row.tecnico_id) return; confirm(`¿Eliminar la asignación de ${tecnicoNombre}?`) && deleteMutation.mutate({ kind: 'coordinador', id: row.tecnico_id }) }}><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
