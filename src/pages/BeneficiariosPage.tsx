@@ -81,16 +81,16 @@ function formatTelefono(value: string): string {
   return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7, 10)}`
 }
 
-const FORM_FIELDS: Array<{ key: keyof Pick<BeneficiarioForm, 'nombre' | 'curp' | 'municipio' | 'localidad' | 'direccion' | 'cp' | 'telefono_principal' | 'telefono_secundario' | 'coord_parcela'>; label: string; full?: boolean }> = [
-  { key: 'nombre', label: 'Nombre completo', full: true },
-  { key: 'curp', label: 'CURP' },
-  { key: 'municipio', label: 'Municipio' },
+const FORM_FIELDS: Array<{ key: keyof Pick<BeneficiarioForm, 'nombre' | 'curp' | 'municipio' | 'localidad' | 'direccion' | 'cp' | 'telefono_principal' | 'telefono_secundario' | 'coord_parcela'>; label: string; full?: boolean; required?: boolean }> = [
+  { key: 'nombre', label: 'Nombre completo', full: true, required: true },
+  { key: 'curp', label: 'CURP', required: true },
+  { key: 'municipio', label: 'Municipio', required: true },
   { key: 'localidad', label: 'Localidad' },
   { key: 'direccion', label: 'Dirección', full: true },
   { key: 'cp', label: 'Código Postal' },
-  { key: 'telefono_principal', label: 'Teléfono principal' },
+  { key: 'telefono_principal', label: 'Teléfono principal', required: true },
   { key: 'telefono_secundario', label: 'Teléfono secundario' },
-  { key: 'coord_parcela', label: 'Coord. parcela (x,y)', full: true },
+  { key: 'coord_parcela', label: 'Coord. parcela (ej. 19.432,-99.133)', full: true },
 ]
 
 function toErrorMessage(err: unknown, fallback: string): string {
@@ -274,11 +274,14 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
       if (normalizeInput(form.nombre).length === 0) {
         throw new Error('Debes capturar el nombre del beneficiario.')
       }
+      if (normalizeInput(form.curp).length === 0) {
+        throw new Error('Debes capturar el CURP.')
+      }
+      if (normalizeInput(form.telefono_principal).replace(/\s/g, '').length === 0) {
+        throw new Error('Debes capturar el teléfono principal.')
+      }
       if (normalizeInput(form.municipio).length === 0) {
         throw new Error('Debes capturar el municipio.')
-      }
-      if (b && form.tecnico_id.trim().length === 0) {
-        throw new Error('Debes seleccionar un técnico')
       }
       if (form.cp.trim() && !isValidPostalCode(form.cp.trim())) {
         throw new Error('El código postal debe tener exactamente 5 dígitos.')
@@ -300,10 +303,6 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
         telefono_principal: normalizeInput(form.telefono_principal.replace(/\s/g, '')) || undefined,
         telefono_secundario: normalizeInput(form.telefono_secundario.replace(/\s/g, '')) || undefined,
         coord_parcela: normalizeInput(form.coord_parcela) || undefined,
-      }
-
-      if (b) {
-        payload.tecnico_id = form.tecnico_id.trim()
       }
 
       if (b && canAssignCadenas && form.cadenas_ids.length > 0) {
@@ -334,9 +333,9 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
         </div>
         <div className="modal-body modal-body-scroll">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
-            {FORM_FIELDS.map(({ key, label, full }) => (
+            {FORM_FIELDS.map(({ key, label, full, required }) => (
               <div key={key} className="form-group" style={full ? { gridColumn: '1/-1' } : {}}>
-                <label className="form-label">{label}</label>
+                <label className="form-label">{label}{required && <span style={{ color: 'var(--danger)' }}> *</span>}</label>
                 {key === 'curp' ? (
                   <input
                     className="input"
@@ -369,37 +368,8 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
                 ))}
               </select>
             </div>
-            <div className="form-group" style={{ gridColumn: '1/-1' }}>
-              <label className="form-label">Técnico asignado</label>
-              <select className="input" value={form.tecnico_id} onChange={e => setForm(p => ({ ...p, tecnico_id: e.target.value }))}>
-                <option value="">Selecciona un técnico</option>
-                {tecnicos.map((t) => (
-                  <option key={t.id} value={String(t.id)}>{t.nombre}{t.correo ? ` (${t.correo})` : ''}</option>
-                ))}
-              </select>
-            </div>
+
           </div>
-          {canAssignCadenas && cadenas.length > 0 && (
-            <div className="form-group">
-              <label className="form-label">Cadenas productivas</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {cadenas.map((c) => {
-                  const id = String(c.id)
-                  return (
-                    <button key={id} type="button"
-                      style={{
-                        padding: '4px 12px', borderRadius: 99, fontSize: 12, fontWeight: 600,
-                        border: `1.5px solid ${form.cadenas_ids.includes(id) ? 'var(--guinda)' : 'var(--gray-200)'}`,
-                        background: form.cadenas_ids.includes(id) ? 'var(--guinda-50)' : 'white',
-                        color: form.cadenas_ids.includes(id) ? 'var(--guinda)' : 'var(--gray-500)',
-                        cursor: 'pointer', transition: 'all 0.12s',
-                      }}
-                      onClick={() => toggleCadena(id)}>{c.nombre}</button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
           {feedback && <FeedbackBanner kind={feedback.kind} message={feedback.message} compact />}
         </div>
         <div className="modal-footer">
