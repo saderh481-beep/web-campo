@@ -153,8 +153,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
   const downloadPdf = useMutation({
     mutationFn: async () => {
+      const token = localStorage.getItem('campo_auth_token')
       const response = await fetch(pdfLinks.downloadUrl, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       })
       if (!response.ok) throw new Error('Error al descargar')
       const blob = await response.blob()
@@ -305,8 +306,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 export default function BitacorasPage() {
   const downloadPdfFromUrl = async (url: string) => {
     try {
+      const token = localStorage.getItem('campo_auth_token')
       const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       })
       if (!response.ok) throw new Error('Error al descargar')
       const blob = await response.blob()

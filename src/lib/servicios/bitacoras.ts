@@ -48,6 +48,25 @@ export interface BitacoraVersion {
   created_at: string
 }
 
+async function downloadBlob(url: string, filename: string): Promise<void> {
+  const token = localStorage.getItem('token')
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  if (!response.ok) throw new Error('Error al descargar PDF')
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(objectUrl)
+}
+
 export const bitacorasService = {
   list: (params?: { tecnico_id?: string; mes?: number; anio?: number; estado?: string; tipo?: string }) =>
     api.get<Bitacora[]>('/bitacoras', { params }),
@@ -67,6 +86,11 @@ export const bitacorasService = {
   pdfDownloadUrl: (id: string | number) => `${apiUrl}/bitacoras/${id}/pdf/descargar`,
   
   imprimirPdf: (id: string | number) => api.post(`/bitacoras/${id}/pdf/imprimir`),
+  
+  downloadPdf: async (id: string | number) => {
+    const url = `${apiUrl}/bitacoras/${id}/pdf/descargar`
+    await downloadBlob(url, `bitacora-${id}.pdf`)
+  },
   
   listarVersiones: (id: string | number) => api.get<BitacoraVersion[]>(`/bitacoras/${id}/versiones`),
   versiones: (id: string | number) => api.get<BitacoraVersion[]>(`/bitacoras/${id}/versiones`),
