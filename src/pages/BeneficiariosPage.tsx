@@ -34,6 +34,7 @@ type CadenaRef = Cadena | number | string
 interface Beneficiario {
   id: number | string
   nombre: string
+  curp?: string
   municipio?: string
   localidad?: string
   localidad_id?: string
@@ -59,6 +60,7 @@ interface TecnicosResponse {
 
 interface BeneficiarioForm {
   nombre: string
+  curp: string
   municipio: string
   localidad: string
   localidad_id: string
@@ -71,8 +73,17 @@ interface BeneficiarioForm {
   cadenas_ids: string[]
 }
 
-const FORM_FIELDS: Array<{ key: keyof Pick<BeneficiarioForm, 'nombre' | 'municipio' | 'localidad' | 'direccion' | 'cp' | 'telefono_principal' | 'telefono_secundario' | 'coord_parcela'>; label: string; full?: boolean }> = [
+function formatTelefono(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 10)
+  if (digits.length === 0) return ''
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)} ${digits.slice(3)}`
+  return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7, 10)}`
+}
+
+const FORM_FIELDS: Array<{ key: keyof Pick<BeneficiarioForm, 'nombre' | 'curp' | 'municipio' | 'localidad' | 'direccion' | 'cp' | 'telefono_principal' | 'telefono_secundario' | 'coord_parcela'>; label: string; full?: boolean }> = [
   { key: 'nombre', label: 'Nombre completo', full: true },
+  { key: 'curp', label: 'CURP' },
   { key: 'municipio', label: 'Municipio' },
   { key: 'localidad', label: 'Localidad' },
   { key: 'direccion', label: 'Dirección', full: true },
@@ -244,6 +255,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
+    curp: (b as unknown as { curp?: string })?.curp ?? '',
     municipio: b?.municipio ?? '',
     localidad: b?.localidad ?? '',
     localidad_id: b?.localidad_id ?? '',
@@ -265,7 +277,7 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
       if (normalizeInput(form.municipio).length === 0) {
         throw new Error('Debes capturar el municipio.')
       }
-      if (form.tecnico_id.trim().length === 0) {
+      if (b && form.tecnico_id.trim().length === 0) {
         throw new Error('Debes seleccionar un técnico')
       }
       if (form.cp.trim() && !isValidPostalCode(form.cp.trim())) {
@@ -277,32 +289,30 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
 
       const selectedLocalidad = localidades.find((item) => String(item.id) === form.localidad_id)
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         nombre: normalizeInput(form.nombre),
+        curp: form.curp || undefined,
         municipio: normalizeInput(selectedLocalidad?.municipio ?? form.municipio),
         localidad: selectedLocalidad ? undefined : normalizeInput(form.localidad) || undefined,
         localidad_id: form.localidad_id || undefined,
         direccion: normalizeInput(form.direccion) || undefined,
         cp: normalizeInput(form.cp) || undefined,
-        telefono_principal: normalizeInput(form.telefono_principal) || undefined,
-        telefono_secundario: normalizeInput(form.telefono_secundario) || undefined,
+        telefono_principal: normalizeInput(form.telefono_principal.replace(/\s/g, '')) || undefined,
+        telefono_secundario: normalizeInput(form.telefono_secundario.replace(/\s/g, '')) || undefined,
         coord_parcela: normalizeInput(form.coord_parcela) || undefined,
-        tecnico_id: form.tecnico_id.trim(),
+      }
+
+      if (b) {
+        payload.tecnico_id = form.tecnico_id.trim()
+      }
+
+      if (b && canAssignCadenas && form.cadenas_ids.length > 0) {
+        await beneficiariosService.asignarCadenas(String(b.id), form.cadenas_ids)
       }
 
       const response = b
         ? await beneficiariosService.update(b.id, payload)
-        : await beneficiariosService.create(payload)
-
-      if (canAssignCadenas && form.cadenas_ids.length > 0) {
-        const raw = response.data as unknown as Record<string, unknown> | null | undefined
-        const createdId = String(
-          raw?.id ?? raw?.beneficiario_id ?? raw?.id_beneficiario ?? b?.id ?? ''
-        )
-        if (createdId && createdId !== 'undefined' && createdId !== '') {
-          await beneficiariosService.asignarCadenas(createdId, form.cadenas_ids)
-        }
-      }
+        : await beneficiariosService.create(payload as { nombre: string; municipio: string; tecnico_id: string })
 
       return response
     },
@@ -327,8 +337,25 @@ function BeneficiarioModal({ b, cadenas, tecnicos, localidades, canAssignCadenas
             {FORM_FIELDS.map(({ key, label, full }) => (
               <div key={key} className="form-group" style={full ? { gridColumn: '1/-1' } : {}}>
                 <label className="form-label">{label}</label>
-                <input className="input" value={form[key]}
-                  onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} />
+                {key === 'curp' ? (
+                  <input
+                    className="input"
+                    value={form.curp}
+                    onChange={e => setForm(p => ({ ...p, curp: e.target.value.toUpperCase().slice(0, 18) }))}
+                    maxLength={18}
+                    placeholder="18 caracteres"
+                  />
+                ) : key === 'telefono_principal' || key === 'telefono_secundario' ? (
+                  <input
+                    className="input"
+                    value={form[key]}
+                    onChange={e => setForm(p => ({ ...p, [key]: formatTelefono(e.target.value) }))}
+                    placeholder="10 1234 5678"
+                  />
+                ) : (
+                  <input className="input" value={form[key]}
+                    onChange={e => setForm(p => { const v = e.target.value; return { ...p, [key]: /^(nombre|localidad)$/.test(key) ? v.toUpperCase() : v }})} />
+                )}
               </div>
             ))}
             <div className="form-group">

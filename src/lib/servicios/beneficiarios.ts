@@ -4,6 +4,7 @@ export interface Beneficiario {
   id: string
   tecnico_id: string
   nombre: string
+  curp?: string
   municipio: string
   localidad: string
   localidad_id?: string
@@ -32,6 +33,7 @@ export interface Documento {
 
 export interface CreateBeneficiarioPayload {
   nombre: string
+  curp?: string
   municipio: string
   localidad?: string
   localidad_id?: string
@@ -45,6 +47,7 @@ export interface CreateBeneficiarioPayload {
 
 export interface UpdateBeneficiarioPayload {
   nombre?: string
+  curp?: string
   municipio?: string
   localidad?: string
   localidad_id?: string
