@@ -380,21 +380,21 @@ export default function AsignacionesPage() {
 
   const { data: coordinadorTecnicoData, isLoading: loadingCoordinadorTecnico } = useQuery({
     queryKey: ['asignaciones', 'coordinador-tecnico'],
-    queryFn: () => asignacionesService.listarCoordinadorTecnico().then((r) => r.data),
+    queryFn: () => asignacionesService.listaAlternativaCoordinadorTecnico().then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
 
   const { data: asignacionesBeneficiarioData, isLoading: loadingAsignacionesBeneficiario } = useQuery({
     queryKey: ['asignaciones', 'beneficiario'],
-    queryFn: () => asignacionesService.listarBeneficiario().then((r) => r.data),
+    queryFn: () => asignacionesService.listarBeneficiario({}).then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
 
   const { data: asignacionesActividadData, isLoading: loadingAsignacionesActividad } = useQuery({
     queryKey: ['asignaciones', 'actividad'],
-    queryFn: () => asignacionesService.listarActividad().then((r) => r.data),
+    queryFn: () => asignacionesService.listarActividad({}).then((r) => r.data),
     staleTime: 30000,
     enabled: canManage,
   })
