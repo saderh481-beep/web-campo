@@ -47,6 +47,14 @@ interface Bitacora {
   adjuntos?: unknown[]
   archivos?: unknown[]
   documentos?: unknown[]
+  foto_rostro_url?: string
+  foto_rostro?: string
+  firma_url?: string
+  firma?: string
+  fotos_campo?: unknown[]
+  fotos_campo_urls?: string[]
+  pdf_actividades_url?: string
+  pdf_actividades?: string
 }
 
 function getPdfLinks(bit: unknown, id: string | number) {
@@ -58,7 +66,18 @@ function getPdfLinks(bit: unknown, id: string | number) {
 function getBitacoraAssets(bit: unknown): AssetItem[] {
   if (!isRecord(bit)) return []
 
-  return dedupeAssets([
+  const fotoRostro = bit.foto_rostro_url ?? bit.foto_rostro
+  const firma = bit.firma_url ?? bit.firma
+
+  const newAssets: AssetItem[] = []
+  if (typeof fotoRostro === 'string' && fotoRostro.startsWith('http')) {
+    newAssets.push({ id: 'foto-rostro', url: fotoRostro, label: 'Foto rostro', kind: 'image' })
+  }
+  if (typeof firma === 'string' && firma.startsWith('http')) {
+    newAssets.push({ id: 'firma', url: firma, label: 'Firma', kind: 'image' })
+  }
+
+  const existingAssets = dedupeAssets([
     normalizeAssets(bit.imagenes, 'imagenes'),
     normalizeAssets(bit.imagenes_urls, 'imagenes-url'),
     normalizeAssets(bit.fotos, 'fotos'),
@@ -66,7 +85,12 @@ function getBitacoraAssets(bit: unknown): AssetItem[] {
     normalizeAssets(bit.adjuntos, 'adjuntos'),
     normalizeAssets(bit.archivos, 'archivos'),
     normalizeAssets(bit.documentos, 'documentos'),
+    normalizeAssets(bit.fotos_campo, 'fotos-campo'),
+    normalizeAssets(bit.fotos_campo_urls, 'fotos-campo-url'),
+    normalizeAssets(bit.pdf_actividades, 'pdf-actividades'),
   ])
+
+  return [...newAssets, ...existingAssets]
 }
 
 function pickBitacoraText(bit: unknown, keys: string[]): string | null {
