@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { coordinadoresService, type Coordinador } from '../lib/servicios/coordinadores'
 import { getApiErrorMessage } from '../lib/axios'
+import { useToast } from '../hooks/useToast'
 import { Plus, Pencil, Trash2, X, Eye } from 'lucide-react'
-import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface CoordinadorForm {
   nombre: string
@@ -113,7 +113,7 @@ function CoordinadorModal({
               </label>
             </div>
           )}
-          {err && <FeedbackBanner kind="error" message={err} compact />}
+          {err && <div className="feedback-banner feedback-error feedback-compact">{err}</div>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>
@@ -164,9 +164,9 @@ function CoordinadorInfoModal({ coord, onClose }: { coord: Coordinador; onClose:
 
 export default function CoordinadoresPage() {
   const qc = useQueryClient()
+  const toast = useToast()
   const [modal, setModal] = useState<'new' | Coordinador | null>(null)
   const [infoModal, setInfoModal] = useState<Coordinador | null>(null)
-  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data: coords = [], isLoading } = useQuery({
     queryKey: ['coordinadores'],
@@ -177,10 +177,10 @@ export default function CoordinadoresPage() {
     mutationFn: (id: string | number) => coordinadoresService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['coordinadores'] })
-      setFeedback({ kind: 'success', message: 'Coordinador eliminado correctamente.' })
+      toast.success('Coordinador eliminado correctamente.')
     },
     onError: (e: unknown) =>
-      setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo eliminar el coordinador.') }),
+      toast.error(toErrorMessage(e, 'No se pudo eliminar el coordinador.')),
   })
 
   return (
@@ -194,11 +194,6 @@ export default function CoordinadoresPage() {
           <Plus size={15} /> Nuevo coordinador
         </button>
       </div>
-      {feedback && (
-        <div style={{ marginBottom: 14 }}>
-          <FeedbackBanner kind={feedback.kind} message={feedback.message} />
-        </div>
-      )}
       <div className="table-wrap">
         <table>
           <thead>
@@ -264,7 +259,7 @@ export default function CoordinadoresPage() {
         <CoordinadorModal
           coord={modal === 'new' ? undefined : modal}
           onClose={() => setModal(null)}
-          onSaved={(message) => setFeedback({ kind: 'success', message })}
+          onSaved={(message) => toast.success(message)}
         />
       )}
       {infoModal && <CoordinadorInfoModal coord={infoModal} onClose={() => setInfoModal(null)} />}

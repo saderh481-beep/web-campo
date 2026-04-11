@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { administradoresService, type Administrador } from '../lib/servicios/administradores'
 import { getApiErrorMessage } from '../lib/axios'
+import { useToast } from '../hooks/useToast'
 import { Plus, Pencil, Trash2, X, Eye } from 'lucide-react'
-import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface AdministradorForm {
   nombre: string
@@ -113,7 +113,7 @@ function AdministradorModal({
               </label>
             </div>
           )}
-          {err && <FeedbackBanner kind="error" message={err} compact />}
+          {err && <div className="feedback-banner feedback-error feedback-compact">{err}</div>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>
@@ -164,9 +164,9 @@ function AdministradorInfoModal({ admin, onClose }: { admin: Administrador; onCl
 
 export default function AdministradoresPage() {
   const qc = useQueryClient()
+  const toast = useToast()
   const [modal, setModal] = useState<'new' | Administrador | null>(null)
   const [infoModal, setInfoModal] = useState<Administrador | null>(null)
-  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data: admins = [], isLoading } = useQuery({
     queryKey: ['administradores'],
@@ -177,10 +177,10 @@ export default function AdministradoresPage() {
     mutationFn: (id: string | number) => administradoresService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['administradores'] })
-      setFeedback({ kind: 'success', message: 'Administrador eliminado correctamente.' })
+      toast.success('Administrador eliminado correctamente.')
     },
     onError: (e: unknown) =>
-      setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo eliminar el administrador.') }),
+      toast.error(toErrorMessage(e, 'No se pudo eliminar el administrador.')),
   })
 
   return (
@@ -194,11 +194,6 @@ export default function AdministradoresPage() {
           <Plus size={15} /> Nuevo administrador
         </button>
       </div>
-      {feedback && (
-        <div style={{ marginBottom: 14 }}>
-          <FeedbackBanner kind={feedback.kind} message={feedback.message} />
-        </div>
-      )}
       <div className="table-wrap">
         <table>
           <thead>
@@ -264,7 +259,7 @@ export default function AdministradoresPage() {
         <AdministradorModal
           admin={modal === 'new' ? undefined : modal}
           onClose={() => setModal(null)}
-          onSaved={(message) => setFeedback({ kind: 'success', message })}
+          onSaved={(message) => toast.success(message)}
         />
       )}
       {infoModal && <AdministradorInfoModal admin={infoModal} onClose={() => setInfoModal(null)} />}

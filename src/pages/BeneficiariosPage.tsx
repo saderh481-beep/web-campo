@@ -5,6 +5,7 @@ import { localidadesService } from '../lib/servicios/catalogos'
 import { getApiErrorMessage } from '../lib/axios'
 import { canUploadBeneficiarioDocumentos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray, pickNumber } from '../lib/normalize'
@@ -107,11 +108,10 @@ function getBeneficiarioAssets(source: unknown): AssetItem[] {
   ])
 }
 
-function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: Beneficiario; canUpload: boolean; onClose: () => void }) {
+function DocumentosModal({ beneficiario, canUpload, onClose, toast }: { beneficiario: Beneficiario; canUpload: boolean; onClose: () => void; toast: { success: (m: string) => void; error: (m: string) => void } }) {
   const qc = useQueryClient()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [tipo, setTipo] = useState('general')
-  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['beneficiarios', beneficiario.id, 'documentos'],
@@ -129,10 +129,10 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
     },
     onSuccess: () => {
       setSelectedFile(null)
-      setFeedback({ kind: 'success', message: 'Documento subido correctamente.' })
+      toast.success('Documento subido correctamente.')
       qc.invalidateQueries({ queryKey: ['beneficiarios', beneficiario.id, 'documentos'] })
     },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, (e as Error).message || 'No se pudo subir el archivo') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, (e as Error).message || 'No se pudo subir el archivo')),
   })
 
   const assets = useMemo(() => getBeneficiarioAssets(data), [data])
@@ -168,7 +168,6 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
                 </button>
               </div>
               {selectedFile && <p style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 8 }}>Seleccionado: {selectedFile.name}</p>}
-              {feedback && <div style={{ marginTop: 8 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
             </div>
           )}
 
@@ -234,7 +233,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose }: { beneficiario: B
   )
 }
 
-function BeneficiarioModal({ b, localidades, onClose }: { b?: Beneficiario; localidades: Localidad[]; onClose: () => void }) {
+function BeneficiarioModal({ b, localidades, onClose, toast }: { b?: Beneficiario; localidades: Localidad[]; onClose: () => void; toast: { success: (m: string) => void; error: (m: string) => void } }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
@@ -248,7 +247,6 @@ function BeneficiarioModal({ b, localidades, onClose }: { b?: Beneficiario; loca
     telefono_secundario: '',
     coord_parcela: '',
   })
-  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const save = useMutation({
     mutationFn: async () => {
@@ -292,8 +290,8 @@ function BeneficiarioModal({ b, localidades, onClose }: { b?: Beneficiario; loca
 
       return response
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiarios'] }); onClose() },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, (e as Error).message || 'Error al guardar') }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['beneficiarios'] }); toast.success(b ? 'Beneficiario actualizado.' : 'Beneficiario creado.'); onClose() },
+    onError: (e: unknown) => toast.error(toErrorMessage(e, (e as Error).message || 'Error al guardar')),
   })
 
   return (
@@ -342,7 +340,6 @@ function BeneficiarioModal({ b, localidades, onClose }: { b?: Beneficiario; loca
             </div>
 
           </div>
-          {feedback && <FeedbackBanner kind={feedback.kind} message={feedback.message} compact />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
@@ -359,6 +356,7 @@ export default function BeneficiariosPage() {
   const { user } = useAuth()
   const canUploadDocs = canUploadBeneficiarioDocumentos(user?.rol)
   const qc = useQueryClient()
+  const toast = useToast()
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
   const [modal, setModal] = useState<'new' | Beneficiario | null>(null)
@@ -488,10 +486,11 @@ export default function BeneficiariosPage() {
           b={modal === 'new' ? undefined : modal}
           localidades={localidades}
           onClose={() => setModal(null)}
+          toast={toast}
         />
       )}
 
-      {docsModal && <DocumentosModal beneficiario={docsModal} canUpload={canUploadDocs} onClose={() => setDocsModal(null)} />}
+      {docsModal && <DocumentosModal beneficiario={docsModal} canUpload={canUploadDocs} onClose={() => setDocsModal(null)} toast={toast} />}
     </div>
   )
 }

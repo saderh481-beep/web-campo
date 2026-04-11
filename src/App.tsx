@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './hooks/useAuth'
+import { ToastProvider } from './hooks/useToast'
 import AppLayout from './components/layout/AppLayout'
+import ToastContainer from './components/common/ToastContainer'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import TecnicosPage from './pages/TecnicosPage'
@@ -104,36 +106,39 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={qc}>
-      <AuthProvider>
-        <AppErrorBoundary>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-              <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
-                <Route index element={<RoleHomeRedirect />} />
-                <Route path="sin-acceso" element={<NoAccessPage />} />
-                <Route path="dashboard" element={<RoleRoute allow={canViewDashboard}><DashboardPage /></RoleRoute>} />
-                <Route path="tecnicos" element={<RoleRoute allow={canViewTecnicos}><TecnicosPage /></RoleRoute>} />
-                <Route path="beneficiarios" element={<RoleRoute allow={canViewBeneficiarios}><BeneficiariosPage /></RoleRoute>} />
-                <Route path="bitacoras" element={<RoleRoute allow={canViewBitacoras}><BitacorasPage /></RoleRoute>} />
-                <Route path="cadenas" element={<RoleRoute allow={canViewCadenas}><CadenasPage /></RoleRoute>} />
-                <Route path="reportes" element={<RoleRoute allow={canViewReports}><ReportesPage /></RoleRoute>} />
-                <Route path="actividades" element={<RoleRoute allow={canViewActividades}><ActividadesPage /></RoleRoute>} />
-                <Route path="asignaciones" element={<RoleRoute allow={canViewAsignaciones}><Navigate to="/asignaciones/coordinador-tecnico" replace /></RoleRoute>} />
-                <Route path="asignaciones/coordinador-tecnico" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
-                <Route path="asignaciones/tecnico-beneficiario" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
-                <Route path="asignaciones/tecnico-actividad" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
-                <Route path="usuarios" element={<RoleRoute allow={canManageUsers}><UsuariosPage /></RoleRoute>} />
-                <Route path="localidades" element={<RoleRoute allow={canViewLocalidades}><LocalidadesPage /></RoleRoute>} />
-                <Route path="configuraciones" element={<RoleRoute allow={canViewConfiguraciones}><ConfiguracionesPage /></RoleRoute>} />
-                <Route path="documentos-plantilla" element={<RoleRoute allow={canViewDocumentosPlantilla}><DocumentosPlantillaPage /></RoleRoute>} />
-                <Route path="archive" element={<RoleRoute allow={canViewArchive}><ArchivePage /></RoleRoute>} />
-              </Route>
-              <Route path="*" element={<RoleHomeRedirect />} />
-            </Routes>
-          </BrowserRouter>
-        </AppErrorBoundary>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <AppErrorBoundary>
+            <BrowserRouter>
+              <ToastContainer />
+              <Routes>
+                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                <Route path="/" element={<AuthGuard><AppLayout /></AuthGuard>}>
+                  <Route index element={<RoleHomeRedirect />} />
+                  <Route path="sin-acceso" element={<NoAccessPage />} />
+                  <Route path="dashboard" element={<RoleRoute allow={canViewDashboard}><DashboardPage /></RoleRoute>} />
+                  <Route path="tecnicos" element={<RoleRoute allow={canViewTecnicos}><TecnicosPage /></RoleRoute>} />
+                  <Route path="beneficiarios" element={<RoleRoute allow={canViewBeneficiarios}><BeneficiariosPage /></RoleRoute>} />
+                  <Route path="bitacoras" element={<RoleRoute allow={canViewBitacoras}><BitacorasPage /></RoleRoute>} />
+                  <Route path="cadenas" element={<RoleRoute allow={canViewCadenas}><CadenasPage /></RoleRoute>} />
+                  <Route path="reportes" element={<RoleRoute allow={canViewReports}><ReportesPage /></RoleRoute>} />
+                  <Route path="actividades" element={<RoleRoute allow={canViewActividades}><ActividadesPage /></RoleRoute>} />
+                  <Route path="asignaciones" element={<RoleRoute allow={canViewAsignaciones}><Navigate to="/asignaciones/coordinador-tecnico" replace /></RoleRoute>} />
+                  <Route path="asignaciones/coordinador-tecnico" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
+                  <Route path="asignaciones/tecnico-beneficiario" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
+                  <Route path="asignaciones/tecnico-actividad" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
+                  <Route path="usuarios" element={<RoleRoute allow={canManageUsers}><UsuariosPage /></RoleRoute>} />
+                  <Route path="localidades" element={<RoleRoute allow={canViewLocalidades}><LocalidadesPage /></RoleRoute>} />
+                  <Route path="configuraciones" element={<RoleRoute allow={canViewConfiguraciones}><ConfiguracionesPage /></RoleRoute>} />
+                  <Route path="documentos-plantilla" element={<RoleRoute allow={canViewDocumentosPlantilla}><DocumentosPlantillaPage /></RoleRoute>} />
+                  <Route path="archive" element={<RoleRoute allow={canViewArchive}><ArchivePage /></RoleRoute>} />
+                </Route>
+                <Route path="*" element={<RoleHomeRedirect />} />
+              </Routes>
+            </BrowserRouter>
+          </AppErrorBoundary>
+        </AuthProvider>
+      </ToastProvider>
     </QueryClientProvider>
   )
 }

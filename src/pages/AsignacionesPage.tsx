@@ -8,9 +8,9 @@ import { coordinadoresService } from '../lib/servicios/coordinadores'
 import { getApiErrorMessage } from '../lib/axios'
 import { canManageAsignaciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { pickArray } from '../lib/normalize'
-import { ChevronDown, ChevronRight, ClipboardList, Link2, Pencil, Trash2, Users } from 'lucide-react'
-import FeedbackBanner from '../components/common/FeedbackBanner'
+import { ChevronDown, ChevronRight, Clipboard, Link2, Pencil, Trash2, Users } from 'lucide-react'
 
 interface Tecnico {
   id: number | string
@@ -62,8 +62,6 @@ interface ActividadAsignacion {
   asignado_en?: string
   removido_en?: string | null
 }
-
-type Feedback = { kind: 'success' | 'error'; message: string } | null
 
 type EditState =
   | { kind: 'coordinador'; row: CoordinadorTecnicoAsignacion }
@@ -166,6 +164,7 @@ function EditAsignacionModal({
   beneficiarios,
   actividades,
   onClose,
+  toast,
 }: {
   state: Exclude<EditState, null>
   tecnicos: Tecnico[]
@@ -173,9 +172,9 @@ function EditAsignacionModal({
   beneficiarios: Beneficiario[]
   actividades: Actividad[]
   onClose: () => void
+  toast: { success: (m: string) => void; error: (m: string) => void }
 }) {
   const qc = useQueryClient()
-  const [feedback, setFeedback] = useState<Feedback>(null)
   const [form, setForm] = useState<EditFormState>(() => {
     if (state.kind === 'coordinador') {
       return {
@@ -232,11 +231,11 @@ function EditAsignacionModal({
       qc.invalidateQueries({ queryKey: ['asignaciones', 'coordinador-tecnico'] })
       qc.invalidateQueries({ queryKey: ['asignaciones', 'beneficiario'] })
       qc.invalidateQueries({ queryKey: ['asignaciones', 'actividad'] })
-      setFeedback({ kind: 'success', message: 'Asignación actualizada correctamente.' })
+      toast.success('Asignación actualizada correctamente.')
       setTimeout(onClose, 250)
     },
     onError: (err: unknown) => {
-      setFeedback({ kind: 'error', message: toErrorMessage(err, 'No se pudo actualizar la asignación.') })
+      toast.error(toErrorMessage(err, 'No se pudo actualizar la asignación.'))
     },
   })
 
@@ -329,8 +328,6 @@ function EditAsignacionModal({
             <input id="activo-asignacion" type="checkbox" checked={form.activo} onChange={(e) => setForm((prev) => ({ ...prev, activo: e.target.checked }))} />
             <label htmlFor="activo-asignacion" className="form-label" style={{ margin: 0 }}>Asignación activa</label>
           </div>
-
-          {feedback && <FeedbackBanner kind={feedback.kind} message={feedback.message} compact />}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
@@ -348,6 +345,7 @@ export default function AsignacionesPage() {
   const { user } = useAuth()
   const canManage = canManageAsignaciones(user?.rol)
   const qc = useQueryClient()
+  const toast = useToast()
   const [coordinadorTecnicoId, setCoordinadorTecnicoId] = useState('')
   const [coordinadorId, setCoordinadorId] = useState('')
   const [fechaLimite, setFechaLimite] = useState('')
@@ -355,10 +353,6 @@ export default function AsignacionesPage() {
   const [beneficiarioId, setBeneficiarioId] = useState('')
   const [tecnicoActividadId, setTecnicoActividadId] = useState('')
   const [actividadId, setActividadId] = useState('')
-  const [coordinadorFeedback, setCoordinadorFeedback] = useState<Feedback>(null)
-  const [beneficiarioFeedback, setBeneficiarioFeedback] = useState<Feedback>(null)
-  const [actividadFeedback, setActividadFeedback] = useState<Feedback>(null)
-  const [tableFeedback, setTableFeedback] = useState<Feedback>(null)
   const [editState, setEditState] = useState<EditState>(null)
   const [openSections, setOpenSections] = useState({
     coordinadorTecnico: true,
@@ -416,20 +410,20 @@ export default function AsignacionesPage() {
     mutationFn: () => asignacionesService.asignarBeneficiario({ tecnico_id: tecnicoBeneficiarioId, beneficiario_id: beneficiarioId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asignaciones', 'beneficiario'] })
-      setBeneficiarioFeedback({ kind: 'success', message: 'Beneficiario asignado correctamente.' })
+      toast.success('Beneficiario asignado correctamente.')
       setBeneficiarioId('')
     },
-    onError: (e: unknown) => setBeneficiarioFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar el beneficiario.') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo asignar el beneficiario.')),
   })
 
   const asignarActividad = useMutation({
     mutationFn: () => asignacionesService.asignarActividad({ tecnico_id: tecnicoActividadId, actividad_id: actividadId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asignaciones', 'actividad'] })
-      setActividadFeedback({ kind: 'success', message: 'Actividad asignada correctamente.' })
+      toast.success('Actividad asignada correctamente.')
       setActividadId('')
     },
-    onError: (e: unknown) => setActividadFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar la actividad.') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo asignar la actividad.')),
   })
 
   const asignarCoordinador = useMutation({
@@ -450,12 +444,12 @@ export default function AsignacionesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['asignaciones', 'coordinador-tecnico'] })
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
-      setCoordinadorFeedback({ kind: 'success', message: 'Coordinador asignado correctamente.' })
+      toast.success('Coordinador asignado correctamente.')
       setCoordinadorTecnicoId('')
       setCoordinadorId('')
       setFechaLimite('')
     },
-    onError: (e: unknown) => setCoordinadorFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo asignar el coordinador.') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo asignar el coordinador.')),
   })
 
   const deleteMutation = useMutation({
@@ -468,10 +462,10 @@ export default function AsignacionesPage() {
       if (variables.kind === 'coordinador') qc.invalidateQueries({ queryKey: ['asignaciones', 'coordinador-tecnico'] })
       if (variables.kind === 'beneficiario') qc.invalidateQueries({ queryKey: ['asignaciones', 'beneficiario'] })
       if (variables.kind === 'actividad') qc.invalidateQueries({ queryKey: ['asignaciones', 'actividad'] })
-      setTableFeedback({ kind: 'success', message: 'Asignación eliminada correctamente.' })
+      toast.success('Asignación eliminada correctamente.')
     },
     onError: (err: unknown) => {
-      setTableFeedback({ kind: 'error', message: toErrorMessage(err, 'No se pudo eliminar la asignación.') })
+      toast.error(toErrorMessage(err, 'No se pudo eliminar la asignación.'))
     },
   })
 
@@ -560,7 +554,6 @@ export default function AsignacionesPage() {
                 <label className="form-label">Fecha límite</label>
                 <input className="input" type="date" value={fechaLimite} onChange={(e) => setFechaLimite(e.target.value)} />
               </div>
-              {coordinadorFeedback && <FeedbackBanner kind={coordinadorFeedback.kind} message={coordinadorFeedback.message} compact />}
               <button className="btn btn-primary" disabled={loadingTecnicos || loadingCoordinadores || asignarCoordinador.isPending || !coordinadorTecnicoId || !coordinadorId || !fechaLimite} onClick={() => asignarCoordinador.mutate()}>
                 {asignarCoordinador.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar coordinador'}
               </button>
@@ -584,7 +577,6 @@ export default function AsignacionesPage() {
                   {beneficiarios.map((b) => <option key={b.id} value={String(b.id)}>{b.nombre}</option>)}
                 </select>
               </div>
-              {beneficiarioFeedback && <FeedbackBanner kind={beneficiarioFeedback.kind} message={beneficiarioFeedback.message} compact />}
               <button className="btn btn-primary" disabled={loadingCreate || asignarBeneficiario.isPending || !tecnicoBeneficiarioId || !beneficiarioId} onClick={() => asignarBeneficiario.mutate()}>
                 {asignarBeneficiario.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar beneficiario'}
               </button>
@@ -593,7 +585,7 @@ export default function AsignacionesPage() {
 
             {showActividad && (
             <div className="card">
-              <SectionHeader icon={ClipboardList} title="Asignar actividad" subtitle="Crea o reactiva la relación técnico-actividad." />
+              <SectionHeader icon={Clipboard} title="Asignar actividad" subtitle="Crea o reactiva la relación técnico-actividad." />
               <div className="form-group">
                 <label className="form-label">Técnico</label>
                 <select className="input" value={tecnicoActividadId} onChange={(e) => setTecnicoActividadId(e.target.value)}>
@@ -608,7 +600,6 @@ export default function AsignacionesPage() {
                   {actividades.map((a) => <option key={a.id} value={String(a.id)}>{a.nombre}</option>)}
                 </select>
               </div>
-              {actividadFeedback && <FeedbackBanner kind={actividadFeedback.kind} message={actividadFeedback.message} compact />}
               <button className="btn btn-primary" disabled={loadingCreate || asignarActividad.isPending || !tecnicoActividadId || !actividadId} onClick={() => asignarActividad.mutate()}>
                 {asignarActividad.isPending ? <><span className="spinner" />Asignando...</> : 'Asignar actividad'}
               </button>
@@ -616,8 +607,6 @@ export default function AsignacionesPage() {
             )}
           </div>
           )}
-
-          {tableFeedback && <div style={{ marginTop: 16 }}><FeedbackBanner kind={tableFeedback.kind} message={tableFeedback.message} /></div>}
 
           {showCoordinador && (
           <CollapsibleSection
@@ -707,7 +696,7 @@ export default function AsignacionesPage() {
 
           {showActividad && (
           <CollapsibleSection
-            icon={ClipboardList}
+            icon={Clipboard}
             title="Técnico a Actividad"
             subtitle="Consulta, edita o desactiva asignaciones de actividades."
             isOpen={openSections.tecnicoActividad}
@@ -758,6 +747,7 @@ export default function AsignacionesPage() {
           beneficiarios={beneficiarios}
           actividades={actividades}
           onClose={() => setEditState(null)}
+          toast={toast}
         />
       )}
     </div>

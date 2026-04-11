@@ -6,8 +6,8 @@ import { getApiErrorMessage } from '../lib/axios'
 import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
+import { useToast } from '../hooks/useToast'
 import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
-import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Tecnico {
   id: number | string
@@ -67,7 +67,7 @@ function CodigoAcceso({ codigo, id, canManage }: { codigo: string; id: string | 
   )
 }
 
-function TecnicoModal({ tecnico, coordinadores, onClose }: { tecnico?: Tecnico; coordinadores: { id: string; nombre: string }[]; onClose: () => void }) {
+function TecnicoModal({ tecnico, coordinadores, onClose, toast }: { tecnico?: Tecnico; coordinadores: { id: string; nombre: string }[]; onClose: () => void; toast: { success: (m: string) => void; error: (m: string) => void } }) {
   const qc = useQueryClient()
   const [form, setForm] = useState<FormData>({
     nombre: tecnico?.nombre ?? '',
@@ -92,7 +92,11 @@ function TecnicoModal({ tecnico, coordinadores, onClose }: { tecnico?: Tecnico; 
       }
       return tecnicosService.create(payload)
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tecnicos'] }); onClose() },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ['tecnicos'] })
+      toast.success(tecnico ? 'Técnico actualizado correctamente.' : 'Técnico creado correctamente.')
+      onClose() 
+    },
     onError: (e: unknown) => setErr(toErrorMessage(e, 'Error al guardar')),
   })
 
@@ -146,7 +150,7 @@ function TecnicoModal({ tecnico, coordinadores, onClose }: { tecnico?: Tecnico; 
             <label className="form-label">Fecha límite de acceso</label>
             <input className="input" type="date" value={form.fecha_limite} onChange={e => setForm(p => ({ ...p, fecha_limite: e.target.value }))} />
           </div>
-          {err && <FeedbackBanner kind="error" message={err} compact />}
+          {err && <div className="feedback-banner feedback-error feedback-compact">{err}</div>}
         </div>
         <div className="modal-footer">
           <button className="btn btn-secondary" onClick={onClose}>Cancelar</button>
@@ -163,9 +167,9 @@ export default function TecnicosPage() {
   const { user } = useAuth()
   const canManage = canManageTecnicos(user?.rol)
   const qc = useQueryClient()
+  const toast = useToast()
   const [modal, setModal] = useState<Tecnico | 'new' | null>(null)
   const [q, setQ] = useState('')
-  const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['tecnicos'],
@@ -184,27 +188,27 @@ export default function TecnicosPage() {
     mutationFn: (id: string | number) => tecnicosService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
-      setFeedback({ kind: 'success', message: 'Tecnico desactivado correctamente.' })
+      toast.success('Técnico desactivado correctamente.')
     },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo desactivar el tecnico.') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo desactivar el técnico.')),
   })
 
   const aplicarCortes = useMutation({
     mutationFn: () => tecnicosService.aplicarCortes(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
-      setFeedback({ kind: 'success', message: 'Cortes aplicados correctamente.' })
+      toast.success('Cortes aplicados correctamente.')
     },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudieron aplicar cortes.') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudieron aplicar cortes.')),
   })
 
   const cerrarCorte = useMutation({
     mutationFn: (id: string | number) => tecnicosService.cerrarCorte(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tecnicos'] })
-      setFeedback({ kind: 'success', message: 'Corte cerrado correctamente.' })
+      toast.success('Corte cerrado correctamente.')
     },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo cerrar el corte.') }),
+    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo cerrar el corte.')),
   })
 
   const tecnicosData = pickArray<Tecnico>(data, ['tecnicos', 'rows', 'data'])
@@ -223,8 +227,6 @@ export default function TecnicosPage() {
           </button>
         )}
       </div>
-
-      {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
 
       {canManage && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
@@ -291,7 +293,7 @@ export default function TecnicosPage() {
         </table>
       </div>
 
-      {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} />}
+      {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} toast={toast} />}
     </div>
   )
 }
