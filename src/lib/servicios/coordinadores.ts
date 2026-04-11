@@ -6,6 +6,7 @@ export interface Coordinador {
   nombre: string
   telefono?: string
   activo: boolean
+  rol?: string
   created_at?: string
   updated_at?: string
 }

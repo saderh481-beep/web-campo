@@ -182,7 +182,7 @@ export default function TecnicosPage() {
     queryFn: () => coordinadoresService.list().then(r => r.data),
   })
 
-  const coordinadores = pickArray<{ id: string; nombre: string }>(coordsData, ['coordinadores', 'rows', 'data'])
+  const coordinadores = pickArray<{ id: string; nombre: string; rol?: string }>(coordsData, ['coordinadores', 'rows', 'data']).filter(c => c.rol === 'coordinador')
 
   const remove = useMutation({
     mutationFn: (id: string | number) => tecnicosService.remove(id),
