@@ -234,6 +234,7 @@ function DocumentosModal({ beneficiario, canUpload, onClose, toast }: { benefici
 }
 
 function BeneficiarioModal({ b, localidades, onClose, toast }: { b?: Beneficiario; localidades: Localidad[]; onClose: () => void; toast: { success: (m: string) => void; error: (m: string) => void } }) {
+  const { user } = useAuth()
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
