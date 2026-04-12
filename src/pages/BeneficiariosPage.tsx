@@ -282,6 +282,7 @@ function BeneficiarioModal({ b, localidades, onClose, toast }: { b?: Beneficiari
         telefono_principal: normalizeInput(form.telefono_principal.replace(/\s/g, '')) || undefined,
         telefono_secundario: normalizeInput(form.telefono_secundario.replace(/\s/g, '')) || undefined,
         coord_parcela: normalizeInput(form.coord_parcela) || undefined,
+        tecnico_id: user?.id ? String(user.id) : undefined,
       }
 
       const response = b
