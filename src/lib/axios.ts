@@ -14,6 +14,65 @@ const apiBaseUrl = /\/api\/v1$/i.test(resolvedApiUrl)
   ? resolvedApiUrl
   : `${resolvedApiUrl}${API_VERSION_PREFIX}`
 
+const SESSION_ID_KEY = 'campo_session_id'
+
+function generateSessionId(): string {
+  return `sess_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+}
+
+export function getSessionId(): string {
+  if (typeof window === 'undefined') return ''
+  
+  const urlParams = new URLSearchParams(window.location.search)
+  let sessionId = urlParams.get('sessionId')
+  
+  if (!sessionId) {
+    sessionId = window.sessionStorage.getItem(SESSION_ID_KEY)
+    if (!sessionId) {
+      sessionId = generateSessionId()
+      window.sessionStorage.setItem(SESSION_ID_KEY, sessionId)
+    }
+  } else {
+    window.sessionStorage.setItem(SESSION_ID_KEY, sessionId)
+  }
+  
+  return sessionId
+}
+
+export function getAuthKeys(sessionId?: string): { tokenKey: string; userKey: string; csrfKey: string } {
+  const sid = sessionId || getSessionId()
+  return {
+    tokenKey: `campo_auth_token_${sid}`,
+    userKey: `campo_auth_user_${sid}`,
+    csrfKey: `campo_csrf_token_${sid}`,
+  }
+}
+
+export function clearCurrentSession() {
+  const sid = getSessionId()
+  const { tokenKey, userKey, csrfKey } = getAuthKeys(sid)
+  window.sessionStorage.removeItem(tokenKey)
+  window.sessionStorage.removeItem(userKey)
+  window.sessionStorage.removeItem(csrfKey)
+}
+
+export function redirectToSharedSession() {
+  const currentUrl = new URL(window.location.href)
+  const sessionId = getSessionId()
+  
+  if (!currentUrl.searchParams.has('sessionId')) {
+    currentUrl.searchParams.set('sessionId', sessionId)
+    window.history.replaceState({}, '', currentUrl.toString())
+  }
+}
+
+export function getSharedUrl(): string {
+  const sessionId = getSessionId()
+  const url = new URL(window.location.origin + window.location.pathname)
+  url.searchParams.set('sessionId', sessionId)
+  return url.toString()
+}
+
 export const AUTH_TOKEN_KEY = 'campo_auth_token'
 export const AUTH_USER_KEY = 'campo_auth_user'
 
@@ -35,7 +94,8 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
 
 function getStoredTokenFromStorage(): string | null {
   if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(AUTH_TOKEN_KEY)
+  const { tokenKey } = getAuthKeys()
+  return window.sessionStorage.getItem(tokenKey)
 }
 
 export function getStoredToken(): string | null {
@@ -44,27 +104,34 @@ export function getStoredToken(): string | null {
 
 export function setStoredToken(token: string) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(AUTH_TOKEN_KEY, token)
+  const { tokenKey } = getAuthKeys()
+  window.sessionStorage.setItem(tokenKey, token)
 }
 
 export function clearStoredToken() {
   if (typeof window === 'undefined') return
-  window.localStorage.removeItem(AUTH_TOKEN_KEY)
+  const { tokenKey } = getAuthKeys()
+  window.sessionStorage.removeItem(tokenKey)
 }
 
 export function setStoredUser(user: unknown) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
+  const { userKey } = getAuthKeys()
+  window.sessionStorage.setItem(userKey, JSON.stringify(user))
 }
 
 export function clearStoredUser() {
   if (typeof window === 'undefined') return
-  window.localStorage.removeItem(AUTH_USER_KEY)
+  const { userKey } = getAuthKeys()
+  window.sessionStorage.removeItem(userKey)
 }
 
 export function clearAuthStorage() {
-  clearStoredToken()
-  clearStoredUser()
+  const sid = getSessionId()
+  const { tokenKey, userKey, csrfKey } = getAuthKeys(sid)
+  window.sessionStorage.removeItem(tokenKey)
+  window.sessionStorage.removeItem(userKey)
+  window.sessionStorage.removeItem(csrfKey)
 }
 
 export function extractToken(data: unknown): string | null {
@@ -88,16 +155,11 @@ export function saveAuthFromResponse(data: unknown) {
   if (user) setStoredUser(user)
 }
 
-const CSRF_TOKEN_KEY = 'campo_csrf_token'
-
-function getStoredCsrfToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(CSRF_TOKEN_KEY)
-}
 
 export function clearCsrfToken() {
   if (typeof window === 'undefined') return
-  window.localStorage.removeItem(CSRF_TOKEN_KEY)
+  const { csrfKey } = getAuthKeys()
+  window.sessionStorage.removeItem(csrfKey)
 }
 
 function normalizePath(url?: string): string {
@@ -121,12 +183,16 @@ export const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = getStoredTokenFromStorage()
-  const csrfToken = getStoredCsrfToken()
+  const sid = getSessionId()
+  const { tokenKey, csrfKey } = getAuthKeys(sid)
+  
+  const token = window.sessionStorage.getItem(tokenKey)
+  const csrfToken = window.sessionStorage.getItem(csrfKey)
   
   if (token) {
     config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
+    config.headers['X-Session-Id'] = sid
   }
   
   if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
@@ -155,7 +221,7 @@ api.interceptors.response.use(
       typeof window !== 'undefined' &&
       window.location.pathname !== '/login'
     ) {
-      clearAuthStorage()
+      clearCurrentSession()
       window.location.assign('/login')
     }
     return Promise.reject(err)
