@@ -55,6 +55,7 @@ interface Bitacora {
   fotos_campo_urls?: string[]
   pdf_actividades_url?: string
   pdf_actividades?: string
+  calificaciones?: string
 }
 
 function getPdfLinks(bit: unknown, id: string | number) {
@@ -152,7 +153,6 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   const assets = useMemo(() => getBitacoraAssets(bit), [bit])
   const imageAssets = assets.filter((asset) => asset.kind === 'image')
   const fileAssets = assets.filter((asset) => asset.kind !== 'image')
-  const bitacoraDateTime = getBitacoraDateTime(bit)
   const bitacoraLocation = getBitacoraLocation(bit)
   const registradoPor = pickBitacoraText(bit, ['usuario_nombre', 'usuario', 'tecnico_nombre', 'tecnico', 'registrado_por', 'created_by'])
   const beneficiarioDetalle = [pickBitacoraText(bit, ['beneficiario_nombre', 'beneficiario']), pickBitacoraText(bit, ['beneficiario_municipio', 'municipio']), pickBitacoraText(bit, ['beneficiario_localidad', 'localidad'])]
@@ -225,7 +225,8 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                 {[
                   ['Beneficiario', beneficiarioDetalle || '—'],
                   ['Usuario registro', registradoPor ?? '—'],
-                  ['Fecha y hora', formatDateTime(bitacoraDateTime)],
+                  ['Fecha inicio', formatDateTime(bit.fecha_inicio)],
+                  ['Fecha término', formatDateTime(bit.fecha_fin)],
                   ['Estado', bit.estado ?? '—'],
                   ['Tipo', bit.tipo ?? '—'],
                   ['Actividad', bit.actividad ?? '—'],
@@ -293,32 +294,46 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                 </div>
               )}
 
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Notas</div>
-                  {bit.estado === 'borrador' && !editNotas && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => { setNotas(bit.notas ?? bit.observaciones ?? bit.observaciones_coordinador ?? ''); setEditNotas(true) }}>
-                      <Pencil size={12} /> Editar
-                    </button>
+<div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Notas</div>
+                    {bit.estado === 'borrador' && !editNotas && (
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setNotas(bit.notas ?? bit.observaciones ?? ''); setEditNotas(true) }}>
+                        <Pencil size={12} /> Editar
+                      </button>
+                    )}
+                  </div>
+                  {feedback && <div style={{ marginBottom: 8 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
+                  {editNotas ? (
+                    <>
+                      <textarea className="input" rows={4} value={notas} onChange={e => setNotas(e.target.value)} style={{ resize: 'vertical' }} />
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => saveNotas.mutate()} disabled={saveNotas.isPending}>
+                          {saveNotas.isPending ? <span className="spinner" /> : <Save size={12} />} Guardar
+                        </button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setEditNotas(false)}>Cancelar</button>
+                      </div>
+                    </>
+                  ) : (
+                    <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
+                      {bit.notas ?? bit.observaciones ?? bit.actividades_realizadas ?? bit.actividades_desc ?? <em style={{ color: 'var(--gray-300)' }}>Sin notas</em>}
+                    </p>
                   )}
                 </div>
-                {feedback && <div style={{ marginBottom: 8 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
-                {editNotas ? (
-                  <>
-                    <textarea className="input" rows={4} value={notas} onChange={e => setNotas(e.target.value)} style={{ resize: 'vertical' }} />
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                      <button className="btn btn-primary btn-sm" onClick={() => saveNotas.mutate()} disabled={saveNotas.isPending}>
-                        {saveNotas.isPending ? <span className="spinner" /> : <Save size={12} />} Guardar
-                      </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => setEditNotas(false)}>Cancelar</button>
-                    </div>
-                  </>
-                ) : (
-                  <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
-                    {bit.notas ?? bit.observaciones ?? bit.observaciones_coordinador ?? bit.actividades_realizadas ?? bit.actividades_desc ?? <em style={{ color: 'var(--gray-300)' }}>Sin notas</em>}
-                  </p>
+
+                {bit.observaciones_coordinador && (
+                  <div className="card modal-soft-section" style={{ padding: 14, borderLeft: '4px solid var(--dorado)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--dorado-dark)', textTransform: 'uppercase', marginBottom: 8 }}>Observaciones del Coordinador</div>
+                    <p style={{ fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.6 }}>{bit.observaciones_coordinador}</p>
+                  </div>
                 )}
-              </div>
+
+                {bit.calificaciones && (
+                  <div className="card modal-soft-section" style={{ padding: 14, borderLeft: '4px solid var(--success)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--success)', textTransform: 'uppercase', marginBottom: 8 }}>Calificaciones</div>
+                    <p style={{ fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.6 }}>{bit.calificaciones}</p>
+                  </div>
+                )}
             </div>
           )}
         </div>

@@ -36,6 +36,7 @@ export interface Bitacora {
   pdf_actividades_url?: string
   created_at?: string
   updated_at?: string
+  calificaciones?: string
 }
 
 export interface PdfEdicion {
