@@ -64,6 +64,22 @@ function getPdfLinks(bit: unknown, id: string | number) {
   return { viewUrl, downloadUrl }
 }
 
+async function openPdfInNewTab(url: string) {
+  const token = localStorage.getItem('campo_auth_token')
+  try {
+    const response = await fetch(url, {
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        'Origin': window.location.origin
+      }
+    })
+    if (!response.ok) throw new Error('Error al cargar PDF')
+    const blob = await response.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    window.open(blobUrl, '_blank')
+  } catch { alert('Error al abrir PDF') }
+}
+
 function getBitacoraAssets(bit: unknown): AssetItem[] {
   if (!isRecord(bit)) return []
 
@@ -176,22 +192,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   })
 
   const downloadPdf = useMutation({
-    mutationFn: async () => {
-      const token = localStorage.getItem('campo_auth_token')
-      const response = await fetch(pdfLinks.downloadUrl, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!response.ok) throw new Error('Error al descargar')
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `bitacora-${id}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(url)
-    },
+    mutationFn: () => bitacorasService.downloadPdf(id),
     onSuccess: () => setFeedback({ kind: 'success', message: 'PDF descargado correctamente.' }),
     onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo descargar el PDF.') }),
   })
@@ -202,9 +203,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
         <div className="modal-header">
           <h3>Bitácora #{id}</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <a href={pdfLinks.viewUrl} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+            <button className="btn btn-secondary btn-sm" onClick={() => openPdfInNewTab(pdfLinks.viewUrl)}>
               <Eye size={13} /> Ver PDF
-            </a>
+            </button>
             <button className="btn btn-primary btn-sm" onClick={() => downloadPdf.mutate()} disabled={downloadPdf.isPending}>
               {downloadPdf.isPending ? <><span className="spinner" />Descargando...</> : <><Download size={13} /> Descargar</>}
             </button>
