@@ -1,23 +1,89 @@
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function findNestedValue(
+  source: unknown,
+  matcher: (value: unknown) => boolean,
+  visited = new WeakSet<object>(),
+): unknown {
+  if (matcher(source)) return source
+  if (!isObjectRecord(source)) return undefined
+  if (visited.has(source)) return undefined
+
+  visited.add(source)
+
+  for (const value of Object.values(source)) {
+    const found = findNestedValue(value, matcher, visited)
+    if (found !== undefined) return found
+  }
+
+  return undefined
+}
+
+function getByPath(source: unknown, path: string): unknown {
+  return path
+    .split('.')
+    .filter(Boolean)
+    .reduce<unknown>((current, segment) => {
+      if (!isObjectRecord(current)) return undefined
+      return current[segment]
+    }, source)
+}
+
+function findNestedPropertyValue(
+  source: unknown,
+  key: string,
+  matcher: (value: unknown) => boolean,
+  visited = new WeakSet<object>(),
+): unknown {
+  if (!isObjectRecord(source)) return undefined
+  if (visited.has(source)) return undefined
+
+  visited.add(source)
+
+  const directValue = source[key]
+  if (matcher(directValue)) return directValue
+
+  for (const value of Object.values(source)) {
+    const found = findNestedPropertyValue(value, key, matcher, visited)
+    if (found !== undefined) return found
+  }
+
+  return undefined
+}
+
 export function pickArray<T>(source: unknown, keys: string[] = []): T[] {
   if (Array.isArray(source)) return source as T[]
-  if (!source || typeof source !== 'object') return []
+  if (!isObjectRecord(source)) return []
 
-  const record = source as Record<string, unknown>
   for (const key of keys) {
-    const value = record[key]
-    if (Array.isArray(value)) return value as T[]
+    const directValue = getByPath(source, key)
+    if (Array.isArray(directValue)) return directValue as T[]
+
+    const nestedValue = findNestedPropertyValue(source, key, Array.isArray)
+    if (Array.isArray(nestedValue)) return nestedValue as T[]
   }
-  return []
+
+  const fallbackNestedArray = findNestedValue(source, Array.isArray)
+  return Array.isArray(fallbackNestedArray) ? fallbackNestedArray as T[] : []
 }
 
 export function pickNumber(source: unknown, keys: string[], fallback = 0): number {
-  if (!source || typeof source !== 'object') return fallback
-  const record = source as Record<string, unknown>
+  if (!isObjectRecord(source)) return fallback
 
   for (const key of keys) {
-    const value = record[key]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
+    const directValue = getByPath(source, key)
+    if (typeof directValue === 'number' && Number.isFinite(directValue)) return directValue
+
+    const nestedValue = findNestedPropertyValue(
+      source,
+      key,
+      (value) => typeof value === 'number' && Number.isFinite(value),
+    )
+    if (typeof nestedValue === 'number' && Number.isFinite(nestedValue)) return nestedValue
   }
+
   return fallback
 }
 
