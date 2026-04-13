@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authService } from '../lib/servicios/auth'
-import { clearAuthStorage, redirectToSharedSession } from '../lib/axios'
+import { clearAuthStorage } from '../lib/axios'
 import { canAccessWebApp } from '../lib/authz'
 
 interface User {
@@ -54,8 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    redirectToSharedSession()
-    
     const checkAuth = async () => {
       try {
         const userData = await authService.me()

@@ -24,15 +24,16 @@ export function getSessionId(): string {
   if (typeof window === 'undefined') return ''
   
   const urlParams = new URLSearchParams(window.location.search)
-  let sessionId = urlParams.get('sessionId')
+  const urlSessionId = urlParams.get('sessionId')
   
+  if (urlSessionId) {
+    window.sessionStorage.setItem(SESSION_ID_KEY, urlSessionId)
+    return urlSessionId
+  }
+  
+  let sessionId = window.sessionStorage.getItem(SESSION_ID_KEY)
   if (!sessionId) {
-    sessionId = window.sessionStorage.getItem(SESSION_ID_KEY)
-    if (!sessionId) {
-      sessionId = generateSessionId()
-      window.sessionStorage.setItem(SESSION_ID_KEY, sessionId)
-    }
-  } else {
+    sessionId = generateSessionId()
     window.sessionStorage.setItem(SESSION_ID_KEY, sessionId)
   }
   
