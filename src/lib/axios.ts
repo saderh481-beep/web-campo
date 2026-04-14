@@ -178,7 +178,7 @@ function normalizePath(url?: string): string {
 export const api = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
-  timeout: 15000,
+  timeout: 8000,
   xsrfCookieName: 'campo_csrf',
   xsrfHeaderName: 'X-CSRF-Token',
 })

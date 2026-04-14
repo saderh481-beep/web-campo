@@ -27,7 +27,7 @@ export const passwordSchema = z
 
 export const telefonoSchema = z
   .string()
-  .regex(/^[\d\s\-\+\(\)]+$/, 'Teléfono inválido')
+  .regex(/^[\d\s+()-]+$/, 'Teléfono inválido')
   .max(20)
 
 export const nombreSchema = z

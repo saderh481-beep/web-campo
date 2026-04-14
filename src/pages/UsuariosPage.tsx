@@ -191,7 +191,7 @@ function UsuarioModal({
         setForm(prev => ({ ...prev, codigo_acceso: newId }))
         setErr('')
       }
-    } catch (error) {
+    } catch {
       setErr('No se pudo generar un ID único. Por favor, intente de nuevo.')
     }
   }
@@ -468,4 +468,5 @@ export default function UsuariosPage() {
     </div>
   )
 }
+
 

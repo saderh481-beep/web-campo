@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return
         }
         setUser(normalizedUser)
-      } catch (error) {
+      } catch {
         clearAuthStorage()
         setUser(null)
       } finally {
