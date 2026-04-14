@@ -193,7 +193,6 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers = config.headers ?? {}
     config.headers.Authorization = `Bearer ${token}`
-    config.headers['X-Session-Id'] = sid
   }
   
   if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method || '')) {
