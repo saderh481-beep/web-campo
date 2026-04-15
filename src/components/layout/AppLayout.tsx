@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal } from 'lucide-react'
+import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal, Home } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { canViewActividades, canViewAsignaciones, canViewBeneficiarios, canViewBitacoras, canViewCadenas, canViewDashboard, canViewNotifications, canViewReports, canViewTecnicos, canManageUsers, canViewLocalidades, canViewConfiguraciones, canViewDocumentosPlantilla, canViewArchive } from '../../lib/authz'
 import { notificacionesService } from '../../lib/servicios/extra'
@@ -19,21 +19,66 @@ interface NotificacionesResponse {
   notificaciones?: Notificacion[]
 }
 
-const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true, allow: canViewDashboard },
-  { to: '/usuarios', label: 'Usuarios', icon: Settings, allow: canManageUsers },
-  { to: '/tecnicos', label: 'Técnicos', icon: UserCheck, allow: canViewTecnicos },
-  { to: '/beneficiarios', label: 'Beneficiarios', icon: Users, allow: canViewBeneficiarios },
-  { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen, allow: canViewBitacoras },
-  { to: '/cadenas', label: 'Cadenas Productivas', icon: Layers, allow: canViewCadenas },
-  { to: '/reportes', label: 'Reportes', icon: FileBarChart, allow: canViewReports },
-  { to: '/actividades', label: 'Actividades', icon: ClipboardList, allow: canViewActividades },
-  { to: '/asignaciones', label: 'Asignaciones', icon: Link2, allow: canViewAsignaciones },
-  { to: '/localidades', label: 'Localidades', icon: MapPin, allow: canViewLocalidades },
-  { to: '/documentos-plantilla', label: 'Documentos Plantilla', icon: FileBadge2, allow: canViewDocumentosPlantilla },
-  { to: '/configuraciones', label: 'Configuraciones', icon: SlidersHorizontal, allow: canViewConfiguraciones },
-  { to: '/archive', label: 'Archive', icon: Archive, allow: canViewArchive },
+interface MenuItem {
+  to: string
+  label: string
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+  end?: boolean
+  allow: (rol?: string) => boolean
+}
+
+interface MenuSection {
+  title: string
+  items: MenuItem[]
+  icon?: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+}
+
+const MENU_SECTIONS: MenuSection[] = [
+  {
+    title: "Inicio",
+    icon: Home,
+    items: [
+      { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true, allow: canViewDashboard },
+    ],
+  },
+  {
+    title: "Gestión",
+    items: [
+      { to: '/usuarios', label: 'Usuarios', icon: Settings, allow: canManageUsers },
+      { to: '/tecnicos', label: 'Técnicos', icon: UserCheck, allow: canViewTecnicos },
+      { to: '/beneficiarios', label: 'Beneficiarios', icon: Users, allow: canViewBeneficiarios },
+      { to: '/localidades', label: 'Localidades', icon: MapPin, allow: canViewLocalidades },
+    ],
+  },
+  {
+    title: "Operación",
+    items: [
+      { to: '/bitacoras', label: 'Bitácoras', icon: BookOpen, allow: canViewBitacoras },
+      { to: '/cadenas', label: 'Cadenas Productivas', icon: Layers, allow: canViewCadenas },
+      { to: '/actividades', label: 'Actividades', icon: ClipboardList, allow: canViewActividades },
+    ],
+  },
+  {
+    title: "Documentación",
+    items: [
+      { to: '/documentos-plantilla', label: 'Documentos Plantilla', icon: FileBadge2, allow: canViewDocumentosPlantilla },
+      { to: '/reportes', label: 'Reportes', icon: FileBarChart, allow: canViewReports },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
+      { to: '/configuraciones', label: 'Configuraciones', icon: SlidersHorizontal, allow: canViewConfiguraciones },
+      { to: '/archive', label: 'Archive', icon: Archive, allow: canViewArchive },
+    ],
+  },
 ]
+
+
+
+function getVisibleItems(section: MenuSection, rol?: string): MenuItem[] {
+  return section.items.filter((item) => item.allow(rol))
+}
 
 export default function AppLayout() {
   const { user, logout } = useAuth()
@@ -45,11 +90,19 @@ export default function AppLayout() {
   )
   const [menuOpen, setMenuOpen] = useState(false)
   const [asignacionesOpen, setAsignacionesOpen] = useState(() => location.pathname.startsWith('/asignaciones'))
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
 
   const canSeeNotifications = canViewNotifications(user?.rol)
-  const visibleNav = NAV.filter(({ allow }) => allow(user?.rol))
-  const showAsignacionesGroup = visibleNav.some((item) => item.to === '/asignaciones')
-  const regularNav = visibleNav.filter((item) => item.to !== '/asignaciones')
+  const showAsignacionesGroup = canViewAsignaciones(user?.rol)
+
+  const visibleSections = MENU_SECTIONS.map((section) => ({
+    ...section,
+    items: getVisibleItems(section, user?.rol),
+  })).filter((section) => section.items.length > 0)
+
+  const toggleSection = (title: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [title]: !prev[title] }))
+  }
 
   const notifData = useQuery({
     queryKey: ['notificaciones'],
@@ -115,38 +168,85 @@ export default function AppLayout() {
         </div>
 
         <nav style={s.nav}>
-          {regularNav.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to} to={to} end={end}
-              style={({ isActive }) => ({ ...s.navItem, ...(isActive ? s.navActive : {}) })}
-              onClick={() => isMobile && setMenuOpen(false)}
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && <span style={s.activeLine} />}
-                  <Icon size={18} style={{ flexShrink: 0 }} />
-                  <span>{label}</span>
-                  {isActive && <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.4 }} />}
-                </>
-              )}
-            </NavLink>
-          ))}
+          {visibleSections.map((section) => {
+            const SectionIcon = section.icon
+            const isCollapsed = collapsedSections[section.title]
+            const showHeader = visibleSections.length > 1
+
+            return (
+              <div key={section.title} style={s.section}>
+                {showHeader && (
+                  <button
+                    type="button"
+                    style={s.sectionHeader}
+                    onClick={() => toggleSection(section.title)}
+                  >
+                    {SectionIcon && (
+                      <SectionIcon size={14} style={s.sectionIcon} />
+                    )}
+                    <span style={s.sectionTitle}>{section.title}</span>
+                    <ChevronRight
+                      size={12}
+                      style={{
+                        ...s.sectionChevron,
+                        transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)',
+                      }}
+                    />
+                  </button>
+                )}
+                {(!isCollapsed || !showHeader) && (
+                  <div style={s.sectionItems}>
+                    {section.items.map(({ to, label, icon: Icon, end }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={end}
+                        style={({ isActive }) => ({
+                          ...s.navItem,
+                          ...(isActive ? s.navActive : {}),
+                        })}
+                        onClick={() => isMobile && setMenuOpen(false)}
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive && <span style={s.activeLine} />}
+                            <Icon size={18} style={{ flexShrink: 0 }} />
+                            <span>{label}</span>
+                            {isActive && (
+                              <ChevronRight
+                                size={14}
+                                style={{ marginLeft: 'auto', opacity: 0.4 }}
+                              />
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
 
           {showAsignacionesGroup && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={s.section}>
               <button
                 type="button"
-                style={{ ...s.navItem, ...(location.pathname.startsWith('/asignaciones') ? s.navActive : {}), border: 'none', width: '100%', textAlign: 'left' }}
+                style={s.sectionHeader}
                 onClick={() => setAsignacionesOpen((prev) => !prev)}
               >
-                {location.pathname.startsWith('/asignaciones') && <span style={s.activeLine} />}
-                <Link2 size={18} style={{ flexShrink: 0 }} />
-                <span>Asignaciones</span>
-                <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: 0.6, transform: asignacionesOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }} />
+                <Link2 size={14} style={s.sectionIcon} />
+                <span style={s.sectionTitle}>Asignaciones</span>
+                <ChevronRight
+                  size={12}
+                  style={{
+                    ...s.sectionChevron,
+                    transform: asignacionesOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                  }}
+                />
               </button>
-
               {asignacionesOpen && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginLeft: 12 }}>
+                <div style={s.sectionItems}>
                   {[
                     { to: '/asignaciones/coordinador-tecnico', label: 'Coordinador -> Técnico' },
                     { to: '/asignaciones/tecnico-beneficiario', label: 'Técnico -> Beneficiario' },
@@ -301,13 +401,58 @@ const s: Record<string, React.CSSProperties> = {
   logoName: { fontSize: 18, fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.01em' },
   logoSub: { fontSize: 10, color: '#DDC9A3', fontWeight: 600, letterSpacing: '0.01em', textTransform: 'uppercase' },
   logoGov: { fontSize: 10, color: '#DDC9A3', fontWeight: 500, letterSpacing: '0.01em' },
-  nav: { flex: 1, overflowY: 'auto', padding: '18px 14px', display: 'flex', flexDirection: 'column', gap: 6 },
+  nav: { flex: 1, overflowY: 'auto', padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 4 },
+  section: {
+    display: 'flex',
+    flexDirection: 'column',
+    marginBottom: 4,
+  },
+  sectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 12px',
+    background: 'rgba(221, 201, 163, 0.15)',
+    border: 'none',
+    borderRadius: 8,
+    cursor: 'pointer',
+    color: '#DDC9A3',
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    transition: 'all 0.15s ease',
+    width: '100%',
+    textAlign: 'left',
+  },
+  sectionIcon: {
+    flexShrink: 0,
+    opacity: 0.8,
+  },
+  sectionTitle: {
+    flex: 1,
+  },
+  sectionChevron: {
+    flexShrink: 0,
+    opacity: 0.6,
+    transition: 'transform 0.15s ease',
+  },
+  sectionItems: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    marginTop: 4,
+  },
   navItem: {
     display: 'flex', alignItems: 'center', gap: 10,
     padding: '11px 14px', borderRadius: 10, fontSize: 13,
     fontWeight: 600, color: '#F7EEE0',
     textDecoration: 'none', transition: 'all 0.15s',
     position: 'relative', cursor: 'pointer',
+    background: 'transparent',
+    border: 'none',
+    width: '100%',
+    textAlign: 'left',
   },
   navActive: {
     color: '#5A0F26', background: '#F0DFBF',
@@ -395,7 +540,3 @@ const s: Record<string, React.CSSProperties> = {
   notifUnread: { background: '#F5F5F5' },
   dot: { width: 6, height: 6, borderRadius: '50%', background: '#A02142', flexShrink: 0, marginTop: 4 },
 }
-
-
-
-
