@@ -10,6 +10,7 @@ import { canManageAsignaciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import { ChevronDown, ChevronRight, Clipboard, Link2, Pencil, Trash2, Users } from 'lucide-react'
 
 interface Tecnico {
@@ -616,43 +617,31 @@ export default function AsignacionesPage() {
             isOpen={openSections.coordinadorTecnico}
             onToggle={() => setOpenSections((prev) => ({ ...prev, coordinadorTecnico: !prev.coordinadorTecnico }))}
           >
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Técnico</th><th>Coordinador</th><th>Fecha límite</th><th>Corte</th><th>Estado</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {loadingTables ? (
-                    Array(3).fill(0).map((_, i) => <tr key={i}>{Array(6).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>)
-                  ) : coordinadorTecnico.length === 0 ? (
-                    <tr><td colSpan={6}><div className="empty-state"><p>Sin asignaciones coordinador-técnico.</p></div></td></tr>
-                  ) : coordinadorTecnico.map((row) => {
-                    const tecnicoNombre = row.tecnico_nombre ?? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id
-                    const coordinadorNombre = row.coordinador_nombre ?? (row.coordinador_id ? coordinadorMap.get(String(row.coordinador_id)) : undefined) ?? '—'
-                    return (
-                      <tr key={row.tecnico_id}>
-                        <td style={{ fontWeight: 600 }}>{tecnicoNombre}</td>
-                        <td>{coordinadorNombre}</td>
-                        <td>{formatDate(row.fecha_limite)}</td>
-                        <td><span className={`badge badge-${row.estado_corte === 'corte_aplicado' ? 'amber' : row.estado_corte === 'baja' ? 'gray' : 'green'}`}>{row.estado_corte ?? 'en_servicio'}</span></td>
-                        <td><span className={`badge badge-${isActive(row.activo) ? 'green' : 'gray'}`}>{isActive(row.activo) ? 'Activa' : 'Inactiva'}</span></td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'coordinador', row })}><Pencil size={13} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending || !row.tecnico_id} onClick={() => {
-                              if (!row.tecnico_id) return
-                              if (confirm(`¿Eliminar la asignación de ${tecnicoNombre}?`)) {
-                                deleteMutation.mutate({ kind: 'coordinador', id: row.tecnico_id })
-                              }
-                            }}><Trash2 size={13} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                { key: 'tecnico', header: 'Técnico', render: (row: typeof coordinadorTecnico[0]) => <span style={{ fontWeight: 600 }}>{row.tecnico_nombre ?? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id}</span> },
+                { key: 'coordinador', header: 'Coordinador', render: (row: typeof coordinadorTecnico[0]) => row.coordinador_nombre ?? (row.coordinador_id ? coordinadorMap.get(String(row.coordinador_id)) : undefined) ?? '—' },
+                { key: 'fecha_limite', header: 'Fecha límite', render: (row: typeof coordinadorTecnico[0]) => formatDate(row.fecha_limite) },
+                { key: 'estado_corte', header: 'Corte', render: (row: typeof coordinadorTecnico[0]) => <span className={`badge badge-${row.estado_corte === 'corte_aplicado' ? 'warning' : row.estado_corte === 'baja' ? 'gray' : 'success'}`}>{row.estado_corte ?? 'en_servicio'}</span> },
+                { key: 'activo', header: 'Estado', render: (row: typeof coordinadorTecnico[0]) => <span className={`badge badge-${isActive(row.activo) ? 'success' : 'gray'}`}>{isActive(row.activo) ? 'Activa' : 'Inactiva'}</span> },
+              ]}
+              data={coordinadorTecnico}
+              keyField="tecnico_id"
+              loading={loadingTables}
+              emptyMessage="Sin asignaciones coordinador-técnico"
+              pageSize={5}
+              renderActions={(row: typeof coordinadorTecnico[0]) => (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'coordinador', row })} title="Editar"><Pencil size={13} /></button>
+                  <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending || !row.tecnico_id} onClick={() => {
+                    if (!row.tecnico_id) return
+                    if (confirm(`¿Eliminar la asignación de ${row.tecnico_nombre ?? row.tecnico_id}?`)) {
+                      deleteMutation.mutate({ kind: 'coordinador', id: row.tecnico_id })
+                    }
+                  }} title="Eliminar"><Trash2 size={13} /></button>
+                </div>
+              )}
+            />
           </CollapsibleSection>
           )}
 
@@ -664,38 +653,26 @@ export default function AsignacionesPage() {
             isOpen={openSections.tecnicoBeneficiario}
             onToggle={() => setOpenSections((prev) => ({ ...prev, tecnicoBeneficiario: !prev.tecnicoBeneficiario }))}
           >
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Técnico</th><th>Beneficiario</th><th>Asignado</th><th>Removido</th><th>Estado</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {loadingTables ? (
-                    Array(3).fill(0).map((_, i) => <tr key={i}>{Array(6).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>)
-                  ) : asignacionesBeneficiario.length === 0 ? (
-                    <tr><td colSpan={6}><div className="empty-state"><p>Sin asignaciones técnico-beneficiario.</p></div></td></tr>
-                  ) : asignacionesBeneficiario.map((row) => {
-                    const tecnicoNombre = row.tecnico_id ? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id : '—'
-                    const beneficiarioNombre = row.beneficiario_id ? beneficiarioMap.get(String(row.beneficiario_id)) ?? row.beneficiario_id : '—'
-                    return (
-                      <tr key={row.id}>
-                        <td style={{ fontWeight: 600 }}>{tecnicoNombre}</td>
-                        <td>{beneficiarioNombre}</td>
-                        <td>{formatDateTime(row.asignado_en)}</td>
-                        <td>{formatDateTime(row.removido_en)}</td>
-                        <td><span className={`badge badge-${isActive(row.activo) ? 'green' : 'gray'}`}>{isActive(row.activo) ? 'Activa' : 'Inactiva'}</span></td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'beneficiario', row })}><Pencil size={13} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending} onClick={() => confirm(`¿Eliminar la asignación de ${beneficiarioNombre}?`) && deleteMutation.mutate({ kind: 'beneficiario', id: row.id })}><Trash2 size={13} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                { key: 'tecnico', header: 'Técnico', render: (row: typeof asignacionesBeneficiario[0]) => <span style={{ fontWeight: 600 }}>{row.tecnico_id ? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id : '—'}</span> },
+                { key: 'beneficiario', header: 'Beneficiario', render: (row: typeof asignacionesBeneficiario[0]) => row.beneficiario_id ? beneficiarioMap.get(String(row.beneficiario_id)) ?? row.beneficiario_id : '—' },
+                { key: 'asignado_en', header: 'Asignado', render: (row: typeof asignacionesBeneficiario[0]) => formatDateTime(row.asignado_en) },
+                { key: 'removido_en', header: 'Removido', render: (row: typeof asignacionesBeneficiario[0]) => formatDateTime(row.removido_en) },
+                { key: 'activo', header: 'Estado', render: (row: typeof asignacionesBeneficiario[0]) => <span className={`badge badge-${isActive(row.activo) ? 'success' : 'gray'}`}>{isActive(row.activo) ? 'Activa' : 'Inactiva'}</span> },
+              ]}
+              data={asignacionesBeneficiario}
+              keyField="id"
+              loading={loadingTables}
+              emptyMessage="Sin asignaciones técnico-beneficiario"
+              pageSize={5}
+              renderActions={(row: typeof asignacionesBeneficiario[0]) => (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'beneficiario', row })} title="Editar"><Pencil size={13} /></button>
+                  <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending} onClick={() => confirm(`¿Eliminar la asignación de ${row.beneficiario_id}?`) && deleteMutation.mutate({ kind: 'beneficiario', id: row.id })} title="Eliminar"><Trash2 size={13} /></button>
+                </div>
+              )}
+            />
           </CollapsibleSection>
           )}
 
@@ -707,38 +684,26 @@ export default function AsignacionesPage() {
             isOpen={openSections.tecnicoActividad}
             onToggle={() => setOpenSections((prev) => ({ ...prev, tecnicoActividad: !prev.tecnicoActividad }))}
           >
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr><th>Técnico</th><th>Actividad</th><th>Asignado</th><th>Removido</th><th>Estado</th><th></th></tr>
-                </thead>
-                <tbody>
-                  {loadingTables ? (
-                    Array(3).fill(0).map((_, i) => <tr key={i}>{Array(6).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>)
-                  ) : asignacionesActividad.length === 0 ? (
-                    <tr><td colSpan={6}><div className="empty-state"><p>Sin asignaciones técnico-actividad.</p></div></td></tr>
-                  ) : asignacionesActividad.map((row) => {
-                    const tecnicoNombre = row.tecnico_id ? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id : '—'
-                    const actividadNombre = row.actividad_id ? actividadMap.get(String(row.actividad_id)) ?? row.actividad_id : '—'
-                    return (
-                      <tr key={row.id}>
-                        <td style={{ fontWeight: 600 }}>{tecnicoNombre}</td>
-                        <td>{actividadNombre}</td>
-                        <td>{formatDateTime(row.asignado_en)}</td>
-                        <td>{formatDateTime(row.removido_en)}</td>
-                        <td><span className={`badge badge-${isActive(row.activo) ? 'green' : 'gray'}`}>{isActive(row.activo) ? 'Activa' : 'Inactiva'}</span></td>
-                        <td>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'actividad', row })}><Pencil size={13} /></button>
-                            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending} onClick={() => confirm(`¿Eliminar la asignación de ${actividadNombre}?`) && deleteMutation.mutate({ kind: 'actividad', id: row.id })}><Trash2 size={13} /></button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                { key: 'tecnico', header: 'Técnico', render: (row: typeof asignacionesActividad[0]) => <span style={{ fontWeight: 600 }}>{row.tecnico_id ? tecnicoMap.get(String(row.tecnico_id)) ?? row.tecnico_id : '—'}</span> },
+                { key: 'actividad', header: 'Actividad', render: (row: typeof asignacionesActividad[0]) => row.actividad_id ? actividadMap.get(String(row.actividad_id)) ?? row.actividad_id : '—' },
+                { key: 'asignado_en', header: 'Asignado', render: (row: typeof asignacionesActividad[0]) => formatDateTime(row.asignado_en) },
+                { key: 'removido_en', header: 'Removido', render: (row: typeof asignacionesActividad[0]) => formatDateTime(row.removido_en) },
+                { key: 'activo', header: 'Estado', render: (row: typeof asignacionesActividad[0]) => <span className={`badge badge-${isActive(row.activo) ? 'success' : 'gray'}`}>{isActive(row.activo) ? 'Activa' : 'Inactiva'}</span> },
+              ]}
+              data={asignacionesActividad}
+              keyField="id"
+              loading={loadingTables}
+              emptyMessage="Sin asignaciones técnico-actividad"
+              pageSize={5}
+              renderActions={(row: typeof asignacionesActividad[0]) => (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditState({ kind: 'actividad', row })} title="Editar"><Pencil size={13} /></button>
+                  <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={deleteMutation.isPending} onClick={() => confirm(`¿Eliminar la asignación de ${row.actividad_id}?`) && deleteMutation.mutate({ kind: 'actividad', id: row.id })} title="Eliminar"><Trash2 size={13} /></button>
+                </div>
+              )}
+            />
           </CollapsibleSection>
           )}
         </>

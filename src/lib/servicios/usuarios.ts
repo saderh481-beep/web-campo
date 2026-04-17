@@ -9,6 +9,7 @@ export interface Usuario {
   telefono?: string
   coordinador_id?: string
   fecha_limite?: string
+  codigo_acceso?: string
   created_at?: string
   updated_at?: string
 }
@@ -58,6 +59,12 @@ export const usuariosService = {
    * @error 400: {"error": "Código debe 5/6 dig rol"}, 409 dup
    */
   update: (id: string | number, data: UsuarioPayload) => api.patch<Usuario>(`/usuarios/${id}`, data),
+
+  /**
+   * POST /usuarios/:id/codigo — Generate new access code (admin)
+   * @returns {"message": "Código regenerado", "codigo": "12345"}
+   */
+  generarCodigoAcceso: (id: string | number) => api.post<{ message: string; codigo: string }>(`/usuarios/${id}/codigo`),
 
   /**
    * DELETE /usuarios/:id — Soft deactivate

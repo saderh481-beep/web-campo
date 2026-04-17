@@ -184,16 +184,39 @@ function UsuarioModal({
     return payload
   }
 
-  const generateId = () => {
-    try {
-      const existingIds = usuarios.map(u => u.codigo_acceso).filter(Boolean) as string[]
-      const newId = generateUniqueId(form.rol, existingIds)
-      if (newId) {
-        setForm(prev => ({ ...prev, codigo_acceso: newId }))
+  const generateIdMutation = useMutation({
+    mutationFn: async () => {
+      if (u?.id) {
+        const response = await usuariosService.generarCodigoAcceso(u.id)
+        return response.data.codigo
+      }
+      return null
+    },
+    onSuccess: (codigo) => {
+      if (codigo) {
+        setForm(prev => ({ ...prev, codigo_acceso: codigo }))
         setErr('')
       }
-    } catch {
-      setErr('No se pudo generar un ID único. Por favor, intente de nuevo.')
+    },
+    onError: () => {
+      setErr('No se pudo generar el código. Por favor, intente de nuevo.')
+    }
+  })
+
+  const generateId = () => {
+    if (u?.id) {
+      generateIdMutation.mutate()
+    } else {
+      try {
+        const existingIds = usuarios.map(u => u.codigo_acceso).filter(Boolean) as string[]
+        const newId = generateUniqueId(form.rol, existingIds)
+        if (newId) {
+          setForm(prev => ({ ...prev, codigo_acceso: newId }))
+          setErr('')
+        }
+      } catch {
+        setErr('No se pudo generar un ID único. Por favor, intente de nuevo.')
+      }
     }
   }
 
@@ -279,13 +302,23 @@ function UsuarioModal({
                 value={form.codigo_acceso}
                 onChange={e => setForm(p => ({ ...p, codigo_acceso: e.target.value.replace(/\D/g, '').slice(0, getRequiredIdLength(p.rol)) }))}
               />
-              {!u && (
+              {!u ? (
                 <button 
                   className="btn btn-secondary btn-sm" 
                   onClick={generateId}
                   title="Generar ID único automáticamente"
                 >
                   <RefreshCw size={13} /> Generar
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={generateId}
+                  disabled={generateIdMutation.isPending}
+                  title="Regenerar código de acceso"
+                >
+                  <RefreshCw size={13} style={{ animation: generateIdMutation.isPending ? 'spin 0.7s linear infinite' : 'none' }} />
+                  {generateIdMutation.isPending ? 'Generando...' : 'Regenerar'}
                 </button>
               )}
             </div>

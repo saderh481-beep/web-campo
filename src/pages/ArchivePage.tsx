@@ -4,6 +4,7 @@ import { archiveService } from '../lib/servicios/extra'
 import { getApiErrorMessage } from '../lib/axios'
 import { Download, RefreshCw, CheckCircle2 } from 'lucide-react'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface ArchiveRow {
@@ -108,42 +109,30 @@ export default function ArchivePage() {
         </div>
       )}
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Periodo</th><th>Estado</th><th>Creado</th><th>Descarga</th><th>Acciones</th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(5).fill(0).map((_, i) => (
-              <tr key={i}>{Array(5).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : rowsFiltradas.length === 0 ? (
-              <tr><td colSpan={5}><div className="empty-state"><p>Sin registros de archive</p></div></td></tr>
-            ) : rowsFiltradas.map((row) => {              const periodoRow = row.periodo
-              return (
-                <tr key={String(row.id ?? `${periodoRow}-${row.created_at ?? ''}`)}>
-                  <td style={{ fontWeight: 600 }}>{periodoRow}</td>
-                  <td><span className="badge badge-guinda">{row.estado ?? 'sin estado'}</span></td>
-                  <td style={{ color: 'var(--gray-500)' }}>{row.created_at ? new Date(row.created_at).toLocaleString('es-MX') : '—'}</td>
-                  <td>
-                    <button
-                      className="btn btn-ghost btn-sm"
-                      disabled={descargar.isPending}
-                      onClick={() => descargar.mutate(periodoRow)}
-                    >
-                      <Download size={13} /> Descargar
-                    </button>
-                  </td>
-                  <td>
-                    <button className="btn btn-ghost btn-sm" disabled={confirmar.isPending} onClick={() => confirm(`¿Confirmar archivado para ${periodoRow}?`) && confirmar.mutate(periodoRow)}>
-                      <CheckCircle2 size={13} /> Confirmar
-                    </button>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'periodo', header: 'Periodo', render: (row: ArchiveRow) => <span style={{ fontWeight: 600 }}>{row.periodo}</span> },
+          { key: 'estado', header: 'Estado', render: (row: ArchiveRow) => <span className="badge badge-info">{row.estado ?? 'sin estado'}</span> },
+          { key: 'created_at', header: 'Creado', render: (row: ArchiveRow) => row.created_at ? new Date(row.created_at).toLocaleString('es-MX') : '—' },
+          { key: 'descarga', header: 'Descarga', render: (row: ArchiveRow) => (
+            <button className="btn btn-ghost btn-sm" disabled={descargar.isPending} onClick={() => descargar.mutate(row.periodo)}>
+              <Download size={13} /> Descargar
+            </button>
+          )},
+          { key: 'acciones', header: 'Acciones', render: (row: ArchiveRow) => (
+            <button className="btn btn-ghost btn-sm" disabled={confirmar.isPending} onClick={() => confirm(`¿Confirmar archivado para ${row.periodo}?`) && confirmar.mutate(row.periodo)}>
+              <CheckCircle2 size={13} /> Confirmar
+            </button>
+          )},
+        ]}
+        data={rowsFiltradas}
+        keyField="periodo"
+        loading={isLoading}
+        emptyMessage="Sin registros de archive"
+        pageSize={5}
+        searchable
+        searchPlaceholder="Filtrar por periodo o estado..."
+      />
     </div>
   )
 }
