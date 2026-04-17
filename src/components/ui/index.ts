@@ -1,3 +1,5 @@
 export { Table, type TableColumn, type PaginationConfig } from './Table'
+export { TableCompact, type TableColumn as TableCompactColumn, type PaginationState } from './TableCompact'
+export { CardGrid, ItemCard, ItemCardHeader, ItemCardContent, ItemCardFooter, ItemCardField, ItemCardActions } from './CardGrid'
 export { Modal, ConfirmModal, type ModalProps, type ConfirmModalProps } from './Modal'
 export { Loader, EmptyState } from './Loader'

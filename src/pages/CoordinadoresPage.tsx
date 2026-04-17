@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { coordinadoresService, type Coordinador } from '../lib/servicios/coordinadores'
 import { getApiErrorMessage } from '../lib/axios'
 import { useToast } from '../hooks/useToast'
-import { Plus, Pencil, Trash2, X, Eye } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, Eye, User } from 'lucide-react'
+import { CardGrid, ItemCard, ItemCardHeader, ItemCardField, ItemCardActions } from '../components/ui/CardGrid'
 
 interface CoordinadorForm {
   nombre: string
@@ -194,67 +195,60 @@ export default function CoordinadoresPage() {
           <Plus size={15} /> Nuevo coordinador
         </button>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              Array(4)
-                .fill(0)
-                .map((_, i) => (
-                  <tr key={i}>
-                    {Array(6).fill(0).map((_, j) => (
-                      <td key={j}>
-                        <div className="skeleton" style={{ height: 18 }} />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-            ) : (
-              coords.map((c, i) => (
-                <tr key={c.id}>
-                  <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{c.nombre}</td>
-                  <td style={{ color: 'var(--gray-500)' }}>{c.correo}</td>
-                  <td>{c.telefono ?? '—'}</td>
-                  <td>
-                    <span className={`badge badge-${c.activo !== false ? 'green' : 'gray'}`}>
-                      {c.activo !== false ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(c)}>
-                        <Eye size={13} />
-                      </button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setModal(c)}>
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        style={{ color: 'var(--danger)' }}
-                        disabled={remove.isPending}
-                        onClick={() => confirm(`¿Eliminar al coordinador ${c.nombre}?`) && remove.mutate(c.id)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+
+      {isLoading ? (
+        <CardGrid columns={3}>
+          {Array(4).fill(0).map((_, i) => (
+            <ItemCard key={i}>
+              <div className="skeleton" style={{ height: 20, width: '60%', marginBottom: 12 }} />
+              <div className="skeleton" style={{ height: 14, width: '80%', marginBottom: 8 }} />
+              <div className="skeleton" style={{ height: 14, width: '50%' }} />
+            </ItemCard>
+          ))}
+        </CardGrid>
+      ) : coords.length === 0 ? (
+        <div className="empty-state">
+          <User size={48} />
+          <p>No hay coordinadores registrados</p>
+          <button className="btn btn-primary" onClick={() => setModal('new')}>
+            <Plus size={15} /> Crear primer coordinador
+          </button>
+        </div>
+      ) : (
+        <CardGrid columns={3}>
+          {coords.map((c) => (
+            <ItemCard key={c.id}>
+              <ItemCardHeader action={
+                <span className={`badge badge-${c.activo !== false ? 'success' : 'gray'}`}>
+                  {c.activo !== false ? 'Activo' : 'Inactivo'}
+                </span>
+              }>
+                {c.nombre}
+              </ItemCardHeader>
+              <ItemCardField label="Correo" value={c.correo} />
+              <ItemCardField label="Teléfono" value={c.telefono ?? '—'} />
+              <ItemCardActions>
+                <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(c)} title="Ver información">
+                  <Eye size={14} />
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setModal(c)} title="Editar">
+                  <Pencil size={14} />
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: 'var(--danger)' }}
+                  disabled={remove.isPending}
+                  onClick={() => confirm(`¿Eliminar al coordinador ${c.nombre}?`) && remove.mutate(c.id)}
+                  title="Eliminar"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </ItemCardActions>
+            </ItemCard>
+          ))}
+        </CardGrid>
+      )}
+
       {modal && (
         <CoordinadorModal
           coord={modal === 'new' ? undefined : modal}

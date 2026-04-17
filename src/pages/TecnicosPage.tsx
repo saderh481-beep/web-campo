@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tecnicosService, type CreateTecnicoPayload } from '../lib/servicios/tecnicos'
 import { coordinadoresService } from '../lib/servicios/coordinadores'
@@ -7,8 +7,8 @@ import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
 import { useToast } from '../hooks/useToast'
-import { Table } from '../components/ui'
-import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
+import { TableCompact } from '../components/ui/TableCompact'
+import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X } from 'lucide-react'
 
 interface Tecnico {
   id: number | string
@@ -170,7 +170,9 @@ export default function TecnicosPage() {
   const qc = useQueryClient()
   const toast = useToast()
   const [modal, setModal] = useState<Tecnico | 'new' | null>(null)
-  const [q, setQ] = useState('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(5)
 
   const { data, isLoading } = useQuery({
     queryKey: ['tecnicos'],
@@ -213,14 +215,38 @@ export default function TecnicosPage() {
   })
 
   const tecnicosData = pickArray<Tecnico>(data, ['tecnicos', 'rows', 'data'])
-  const tecnicos = tecnicosData.filter((t: Tecnico) => !q || t.nombre?.toLowerCase().includes(q.toLowerCase()) || t.correo?.toLowerCase().includes(q.toLowerCase()))
+
+  const filteredTecnicos = useMemo(() => {
+    if (!search.trim()) return tecnicosData
+    const q = search.toLowerCase()
+    return tecnicosData.filter((t: Tecnico) => 
+      t.nombre?.toLowerCase().includes(q) || 
+      t.correo?.toLowerCase().includes(q)
+    )
+  }, [tecnicosData, search])
+
+  const paginatedTecnicos = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filteredTecnicos.slice(start, start + pageSize)
+  }, [filteredTecnicos, page, pageSize])
+
+  const totalTecnicos = filteredTecnicos.length
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage)
+  }
+
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setPage(1)
+  }
 
   return (
     <div className="page animate-in">
       <div className="page-header">
         <div>
           <h1 className="page-title">Técnicos</h1>
-          <p className="page-subtitle">{tecnicos.length} técnico{tecnicos.length !== 1 ? 's' : ''} registrado{tecnicos.length !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">{tecnicosData.length} técnico{tecnicosData.length !== 1 ? 's' : ''} registrado{tecnicosData.length !== 1 ? 's' : ''}</p>
         </div>
         {canManage && (
           <button className="btn btn-primary" onClick={() => setModal('new')}>
@@ -237,27 +263,22 @@ export default function TecnicosPage() {
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: 20, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Search size={15} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
-        <input className="input" style={{ border: 'none', padding: 0, boxShadow: 'none' }} placeholder="Buscar técnico..." value={q} onChange={e => setQ(e.target.value)} />
-      </div>
-
-      <Table
+      <TableCompact
         columns={[
           { key: 'index', header: '#', className: 'w-16' },
           { key: 'nombre', header: 'Nombre' },
-          { key: 'correo', header: 'Correo', className: 'max-w-[200px] truncate' },
+          { key: 'correo', header: 'Correo', truncate: true, tooltip: true },
           { key: 'telefono', header: 'Teléfono', render: (t: Tecnico) => t.telefono ?? '—' },
           { 
             key: 'codigo_acceso', 
             header: 'Código', 
-            render: (t: Tecnico) => t.codigo_acceso ? <CodigoAcceso codigo={t.codigo_acceso} id={t.id} canManage={canManage} /> : <span className="text-gray-400">—</span> 
+            render: (t: Tecnico) => t.codigo_acceso ? <CodigoAcceso codigo={t.codigo_acceso} id={t.id} canManage={canManage} /> : <span style={{ color: 'var(--gray-400)' }}>—</span> 
           },
           { 
             key: 'estado_corte', 
             header: 'Corte', 
             render: (t: Tecnico) => (
-              <span className={`badge badge-${t.estado_corte === 'corte_aplicado' ? 'amber' : 'green'}`}>
+              <span className={`badge badge-${t.estado_corte === 'corte_aplicado' ? 'warning' : 'success'}`}>
                 {t.estado_corte ?? 'en_servicio'}
               </span>
             )
@@ -266,32 +287,36 @@ export default function TecnicosPage() {
             key: 'activo', 
             header: 'Estado', 
             render: (t: Tecnico) => (
-              <span className={`badge badge-${t.activo !== false ? 'green' : 'gray'}`}>
+              <span className={`badge badge-${t.activo !== false ? 'success' : 'gray'}`}>
                 {t.activo !== false ? 'Activo' : 'Inactivo'}
               </span>
             )
           },
         ]}
-        data={tecnicos}
+        data={paginatedTecnicos}
         keyField="id"
         loading={isLoading}
         emptyMessage="Sin técnicos"
-        pagination={{ 
-          page: 1, 
-          pageSize: 5, 
-          total: tecnicosData.length || 0 
+        searchable
+        searchPlaceholder="Buscar técnico..."
+        onSearch={(q) => { setSearch(q); setPage(1) }}
+        initialSearch={search}
+        pagination={{
+          page,
+          pageSize,
+          total: totalTecnicos,
         }}
-        onPageChange={(page) => console.log('Page change', page)} // Add pagination logic later
-        onPageSizeChange={(size) => console.log('Size change', size)}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
         renderActions={(t: Tecnico) => canManage && (
-          <div className="flex gap-2">
-            <button className="btn btn-ghost btn-sm" onClick={() => cerrarCorte.mutate(t.id)} disabled={cerrarCorte.isPending}>
-              Cerrar corte
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => cerrarCorte.mutate(t.id)} disabled={cerrarCorte.isPending} title="Cerrar corte">
+              Cerrar
             </button>
             <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(t)} title="Editar">
               <Pencil size={13} />
             </button>
-            <button className="btn btn-ghost btn-icon btn-sm text-error" onClick={() => confirm(`¿Desactivar a ${t.nombre}?`) && remove.mutate(t.id)} title="Desactivar">
+            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} onClick={() => confirm(`¿Desactivar a ${t.nombre}?`) && remove.mutate(t.id)} title="Desactivar">
               <Trash2 size={13} />
             </button>
           </div>
