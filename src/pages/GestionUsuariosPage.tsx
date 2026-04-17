@@ -1,6 +1,5 @@
-/**
- * Página de Gestión de Usuarios (Admin/Coordinadores)
- * Ruta: /usuarios
+
+ /**
  * Solo accesible para usuarios con rol admin o coordinador
  * 
  * Funcionalidades:
@@ -12,13 +11,14 @@
  * - Definir coordinador responsable
  */
 
-import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { gestionUsuariosService } from '../lib/servicios/gestion-usuarios'
+import { usuariosService, type CreateUsuarioPayload, type UpdateUsuarioPayload } from '../lib/servicios/usuarios'
 import { getApiErrorMessage } from '../lib/axios'
+import { useState } from 'react'
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Table } from '../components/ui'
+
 import FeedbackBanner from '../components/common/FeedbackBanner'
-import { type Rol } from '../lib/validation'
 
 interface Usuario {
   id: string
@@ -30,6 +30,8 @@ interface Usuario {
   fecha_limite?: string
   activo: boolean
 }
+
+type Rol = 'administrador' | 'coordinador' | 'tecnico'
 
 interface UsuarioForm {
   nombre: string
@@ -63,16 +65,13 @@ export default function GestionUsuariosPage() {
   // Query para listar usuarios
   const { data: usuarios = [], isLoading, error } = useQuery({
     queryKey: ['usuarios'],
-    queryFn: async () => {
-      const response = await gestionUsuariosService.list()
-      return response.data
-    },
+    queryFn: () => usuariosService.list().then(r => r.data),
   })
 
-  // Mutation para crear usuario
+// Mutation para crear usuario
   const createMutation = useMutation({
-    mutationFn: (data: typeof form) =>
-      gestionUsuariosService.create({
+    mutationFn: async (data: typeof form) => {
+      const payload: CreateUsuarioPayload = {
         nombre: data.nombre,
         correo: data.correo,
         rol: mapRolToApi(data.rol),
@@ -80,7 +79,9 @@ export default function GestionUsuariosPage() {
         telefono: data.telefono || undefined,
         coordinador_id: data.coordinador_id || undefined,
         fecha_limite: data.fecha_limite || undefined,
-      }),
+      }
+      return (await usuariosService.create(payload)).data
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] })
       setFeedback({ type: 'success', message: 'Usuario creado correctamente' })
@@ -93,10 +94,11 @@ export default function GestionUsuariosPage() {
     },
   })
 
+
   // Mutation para actualizar usuario
   const updateMutation = useMutation({
-    mutationFn: (data: { id: string; form: typeof form }) =>
-      gestionUsuariosService.update(data.id, {
+    mutationFn: async (data: { id: string; form: typeof form }) => {
+      const payload: UpdateUsuarioPayload = {
         nombre: data.form.nombre,
         correo: data.form.correo,
         rol: mapRolToApi(data.form.rol),
@@ -105,7 +107,9 @@ export default function GestionUsuariosPage() {
         coordinador_id: data.form.coordinador_id || undefined,
         fecha_limite: data.form.fecha_limite || undefined,
         activo: data.form.activo,
-      }),
+      }
+      return (await usuariosService.update(data.id, payload)).data
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] })
       setFeedback({ type: 'success', message: 'Usuario actualizado correctamente' })
@@ -117,9 +121,10 @@ export default function GestionUsuariosPage() {
     },
   })
 
+
   // Mutation para eliminar usuario
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => gestionUsuariosService.remove(id),
+    mutationFn: (id: string) => usuariosService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios'] })
       setFeedback({ type: 'success', message: 'Usuario eliminado correctamente' })
@@ -300,56 +305,50 @@ export default function GestionUsuariosPage() {
       ) : error ? (
         <div className="alert alert-error">Error al cargar usuarios</div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="table table-compact w-full">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Rol</th>
-                <th>Teléfono</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map((usuario) => (
-                <tr key={usuario.id}>
-                  <td>{usuario.nombre}</td>
-                  <td>{usuario.correo}</td>
-                  <td>
-                    <span className="badge badge-primary">{usuario.rol}</span>
-                  </td>
-                  <td>{usuario.telefono || '-'}</td>
-                  <td>
-                    <span className={`badge ${usuario.activo ? 'badge-success' : 'badge-error'}`}>
-                      {usuario.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className="flex gap-2">
-                    <button
-                      onClick={() => handleEdit(usuario)}
-                      className="btn btn-sm btn-ghost"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm('¿Está seguro de eliminar este usuario?')) {
-                          deleteMutation.mutate(usuario.id)
-                        }
-                      }}
-                      disabled={deleteMutation.isPending}
-                      className="btn btn-sm btn-error"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          columns={[
+            { key: 'nombre', header: 'Nombre' },
+            { key: 'correo', header: 'Correo', className: 'max-w-[200px] truncate' },
+            { 
+              key: 'rol', 
+              header: 'Rol', 
+              render: (u: Usuario) => <span className="badge badge-primary">{u.rol}</span>
+            },
+            { key: 'telefono', header: 'Teléfono', render: (u: Usuario) => u.telefono || '-' },
+            { 
+              key: 'activo', 
+              header: 'Estado', 
+              render: (u: Usuario) => (
+                <span className={`badge ${u.activo ? 'badge-success' : 'badge-error'}`}>
+                  {u.activo ? 'Activo' : 'Inactivo'}
+                </span>
+              )
+            },
+          ]}
+          data={usuarios}
+          keyField="id"
+          loading={isLoading}
+          emptyMessage="Sin usuarios"
+          pagination={{ page: 1, pageSize: 5, total: usuarios.length }}
+          renderActions={(usuario: Usuario) => (
+            <div className="flex gap-2">
+              <button onClick={() => handleEdit(usuario)} className="btn btn-ghost btn-icon btn-sm">
+                <Pencil size={16} />
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('¿Está seguro de eliminar este usuario?')) {
+                    deleteMutation.mutate(usuario.id)
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                className="btn btn-error btn-sm"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+        />
       )}
     </div>
   )

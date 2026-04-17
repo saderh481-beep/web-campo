@@ -42,10 +42,10 @@
   --radius:        10px;
   --radius-lg:     14px;
   --radius-xl:     20px;
-  --shadow-sm:     0 2px 8px rgba(26,26,26,0.06);
-  --shadow:        0 6px 20px rgba(26,26,26,0.1);
-  --shadow-lg:     0 12px 40px rgba(26,26,26,0.14);
-  --shadow-xl:     0 20px 60px rgba(26,26,26,0.18);
+--shadow-sm:     0 1px 3px rgba(26,24,22,0.08), 0 1px 2px rgba(26,24,22,0.04); /* Stripe subtle */
+  --shadow:        0 4px 6px -1px rgba(26,24,22,0.12), 0 2px 4px rgba(26,24,22,0.06);
+  --shadow-lg:     0 10px 15px -3px rgba(26,24,22,0.12), 0 4px 6px rgba(26,24,22,0.06);
+  --shadow-xl:     0 20px 25px -5px rgba(26,24,22,0.12), 0 10px 10px rgba(26,24,22,0.04);
 
   font-family: 'DM Sans', 'Montserrat', sans-serif;
   font-size: 14px;
@@ -394,11 +394,77 @@ tbody tr.table-row-hover:hover {
 .form-group.error .input { border-color: var(--danger); }
 .form-group.success .input { border-color: var(--success); }
 
-/* Table */
+/* Table - Stripe-like SaaS */
 .table-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px; /* Increased harmony */
+}
+
+/* Mobile card stack for tables */
+@media (max-width: 768px) {
+  .table-wrap {
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  
+  .table-wrap table,
+  .table-wrap thead,
+  .table-wrap tbody,
+  .table-wrap th,
+  .table-wrap td,
+  .table-wrap tr {
+    display: block;
+  }
+  
+  .table-wrap thead tr {
+    position: absolute;
+    clip: rect(0 0 0 0);
+  }
+  
+  .table-wrap tr {
+    border-bottom: 1px solid var(--gray-100);
+    margin-bottom: 16px;
+    background: var(--white);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .table-wrap tr:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+  
+  .table-wrap td {
+    border: none;
+    position: relative;
+    padding-left: 50%;
+    text-align: right;
+    font-size: 14px;
+  }
+  
+  .table-wrap td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 16px;
+    width: 45%;
+    font-weight: 600;
+    color: var(--gray-600);
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .actions-cell,
+  .actions-col {
+    padding-right: 16px !important;
+  }
+  
+  .actions-cell:before {
+    content: "Acciones";
+  }
 }
 .table-wrap { 
   overflow-x: auto; 
@@ -552,7 +618,8 @@ tbody td { padding: 14px 16px; color: var(--gray-800); vertical-align: middle; }
 
 /* Page */
 .page { 
-  padding: 32px 40px; max-width: 1400px; 
+  padding: 32px 32px; /* Stripe-like gutters */
+  max-width: 1400px; margin: 0 auto;
   background: transparent;
   min-height: calc(100vh - var(--header-h)); 
 }

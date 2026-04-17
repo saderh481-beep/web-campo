@@ -26,7 +26,7 @@ interface TableProps<T> {
   renderActions?: (item: T) => React.ReactNode
 }
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const PAGE_SIZE_OPTIONS = [5, 10]
 
 export function Table<T>({
   columns,
@@ -40,6 +40,7 @@ export function Table<T>({
   renderActions,
 }: TableProps<T>) {
   const totalPages = pagination ? Math.ceil(pagination.total / pagination.pageSize) : 1
+  const maxPageSize = 5 // SaaS limit
   const startItem = pagination ? (pagination.page - 1) * pagination.pageSize + 1 : 1
   const endItem = pagination ? Math.min(pagination.page * pagination.pageSize, pagination.total) : data.length
 
@@ -155,7 +156,7 @@ export function Table<T>({
               value={pagination.pageSize}
               onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
             >
-              {PAGE_SIZE_OPTIONS.map((size) => (
+              {PAGE_SIZE_OPTIONS.filter(size => size <= maxPageSize).map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>

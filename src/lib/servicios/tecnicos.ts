@@ -70,7 +70,9 @@ export const tecnicosService = {
    * POST /tecnicos/:id/codigo — Regen 5dig (admin)
    * @returns {"message": "Regenerado", "codigo": "54321"}
    */
-  regenerarCodigo: (id: string | number) => api.post<{ message: string; codigo: string }>(`/tecnicos/${id}/codigo`),
+
+  generarCodigoAcceso: (id: string | number) => api.post<{ message: string; codigo: string }>(`/tecnicos/${id}/codigo`), // Alias restaurado para TecnicosPage
+
 
   /**
    * POST /aplicar-cortes — Bulk suspend expired

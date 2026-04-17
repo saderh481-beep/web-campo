@@ -9,6 +9,7 @@ import { useToast } from '../hooks/useToast'
 import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray, pickNumber } from '../lib/normalize'
+import { Table } from '../components/ui'
 import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon, Trash2 } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
@@ -420,56 +421,61 @@ export default function BeneficiariosPage() {
         {q && <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')}><X size={14} /></button>}
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Nombre</th><th>Municipio</th><th>Localidad</th><th>Técnico</th><th>Cadenas</th><th></th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(8).fill(0).map((_, i) => (
-              <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : benefs.length === 0 ? (
-              <tr><td colSpan={7}><div className="empty-state"><p>Sin beneficiarios</p></div></td></tr>
-            ) : benefs.map((b, i) => (
-              <tr key={b.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{(page - 1) * perPage + i + 1}</td>
-                <td style={{ fontWeight: 600 }}>{b.nombre}</td>
-                <td>{b.municipio ?? '—'}</td>
-                <td>{b.localidad ?? '—'}</td>
-                <td>{b.tecnico_nombre ?? b.tecnico ?? b.tecnico_id ?? '—'}</td>
-                <td>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                    {(b.cadenas ?? []).map((c) => {
-                      const id = typeof c === 'object' ? c.id : c
-                      return (
-                        <span key={id} className="badge badge-dorado">
-                          {typeof c === 'object' ? c.nombre : c}
-                        </span>
-                      )
-                    })}
-                    {(!b.cadenas || b.cadenas.length === 0) && <span style={{ color: 'var(--gray-300)', fontSize: 12 }}>—</span>}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button className="btn btn-ghost btn-icon btn-sm" title="Documentos" onClick={() => setDocsModal(b)}><Paperclip size={13} /></button>
-                    <button className="btn btn-ghost btn-icon btn-sm" title="Editar" onClick={() => setModal(b)}><Pencil size={13} /></button>
-                    <button
-                      className="btn btn-ghost btn-icon btn-sm"
-                      title="Desactivar"
-                      style={{ color: 'var(--danger)' }}
-                      disabled={removeBeneficiario.isPending}
-                      onClick={() => confirm(`¿Desactivar a ${b.nombre}?`) && removeBeneficiario.mutate(b.id)}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'municipio', header: 'Municipio' },
+          { key: 'localidad', header: 'Localidad' },
+          { key: 'tecnico_nombre', header: 'Técnico', render: (b: Beneficiario) => b.tecnico_nombre ?? b.tecnico ?? b.tecnico_id ?? '—' },
+          { 
+            key: 'cadenas', 
+            header: 'Cadenas', 
+            render: (b: Beneficiario) => (
+              <div className="flex flex-wrap gap-1">
+                {(b.cadenas ?? []).map((c) => {
+                  const id = typeof c === 'object' ? c.id : c
+                  return (
+                    <span key={id} className="badge badge-dorado text-xs">
+                      {typeof c === 'object' ? c.nombre : String(c)}
+                    </span>
+                  )
+                })}
+                {(!b.cadenas || b.cadenas.length === 0) && <span className="text-gray-400 text-xs">—</span>}
+              </div>
+            )
+          },
+        ]}
+        data={benefs}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin beneficiarios"
+        pagination={{ page, pageSize: 5, total }}
+        onPageChange={setPage}
+        onPageSizeChange={() => {
+          setPage(1)
+          // Backend uses fixed pageSize, client-side pagination for demo
+        }}
+
+        renderActions={(b: Beneficiario) => (
+          <div className="flex gap-2">
+            <button className="btn btn-ghost btn-icon btn-sm" title="Documentos" onClick={() => setDocsModal(b)}>
+              <Paperclip size={13} />
+            </button>
+            <button className="btn btn-ghost btn-icon btn-sm" title="Editar" onClick={() => setModal(b)}>
+              <Pencil size={13} />
+            </button>
+            <button
+              className="btn btn-ghost btn-icon btn-sm text-error"
+              title="Desactivar"
+              disabled={removeBeneficiario.isPending}
+              onClick={() => confirm(`¿Desactivar a ${b.nombre}?`) && removeBeneficiario.mutate(b.id)}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
 
       {pages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>

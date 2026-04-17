@@ -7,6 +7,7 @@ import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
 import { useToast } from '../hooks/useToast'
+import { Table } from '../components/ui'
 import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X, Search } from 'lucide-react'
 
 interface Tecnico {
@@ -241,57 +242,61 @@ export default function TecnicosPage() {
         <input className="input" style={{ border: 'none', padding: 0, boxShadow: 'none' }} placeholder="Buscar técnico..." value={q} onChange={e => setQ(e.target.value)} />
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Código de acceso</th><th>Corte</th><th>Estado</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              Array(5).fill(0).map((_, i) => (
-                <tr key={i}>{Array(8).fill(0).map((_, j) => (
-                  <td key={j}><div className="skeleton" style={{ height: 18, width: j === 0 ? 24 : '80%' }} /></td>
-                ))}</tr>
-              ))
-            ) : tecnicos.length === 0 ? (
-              <tr><td colSpan={8}><div className="empty-state"><p>Sin técnicos</p></div></td></tr>
-            ) : tecnicos.map((t, i) => (
-              <tr key={t.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                <td style={{ fontWeight: 600 }}>{t.nombre}</td>
-                <td style={{ color: 'var(--gray-500)' }}>{t.correo}</td>
-                <td>{t.telefono ?? '—'}</td>
-                <td>{t.codigo_acceso ? <CodigoAcceso codigo={t.codigo_acceso} id={t.id} canManage={canManage} /> : <span style={{ color: 'var(--gray-300)' }}>—</span>}</td>
-                <td>
-                  <span className={`badge badge-${t.estado_corte === 'corte_aplicado' ? 'amber' : 'green'}`}>
-                    {t.estado_corte ?? 'en_servicio'}
-                  </span>
-                </td>
-                <td>
-                  <span className={`badge badge-${t.activo !== false ? 'green' : 'gray'}`}>
-                    {t.activo !== false ? 'Activo' : 'Inactivo'}
-                  </span>
-                </td>
-                <td>
-                  {canManage && (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => cerrarCorte.mutate(t.id)} disabled={cerrarCorte.isPending}>
-                        Cerrar corte
-                      </button>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(t)}><Pencil size={13} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} onClick={() => confirm(`¿Desactivar a ${t.nombre}?`) && remove.mutate(t.id)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'correo', header: 'Correo', className: 'max-w-[200px] truncate' },
+          { key: 'telefono', header: 'Teléfono', render: (t: Tecnico) => t.telefono ?? '—' },
+          { 
+            key: 'codigo_acceso', 
+            header: 'Código', 
+            render: (t: Tecnico) => t.codigo_acceso ? <CodigoAcceso codigo={t.codigo_acceso} id={t.id} canManage={canManage} /> : <span className="text-gray-400">—</span> 
+          },
+          { 
+            key: 'estado_corte', 
+            header: 'Corte', 
+            render: (t: Tecnico) => (
+              <span className={`badge badge-${t.estado_corte === 'corte_aplicado' ? 'amber' : 'green'}`}>
+                {t.estado_corte ?? 'en_servicio'}
+              </span>
+            )
+          },
+          { 
+            key: 'activo', 
+            header: 'Estado', 
+            render: (t: Tecnico) => (
+              <span className={`badge badge-${t.activo !== false ? 'green' : 'gray'}`}>
+                {t.activo !== false ? 'Activo' : 'Inactivo'}
+              </span>
+            )
+          },
+        ]}
+        data={tecnicos}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin técnicos"
+        pagination={{ 
+          page: 1, 
+          pageSize: 5, 
+          total: tecnicosData.length || 0 
+        }}
+        onPageChange={(page) => console.log('Page change', page)} // Add pagination logic later
+        onPageSizeChange={(size) => console.log('Size change', size)}
+        renderActions={(t: Tecnico) => canManage && (
+          <div className="flex gap-2">
+            <button className="btn btn-ghost btn-sm" onClick={() => cerrarCorte.mutate(t.id)} disabled={cerrarCorte.isPending}>
+              Cerrar corte
+            </button>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(t)} title="Editar">
+              <Pencil size={13} />
+            </button>
+            <button className="btn btn-ghost btn-icon btn-sm text-error" onClick={() => confirm(`¿Desactivar a ${t.nombre}?`) && remove.mutate(t.id)} title="Desactivar">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
 
       {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} toast={toast} />}
     </div>
