@@ -114,7 +114,7 @@ export function canManageLocalidades(role?: string | null): boolean {
 }
 
 export function canViewConfiguraciones(role?: string | null): boolean {
-  return isAdmin(role) || isCoordinator(role)
+  return isAdmin(role)
 }
 
 export function canManageConfiguraciones(role?: string | null): boolean {
@@ -122,7 +122,7 @@ export function canManageConfiguraciones(role?: string | null): boolean {
 }
 
 export function canViewDocumentosPlantilla(role?: string | null): boolean {
-  return isAdmin(role) || isCoordinator(role)
+  return isAdmin(role)
 }
 
 export function canManageDocumentosPlantilla(role?: string | null): boolean {
