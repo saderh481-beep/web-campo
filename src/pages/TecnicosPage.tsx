@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { tecnicosService, type CreateTecnicoPayload } from '../lib/servicios/tecnicos'
 import { coordinadoresService } from '../lib/servicios/coordinadores'
@@ -7,8 +7,8 @@ import { canManageTecnicos } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
 import { useToast } from '../hooks/useToast'
-import { TableCompact } from '../components/ui/TableCompact'
-import { Plus, RefreshCw, Copy, Check, Trash2, Pencil, X } from 'lucide-react'
+import { Table } from '../components/ui/Table'
+import { Plus, RefreshCw, Copy, Check, X } from 'lucide-react'
 
 interface Tecnico {
   id: number | string
@@ -170,9 +170,6 @@ export default function TecnicosPage() {
   const qc = useQueryClient()
   const toast = useToast()
   const [modal, setModal] = useState<Tecnico | 'new' | null>(null)
-  const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(5)
 
   const { data, isLoading } = useQuery({
     queryKey: ['tecnicos'],
@@ -187,15 +184,6 @@ export default function TecnicosPage() {
 
   const coordinadores = pickArray<{ id: string; nombre: string; rol?: string }>(coordsData, ['coordinadores', 'rows', 'data']).filter(c => c.rol === 'coordinador')
 
-  const remove = useMutation({
-    mutationFn: (id: string | number) => tecnicosService.remove(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tecnicos'] })
-      toast.success('Técnico desactivado correctamente.')
-    },
-    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo desactivar el técnico.')),
-  })
-
   const aplicarCortes = useMutation({
     mutationFn: () => tecnicosService.aplicarCortes(),
     onSuccess: () => {
@@ -205,41 +193,7 @@ export default function TecnicosPage() {
     onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudieron aplicar cortes.')),
   })
 
-  const cerrarCorte = useMutation({
-    mutationFn: (id: string | number) => tecnicosService.cerrarCorte(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['tecnicos'] })
-      toast.success('Corte cerrado correctamente.')
-    },
-    onError: (e: unknown) => toast.error(toErrorMessage(e, 'No se pudo cerrar el corte.')),
-  })
-
   const tecnicosData = pickArray<Tecnico>(data, ['tecnicos', 'rows', 'data'])
-
-  const filteredTecnicos = useMemo(() => {
-    if (!search.trim()) return tecnicosData
-    const q = search.toLowerCase()
-    return tecnicosData.filter((t: Tecnico) => 
-      t.nombre?.toLowerCase().includes(q) || 
-      t.correo?.toLowerCase().includes(q)
-    )
-  }, [tecnicosData, search])
-
-  const paginatedTecnicos = useMemo(() => {
-    const start = (page - 1) * pageSize
-    return filteredTecnicos.slice(start, start + pageSize)
-  }, [filteredTecnicos, page, pageSize])
-
-  const totalTecnicos = filteredTecnicos.length
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage)
-  }
-
-  const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize)
-    setPage(1)
-  }
 
   return (
     <div className="page animate-in">
@@ -263,7 +217,7 @@ export default function TecnicosPage() {
         </div>
       )}
 
-      <TableCompact
+      <Table
         columns={[
           { key: 'index', header: '#', className: 'w-16' },
           { key: 'nombre', header: 'Nombre' },
@@ -293,34 +247,13 @@ export default function TecnicosPage() {
             )
           },
         ]}
-        data={paginatedTecnicos}
+        data={tecnicosData}
         keyField="id"
         loading={isLoading}
         emptyMessage="Sin técnicos"
         searchable
         searchPlaceholder="Buscar técnico..."
-        onSearch={(q) => { setSearch(q); setPage(1) }}
-        initialSearch={search}
-        pagination={{
-          page,
-          pageSize,
-          total: totalTecnicos,
-        }}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-        renderActions={(t: Tecnico) => canManage && (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button className="btn btn-ghost btn-sm" onClick={() => cerrarCorte.mutate(t.id)} disabled={cerrarCorte.isPending} title="Cerrar corte">
-              Cerrar
-            </button>
-            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(t)} title="Editar">
-              <Pencil size={13} />
-            </button>
-            <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} onClick={() => confirm(`¿Desactivar a ${t.nombre}?`) && remove.mutate(t.id)} title="Desactivar">
-              <Trash2 size={13} />
-            </button>
-          </div>
-        )}
+        pageSize={5}
       />
 
       {modal && canManage && <TecnicoModal tecnico={modal === 'new' ? undefined : modal} coordinadores={coordinadores} onClose={() => setModal(null)} toast={toast} />}

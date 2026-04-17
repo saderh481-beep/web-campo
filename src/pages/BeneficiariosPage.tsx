@@ -10,7 +10,7 @@ import { dedupeAssets, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray, pickNumber } from '../lib/normalize'
 import { Table } from '../components/ui'
-import { Plus, Search, X, ChevronLeft, ChevronRight, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon, Trash2 } from 'lucide-react'
+import { Plus, Search, X, Pencil, Paperclip, Upload, Download, Image as ImageIcon, Link as LinkIcon, Trash2 } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Cadena {
@@ -33,6 +33,11 @@ interface Beneficiario {
   municipio?: string
   localidad?: string
   localidad_id?: string
+  direccion?: string
+  cp?: string
+  telefono_principal?: string
+  telefono_secundario?: string
+  coord_parcela?: string
   tecnico_id?: string
   tecnico_nombre?: string
   tecnico?: string
@@ -239,15 +244,15 @@ function BeneficiarioModal({ b, localidades, onClose, toast }: { b?: Beneficiari
   const qc = useQueryClient()
   const [form, setForm] = useState<BeneficiarioForm>({
     nombre: b?.nombre ?? '',
-    curp: (b as unknown as { curp?: string })?.curp ?? '',
+    curp: b?.curp ?? '',
     municipio: b?.municipio ?? '',
     localidad: b?.localidad ?? '',
     localidad_id: b?.localidad_id ?? '',
-    direccion: '',
-    cp: '',
-    telefono_principal: '',
-    telefono_secundario: '',
-    coord_parcela: '',
+    direccion: b?.direccion ?? '',
+    cp: b?.cp ?? '',
+    telefono_principal: b?.telefono_principal ?? '',
+    telefono_secundario: b?.telefono_secundario ?? '',
+    coord_parcela: b?.coord_parcela ?? '',
   })
 
   const save = useMutation({
@@ -388,8 +393,6 @@ export default function BeneficiariosPage() {
   const benefData = data as BeneficiariosResponse | Beneficiario[] | undefined
   const benefs = pickArray<Beneficiario>(benefData, ['beneficiarios', 'rows', 'data'])
   const total = Array.isArray(benefData) ? benefData.length : pickNumber(benefData, ['total'], benefs.length)
-  const perPage = Array.isArray(benefData) ? 20 : pickNumber(benefData, ['per_page'], 20)
-  const pages = Math.ceil(total / perPage) || 1
 
   const localidades = pickArray<Localidad>(localidadesData as unknown, ['localidades', 'rows', 'data'])
 
@@ -432,16 +435,16 @@ export default function BeneficiariosPage() {
             key: 'cadenas', 
             header: 'Cadenas', 
             render: (b: Beneficiario) => (
-              <div className="flex flex-wrap gap-1">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {(b.cadenas ?? []).map((c) => {
                   const id = typeof c === 'object' ? c.id : c
                   return (
-                    <span key={id} className="badge badge-dorado text-xs">
+                    <span key={id} className="badge badge-dorado" style={{ fontSize: 11 }}>
                       {typeof c === 'object' ? c.nombre : String(c)}
                     </span>
                   )
                 })}
-                {(!b.cadenas || b.cadenas.length === 0) && <span className="text-gray-400 text-xs">—</span>}
+                {(!b.cadenas || b.cadenas.length === 0) && <span style={{ color: 'var(--gray-400)', fontSize: 12 }}>—</span>}
               </div>
             )
           },
@@ -450,15 +453,11 @@ export default function BeneficiariosPage() {
         keyField="id"
         loading={isLoading}
         emptyMessage="Sin beneficiarios"
-        pagination={{ page, pageSize: 5, total }}
-        onPageChange={setPage}
-        onPageSizeChange={() => {
-          setPage(1)
-          // Backend uses fixed pageSize, client-side pagination for demo
-        }}
-
+        pageSize={5}
+        searchable
+        searchPlaceholder="Buscar por nombre o municipio..."
         renderActions={(b: Beneficiario) => (
-          <div className="flex gap-2">
+          <div style={{ display: 'flex', gap: 4 }}>
             <button className="btn btn-ghost btn-icon btn-sm" title="Documentos" onClick={() => setDocsModal(b)}>
               <Paperclip size={13} />
             </button>
@@ -466,7 +465,8 @@ export default function BeneficiariosPage() {
               <Pencil size={13} />
             </button>
             <button
-              className="btn btn-ghost btn-icon btn-sm text-error"
+              className="btn btn-ghost btn-icon btn-sm"
+              style={{ color: 'var(--danger)' }}
               title="Desactivar"
               disabled={removeBeneficiario.isPending}
               onClick={() => confirm(`¿Desactivar a ${b.nombre}?`) && removeBeneficiario.mutate(b.id)}
@@ -476,18 +476,6 @@ export default function BeneficiariosPage() {
           </div>
         )}
       />
-
-      {pages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 20 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-            <ChevronLeft size={14} /> Anterior
-          </button>
-          <span style={{ fontSize: 13, color: 'var(--gray-500)' }}>Página {page} de {pages}</span>
-          <button className="btn btn-secondary btn-sm" onClick={() => setPage(p => Math.min(pages, p + 1))} disabled={page === pages}>
-            Siguiente <ChevronRight size={14} />
-          </button>
-        </div>
-      )}
 
       {modal && (
         <BeneficiarioModal

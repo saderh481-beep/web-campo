@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../lib/axios'
 import { canManageActividades } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 
 interface Actividad {
@@ -107,36 +108,33 @@ export default function ActividadesPage() {
         )}
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Nombre</th><th>Descripción</th><th></th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(5).fill(0).map((_, i) => (
-              <tr key={i}>{Array(4).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : actividades.length === 0 ? (
-              <tr><td colSpan={4}><div className="empty-state"><p>Sin actividades registradas</p></div></td></tr>
-            ) : actividades.map((a, i) => (
-              <tr key={a.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                <td style={{ fontWeight: 600 }}>{a.nombre}</td>
-                <td>{a.descripcion ?? '—'}</td>
-                <td>
-                  {canManage && (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(a)}><Pencil size={13} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} onClick={() => confirm('¿Eliminar actividad?') && remove.mutate(a.id)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'descripcion', header: 'Descripción', truncate: true, tooltip: true, render: (a: Actividad) => a.descripcion ?? '—' },
+        ]}
+        data={actividades}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin actividades registradas"
+        pageSize={5}
+        renderActions={(a: Actividad) => canManage && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(a)} title="Editar">
+              <Pencil size={13} />
+            </button>
+            <button 
+              className="btn btn-ghost btn-icon btn-sm" 
+              style={{ color: 'var(--danger)' }} 
+              onClick={() => confirm('¿Eliminar actividad?') && remove.mutate(a.id)}
+              title="Eliminar"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
 
       {modal && canManage && <ActividadModal actividad={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
     </div>

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, X, Search } from 'lucide-react'
+import { Pencil, X } from 'lucide-react'
 import { configuracionesService } from '../lib/servicios/extra'
 import { getApiErrorMessage } from '../lib/axios'
 import { canManageConfiguraciones } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface ConfigItem {
@@ -151,7 +152,7 @@ export default function ConfiguracionesPage() {
       </div>
 
       <div className="card" style={{ marginBottom: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Search size={15} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
+        <span style={{ color: 'var(--gray-400)', flexShrink: 0 }}>🔍</span>
         <input
           className="input"
           style={{ border: 'none', padding: 0, boxShadow: 'none' }}
@@ -162,40 +163,26 @@ export default function ConfiguracionesPage() {
         {q && <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')}><X size={14} /></button>}
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Clave</th><th>Descripcion</th><th>Valor</th><th>Actualizado</th><th></th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(4).fill(0).map((_, i) => (
-              <tr key={i}>{Array(5).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : rowsFiltradas.length === 0 ? (
-              <tr><td colSpan={5}><div className="empty-state"><p>Sin configuraciones visibles</p></div></td></tr>
-            ) : rowsFiltradas.map((row) => (
-              <tr key={row.clave}>
-                <td style={{ fontWeight: 700 }}>{row.clave}</td>
-                <td style={{ color: 'var(--gray-500)' }}>{row.descripcion ?? '—'}</td>
-                <td>
-                  <pre style={{ margin: 0, fontSize: 11, color: 'var(--gray-700)', maxWidth: 460, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {JSON.stringify(row.valor ?? {}, null, 2)}
-                  </pre>
-                </td>
-                <td style={{ fontSize: 12, color: 'var(--gray-500)' }}>
-                  {row.updated_at ? new Date(row.updated_at).toLocaleString('es-MX') : '—'}
-                </td>
-                <td>
-                  {canManage && (
-                    <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditing(row)}>
-                      <Pencil size={13} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'clave', header: 'Clave', render: (row: ConfigItem) => <span style={{ fontWeight: 700 }}>{row.clave}</span> },
+          { key: 'descripcion', header: 'Descripción', truncate: true, tooltip: true, render: (row: ConfigItem) => row.descripcion ?? '—' },
+          { key: 'valor', header: 'Valor', render: (row: ConfigItem) => <pre style={{ margin: 0, fontSize: 11, color: 'var(--gray-700)', maxWidth: 300, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{JSON.stringify(row.valor ?? {}, null, 2)}</pre> },
+          { key: 'updated_at', header: 'Actualizado', render: (row: ConfigItem) => row.updated_at ? new Date(row.updated_at).toLocaleString('es-MX') : '—' },
+        ]}
+        data={rowsFiltradas}
+        keyField="clave"
+        loading={isLoading}
+        emptyMessage="Sin configuraciones visibles"
+        pageSize={5}
+        searchable
+        searchPlaceholder="Buscar por clave o descripción..."
+        renderActions={(row: ConfigItem) => canManage && (
+          <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setEditing(row)} title="Editar">
+            <Pencil size={13} />
+          </button>
+        )}
+      />
 
       {editing && canManage && <ConfigModal item={editing} onClose={() => setEditing(null)} />}
     </div>

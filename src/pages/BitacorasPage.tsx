@@ -5,6 +5,7 @@ import { getApiErrorMessage } from '../lib/axios'
 import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon, Printer, MapPin } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
@@ -469,46 +470,36 @@ export default function BitacorasPage() {
         )}
       </div>
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Beneficiario</th><th>Técnico</th><th>Fecha</th><th>Tipo</th><th>Estado</th><th>Acciones</th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(6).fill(0).map((_, i) => (
-              <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : bitacorasFiltradas.length === 0 ? (
-              <tr><td colSpan={7}><div className="empty-state"><FileText size={32} /><p>Sin bitácoras con los filtros seleccionados</p></div></td></tr>
-            ) : bitacorasFiltradas.map(b => {
-              const pdfLinks = getPdfLinks(b, b.id)
-              return (
-                <tr key={b.id}>
-                  <td style={{ color: 'var(--gray-400)', fontSize: 12, fontWeight: 700 }}>#{b.id}</td>
-                  <td style={{ fontWeight: 600 }}>{b.beneficiario_nombre ?? b.beneficiario ?? '—'}</td>
-                  <td style={{ color: 'var(--gray-500)' }}>{b.usuario_nombre ?? b.usuario ?? b.tecnico_nombre ?? b.tecnico ?? '—'}</td>
-                  <td style={{ fontSize: 12 }}>{formatDateTime(getBitacoraDateTime(b))}</td>
-                  <td>{b.tipo ? <span className="badge badge-guinda">{b.tipo}</span> : '—'}</td>
-                  <td>
-                    <span className={`badge badge-${estadoColor[b.estado ?? ''] ?? 'gray'}`}>
-                      {b.estado ?? 'borrador'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Ver detalle" onClick={() => setDetalle(b.id)}>
-                        <Eye size={13} />
-                      </button>
-                      <button className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF" onClick={() => downloadPdfFromUrl(pdfLinks.downloadUrl)}>
-                        <Download size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'id', header: '#', render: (b: Bitacora) => <span style={{ color: 'var(--gray-400)', fontSize: 12, fontWeight: 700 }}>#{b.id}</span> },
+          { key: 'beneficiario', header: 'Beneficiario', truncate: true, tooltip: true, render: (b: Bitacora) => b.beneficiario_nombre ?? b.beneficiario ?? '—' },
+          { key: 'tecnico', header: 'Técnico', truncate: true, tooltip: true, render: (b: Bitacora) => b.usuario_nombre ?? b.usuario ?? b.tecnico_nombre ?? b.tecnico ?? '—' },
+          { key: 'fecha', header: 'Fecha', render: (b: Bitacora) => formatDateTime(getBitacoraDateTime(b)) },
+          { key: 'tipo', header: 'Tipo', render: (b: Bitacora) => b.tipo ? <span className="badge badge-info">{b.tipo}</span> : '—' },
+          { key: 'estado', header: 'Estado', render: (b: Bitacora) => <span className={`badge badge-${estadoColor[b.estado ?? ''] ?? 'gray'}`}>{b.estado ?? 'borrador'}</span> },
+        ]}
+        data={bitacorasFiltradas}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin bitácoras con los filtros seleccionados"
+        pageSize={5}
+        searchable
+        searchPlaceholder="Buscar bitácora..."
+        renderActions={(b: Bitacora) => {
+          const pdfLinks = getPdfLinks(b, b.id)
+          return (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className="btn btn-ghost btn-icon btn-sm" title="Ver detalle" onClick={() => setDetalle(b.id)}>
+                <Eye size={13} />
+              </button>
+              <button className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF" onClick={() => downloadPdfFromUrl(pdfLinks.downloadUrl)}>
+                <Download size={13} />
+              </button>
+            </div>
+          )
+        }}
+      />
 
       {detalle !== null && <BitacoraDetalle id={detalle} onClose={() => setDetalle(null)} />}
     </div>

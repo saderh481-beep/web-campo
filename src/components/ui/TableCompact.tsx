@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, X } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 export interface TableColumn<T> {
   key: keyof T | string
   header: string
-  render?: (item: T) => React.ReactNode
+  render?: (item: T) => ReactNode
   sortable?: boolean
   className?: string
   truncate?: boolean
@@ -23,10 +24,8 @@ interface TableCompactProps<T> {
   keyField: keyof T
   loading?: boolean
   emptyMessage?: string
-  pagination?: PaginationState
-  onPageChange?: (page: number) => void
-  onPageSizeChange?: (pageSize: number) => void
-  renderActions?: (item: T) => React.ReactNode
+  pageSize?: number
+  initialPage?: number
   searchable?: boolean
   searchPlaceholder?: string
   onSearch?: (query: string) => void
@@ -34,7 +33,7 @@ interface TableCompactProps<T> {
   maxHeight?: string
 }
 
-const PAGE_SIZE_OPTIONS = [5, 10, 20]
+const DEFAULT_PAGE_SIZE = 5
 
 export function TableCompact<T>({
   columns,
@@ -42,16 +41,15 @@ export function TableCompact<T>({
   keyField,
   loading = false,
   emptyMessage = 'No hay datos disponibles',
-  pagination,
-  onPageChange,
-  onPageSizeChange,
-  renderActions,
+  pageSize = DEFAULT_PAGE_SIZE,
+  initialPage = 1,
   searchable = false,
   searchPlaceholder = 'Buscar...',
   onSearch,
   initialSearch = '',
-  maxHeight = '480px',
+  maxHeight = '400px',
 }: TableCompactProps<T>) {
+  const [currentPage, setCurrentPage] = useState(initialPage)
   const [searchQuery, setSearchQuery] = useState(initialSearch)
 
   const filteredData = useMemo(() => {
@@ -65,25 +63,29 @@ export function TableCompact<T>({
     )
   }, [data, searchQuery, columns, searchable])
 
-  const totalPages = pagination ? Math.ceil(pagination.total / pagination.pageSize) : 1
-  const startItem = pagination ? (pagination.page - 1) * pagination.pageSize + 1 : 1
-  const endItem = pagination ? Math.min(pagination.page * pagination.pageSize, pagination.total) : filteredData.length
+  const totalItems = filteredData.length
+  const totalPages = Math.ceil(totalItems / pageSize) || 1
+  const validPage = Math.min(Math.max(1, currentPage), totalPages)
+  
+  const startIndex = (validPage - 1) * pageSize
+  const endIndex = Math.min(startIndex + pageSize, totalItems)
+  const paginatedData = filteredData.slice(startIndex, endIndex)
 
   const goToPage = useCallback((page: number) => {
-    if (pagination && onPageChange) {
-      const validPage = Math.max(1, Math.min(page, totalPages))
-      onPageChange(validPage)
-    }
-  }, [pagination, onPageChange, totalPages])
+    const targetPage = Math.max(1, Math.min(page, totalPages))
+    setCurrentPage(targetPage)
+  }, [totalPages])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchQuery(value)
+    setCurrentPage(1)
     onSearch?.(value)
   }
 
   const clearSearch = () => {
     setSearchQuery('')
+    setCurrentPage(1)
     onSearch?.('')
   }
 
@@ -118,29 +120,28 @@ export function TableCompact<T>({
                   {col.header}
                 </th>
               ))}
-              {renderActions && <th className="actions-col">Acciones</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length + (renderActions ? 1 : 0)} className="loading-cell">
+                <td colSpan={columns.length} className="loading-cell">
                   <div className="loading-state">
                     <div className="spinner spinner-guinda" />
                     <span>Cargando...</span>
                   </div>
                 </td>
               </tr>
-            ) : filteredData.length === 0 ? (
+            ) : paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + (renderActions ? 1 : 0)} className="empty-cell">
+                <td colSpan={columns.length} className="empty-cell">
                   <div className="empty-state">
                     <span>{emptyMessage}</span>
                   </div>
                 </td>
               </tr>
             ) : (
-              filteredData.map((item) => (
+              paginatedData.map((item) => (
                 <tr key={String(item[keyField])}>
                   {columns.map((col) => (
                     <td 
@@ -151,7 +152,6 @@ export function TableCompact<T>({
                       {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key as string] ?? '')}
                     </td>
                   ))}
-                  {renderActions && <td className="actions-cell">{renderActions(item)}</td>}
                 </tr>
               ))
             )}
@@ -159,77 +159,65 @@ export function TableCompact<T>({
         </table>
       </div>
 
-      {pagination && (
-        <div className="table-compact-pagination">
-          <div className="pagination-info">
-            <span>Mostrando</span>
-            <strong>{startItem}-{endItem}</strong>
-            <span>de</span>
-            <strong>{pagination.total}</strong>
-            {searchable && searchQuery && (
-              <span className="pagination-filtered">
-                ({filteredData.length} resultados)
-              </span>
-            )}
-          </div>
-
-          <div className="pagination-controls">
-            <button
-              className="btn btn-ghost btn-icon btn-sm"
-              onClick={() => goToPage(1)}
-              disabled={pagination.page === 1}
-              aria-label="Primera página"
-            >
-              <ChevronsLeft size={16} />
-            </button>
-            <button
-              className="btn btn-ghost btn-icon btn-sm"
-              onClick={() => goToPage(pagination.page - 1)}
-              disabled={pagination.page === 1}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft size={16} />
-            </button>
-
-            <span className="pagination-page-info">
-              Página <strong>{pagination.page}</strong> de <strong>{totalPages}</strong>
+      <div className="table-compact-pagination">
+        <div className="pagination-info">
+          <span>Mostrando</span>
+          <strong>{totalItems > 0 ? startIndex + 1 : 0}-{endIndex}</strong>
+          <span>de</span>
+          <strong>{totalItems}</strong>
+          {searchable && searchQuery && (
+            <span className="pagination-filtered">
+              ({filteredData.length} resultados)
             </span>
-
-            <button
-              className="btn btn-ghost btn-icon btn-sm"
-              onClick={() => goToPage(pagination.page + 1)}
-              disabled={pagination.page >= totalPages}
-              aria-label="Página siguiente"
-            >
-              <ChevronRight size={16} />
-            </button>
-            <button
-              className="btn btn-ghost btn-icon btn-sm"
-              onClick={() => goToPage(totalPages)}
-              disabled={pagination.page >= totalPages}
-              aria-label="Última página"
-            >
-              <ChevronsRight size={16} />
-            </button>
-          </div>
-
-          <div className="pagination-size">
-            <label htmlFor="page-size-select">Filas:</label>
-            <select
-              id="page-size-select"
-              className="input"
-              value={pagination.pageSize}
-              onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-            >
-              {PAGE_SIZE_OPTIONS.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-          </div>
+          )}
         </div>
-      )}
+
+        <div className="pagination-controls">
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => goToPage(1)}
+            disabled={validPage === 1}
+            aria-label="Primera página"
+          >
+            <ChevronsLeft size={16} />
+          </button>
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => goToPage(validPage - 1)}
+            disabled={validPage === 1}
+            aria-label="Página anterior"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          <span className="pagination-page-info">
+            Página <strong>{validPage}</strong> de <strong>{totalPages}</strong>
+          </span>
+
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => goToPage(validPage + 1)}
+            disabled={validPage >= totalPages}
+            aria-label="Página siguiente"
+          >
+            <ChevronRight size={16} />
+          </button>
+          <button
+            className="btn btn-ghost btn-icon btn-sm"
+            onClick={() => goToPage(totalPages)}
+            disabled={validPage >= totalPages}
+            aria-label="Última página"
+          >
+            <ChevronsRight size={16} />
+          </button>
+        </div>
+
+        <div className="pagination-size">
+          <span style={{ fontSize: 13, color: 'var(--gray-600)' }}>
+            {pageSize} por página
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

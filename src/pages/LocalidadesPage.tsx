@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { localidadesService } from '../lib/servicios/catalogos'
 import { getApiErrorMessage } from '../lib/axios'
 import { canManageLocalidades } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Localidad {
@@ -96,57 +97,36 @@ export default function LocalidadesPage() {
   const canManage = canManageLocalidades(user?.rol)
   const qc = useQueryClient()
   const [modal, setModal] = useState<'new' | Localidad | null>(null)
-  const [q, setQ] = useState('')
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['localidades'],
-    queryFn: () => localidadesService.list().then((r) => r.data),
-    staleTime: 60000,
+    queryFn: () => localidadesService.list().then(r => r.data),
   })
+
+  const localidadesData = pickArray<Localidad>(data, ['localidades', 'rows', 'data'])
 
   const remove = useMutation({
     mutationFn: (id: string | number) => localidadesService.remove(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['localidades'] })
-      setFeedback({ kind: 'success', message: 'Localidad desactivada correctamente.' })
+      setFeedback({ kind: 'success', message: 'Localidad eliminada correctamente' })
     },
-    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo eliminar la localidad.') }),
+    onError: (e: unknown) => setFeedback({ kind: 'error', message: toErrorMessage(e, 'No se pudo eliminar') }),
   })
-
-  const localidades = pickArray<Localidad>(data, ['localidades', 'rows', 'data'])
-  const localidadesFiltradas = localidades
-    .filter((loc) => {
-      if (!q.trim()) return true
-      const query = q.toLowerCase()
-      return loc.nombre.toLowerCase().includes(query) || loc.municipio.toLowerCase().includes(query) || (loc.cp ?? '').includes(query)
-    })
-    .sort((a, b) => {
-      const byMunicipio = a.municipio.localeCompare(b.municipio, 'es', { sensitivity: 'base' })
-      if (byMunicipio !== 0) return byMunicipio
-      return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
-    })
 
   return (
     <div className="page animate-in">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Localidades</h1>
-          <p className="page-subtitle">Catalogo por municipio. Mostrando {localidadesFiltradas.length} de {localidades.length}</p>
+          <h1 className="page-title">Localestaciones</h1>
+          <p className="page-subtitle">{localidadesData.length} localidad{localidadesData.length !== 1 ? 'es' : ''}</p>
         </div>
-        {canManage && <button className="btn btn-primary" onClick={() => setModal('new')}><Plus size={15} /> Nueva localidad</button>}
-      </div>
-
-      <div className="card" style={{ marginBottom: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Search size={15} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
-        <input
-          className="input"
-          style={{ border: 'none', padding: 0, boxShadow: 'none' }}
-          placeholder="Buscar por municipio, localidad o CP"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        {q && <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ('')}><X size={14} /></button>}
+        {canManage && (
+          <button className="btn btn-primary" onClick={() => setModal('new')}>
+            <Plus size={15} /> Nueva localidad
+          </button>
+        )}
       </div>
 
       {feedback && (
@@ -155,38 +135,46 @@ export default function LocalidadesPage() {
         </div>
       )}
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Municipio</th><th>Nombre</th><th>CP</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(5).fill(0).map((_, i) => (
-              <tr key={i}>{Array(6).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : localidadesFiltradas.length === 0 ? (
-              <tr><td colSpan={6}><div className="empty-state"><p>Sin localidades</p></div></td></tr>
-            ) : localidadesFiltradas.map((loc, i) => (
-              <tr key={loc.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                <td style={{ fontWeight: 600 }}>{loc.municipio}</td>
-                <td>{loc.nombre}</td>
-                <td>{loc.cp ?? '—'}</td>
-                <td><span className={`badge badge-${loc.activo !== false ? 'green' : 'gray'}`}>{loc.activo !== false ? 'Activa' : 'Inactiva'}</span></td>
-                <td>
-                  {canManage && (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(loc)}><Pencil size={13} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={remove.isPending} onClick={() => confirm(`¿Eliminar ${loc.nombre}?`) && remove.mutate(loc.id)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'municipio', header: 'Municipio' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'cp', header: 'CP', render: (loc: Localidad) => loc.cp ?? '—' },
+          { 
+            key: 'activo', 
+            header: 'Estado', 
+            render: (loc: Localidad) => (
+              <span className={`badge badge-${loc.activo !== false ? 'success' : 'gray'}`}>
+                {loc.activo !== false ? 'Activa' : 'Inactiva'}
+              </span>
+            )
+          },
+        ]}
+        data={localidadesData}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin localidades"
+        pageSize={5}
+        searchable
+        searchPlaceholder="Buscar por municipio o nombre..."
+        renderActions={(loc: Localidad) => canManage && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(loc)} title="Editar">
+              <Pencil size={13} />
+            </button>
+            <button 
+              className="btn btn-ghost btn-icon btn-sm" 
+              style={{ color: 'var(--danger)' }} 
+              disabled={remove.isPending} 
+              onClick={() => confirm(`¿Eliminar ${loc.nombre}?`) && remove.mutate(loc.id)}
+              title="Eliminar"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
 
       {modal && canManage && <LocalidadModal localidad={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
     </div>

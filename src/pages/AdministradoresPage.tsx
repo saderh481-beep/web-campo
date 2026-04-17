@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { administradoresService, type Administrador } from '../lib/servicios/administradores'
 import { getApiErrorMessage } from '../lib/axios'
 import { useToast } from '../hooks/useToast'
+import { Table } from '../components/ui/Table'
 import { Plus, Pencil, Trash2, X, Eye } from 'lucide-react'
 
 interface AdministradorForm {
@@ -194,67 +195,39 @@ export default function AdministradoresPage() {
           <Plus size={15} /> Nuevo administrador
         </button>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nombre</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              Array(4)
-                .fill(0)
-                .map((_, i) => (
-                  <tr key={i}>
-                    {Array(6).fill(0).map((_, j) => (
-                      <td key={j}>
-                        <div className="skeleton" style={{ height: 18 }} />
-                      </td>
-                    ))}
-                  </tr>
-                ))
-            ) : (
-              admins.map((a, i) => (
-                <tr key={a.id}>
-                  <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                  <td style={{ fontWeight: 600 }}>{a.nombre}</td>
-                  <td style={{ color: 'var(--gray-500)' }}>{a.correo}</td>
-                  <td>{a.telefono ?? '—'}</td>
-                  <td>
-                    <span className={`badge badge-${a.activo !== false ? 'green' : 'gray'}`}>
-                      {a.activo !== false ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(a)}>
-                        <Eye size={13} />
-                      </button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setModal(a)}>
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
-                        style={{ color: 'var(--danger)' }}
-                        disabled={remove.isPending}
-                        onClick={() => confirm(`¿Eliminar al administrador ${a.nombre}?`) && remove.mutate(a.id)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'correo', header: 'Correo', truncate: true, tooltip: true },
+          { key: 'telefono', header: 'Teléfono', render: (a: Administrador) => a.telefono ?? '—' },
+          { key: 'activo', header: 'Estado', render: (a: Administrador) => <span className={`badge badge-${a.activo !== false ? 'success' : 'gray'}`}>{a.activo !== false ? 'Activo' : 'Inactivo'}</span> },
+        ]}
+        data={admins}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin administradores"
+        pageSize={5}
+        renderActions={(a: Administrador) => (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setInfoModal(a)} title="Ver">
+              <Eye size={13} />
+            </button>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(a)} title="Editar">
+              <Pencil size={13} />
+            </button>
+            <button
+              className="btn btn-ghost btn-icon btn-sm"
+              style={{ color: 'var(--danger)' }}
+              disabled={remove.isPending}
+              onClick={() => confirm(`¿Eliminar al administrador ${a.nombre}?`) && remove.mutate(a.id)}
+              title="Eliminar"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
       {modal && (
         <AdministradorModal
           admin={modal === 'new' ? undefined : modal}

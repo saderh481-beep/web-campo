@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, X, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import { documentosPlantillaService } from '../lib/servicios/extra'
 import { getApiErrorMessage } from '../lib/axios'
 import { canManageDocumentosPlantilla } from '../lib/authz'
 import { useAuth } from '../hooks/useAuth'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface DocumentoPlantilla {
@@ -145,7 +146,7 @@ export default function DocumentosPlantillaPage() {
       </div>
 
       <div className="card" style={{ marginBottom: 14, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Search size={15} style={{ color: 'var(--gray-400)', flexShrink: 0 }} />
+        <span style={{ color: 'var(--gray-400)', flexShrink: 0 }}>🔍</span>
         <input
           className="input"
           style={{ border: 'none', padding: 0, boxShadow: 'none' }}
@@ -162,39 +163,39 @@ export default function DocumentosPlantillaPage() {
         </div>
       )}
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Nombre</th><th>Descripcion</th><th>Orden</th><th>Obligatorio</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(5).fill(0).map((_, i) => (
-              <tr key={i}>{Array(7).fill(0).map((__, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : rowsFiltradas.length === 0 ? (
-              <tr><td colSpan={7}><div className="empty-state"><p>Sin documentos plantilla</p></div></td></tr>
-            ) : rowsFiltradas.map((doc, i) => (
-              <tr key={doc.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                <td style={{ fontWeight: 600 }}>{doc.nombre}</td>
-                <td style={{ color: 'var(--gray-500)' }}>{doc.descripcion ?? '—'}</td>
-                <td>{doc.orden ?? 0}</td>
-                <td><span className={`badge badge-${doc.obligatorio !== false ? 'guinda' : 'gray'}`}>{doc.obligatorio !== false ? 'Si' : 'No'}</span></td>
-                <td><span className={`badge badge-${doc.activo !== false ? 'green' : 'gray'}`}>{doc.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
-                <td>
-                  {canManage && (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(doc)}><Pencil size={13} /></button>
-                      <button className="btn btn-ghost btn-icon btn-sm" style={{ color: 'var(--danger)' }} disabled={remove.isPending} onClick={() => confirm(`¿Eliminar ${doc.nombre}?`) && remove.mutate(doc.id)}>
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'descripcion', header: 'Descripción', truncate: true, tooltip: true },
+          { key: 'orden', header: 'Orden', render: (doc: DocumentoPlantilla) => doc.orden ?? 0 },
+          { key: 'obligatorio', header: 'Obligatorio', render: (doc: DocumentoPlantilla) => <span className={`badge badge-${doc.obligatorio !== false ? 'info' : 'gray'}`}>{doc.obligatorio !== false ? 'Sí' : 'No'}</span> },
+          { key: 'activo', header: 'Estado', render: (doc: DocumentoPlantilla) => <span className={`badge badge-${doc.activo !== false ? 'success' : 'gray'}`}>{doc.activo !== false ? 'Activo' : 'Inactivo'}</span> },
+        ]}
+        data={rowsFiltradas}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin documentos plantilla"
+        pageSize={5}
+        searchable
+        searchPlaceholder="Buscar documento..."
+        renderActions={(doc: DocumentoPlantilla) => canManage && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={() => setModal(doc)} title="Editar">
+              <Pencil size={13} />
+            </button>
+            <button 
+              className="btn btn-ghost btn-icon btn-sm" 
+              style={{ color: 'var(--danger)' }} 
+              disabled={remove.isPending} 
+              onClick={() => confirm(`¿Eliminar ${doc.nombre}?`) && remove.mutate(doc.id)}
+              title="Eliminar"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
 
       {modal && canManage && <DocumentoModal item={modal === 'new' ? undefined : modal} onClose={() => setModal(null)} />}
     </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { reportesService } from '../lib/servicios/extra'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import { Download } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
@@ -143,35 +144,27 @@ export default function ReportesPage() {
         </div>
       )}
 
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Técnico</th><th>Total</th><th>Cerradas</th><th>Borradores</th><th>Cierre</th></tr>
-          </thead>
-          <tbody>
-            {isLoading ? Array(5).fill(0).map((_, i) => (
-              <tr key={i}>{Array(5).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : rows.length === 0 ? (
-              <tr><td colSpan={5}><div className="empty-state"><p>Sin datos para el mes seleccionado</p></div></td></tr>
-            ) : rows.map((r, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: 600 }}>{getNombre(r)}</td>
-                <td>{getTotal(r)}</td>
-                <td>{getCerradas(r)}</td>
-                <td>{getBorradores(r)}</td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ flex: 1, height: 6, background: 'var(--gray-100)', borderRadius: 3 }}>
-                      <div style={{ height: '100%', width: `${Math.min(100, getPorcentaje(r))}%`, background: 'var(--guinda)', borderRadius: 3 }} />
-                    </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, minWidth: 36 }}>{getPorcentaje(r)}%</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'nombre', header: 'Técnico', render: (r: ReporteRow) => <span style={{ fontWeight: 600 }}>{getNombre(r)}</span> },
+          { key: 'total', header: 'Total', render: (r: ReporteRow) => getTotal(r) },
+          { key: 'cerradas', header: 'Cerradas', render: (r: ReporteRow) => getCerradas(r) },
+          { key: 'borradores', header: 'Borradores', render: (r: ReporteRow) => getBorradores(r) },
+          { key: 'cierre', header: 'Cierre', render: (r: ReporteRow) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, height: 6, background: 'var(--gray-100)', borderRadius: 3 }}>
+                <div style={{ height: '100%', width: `${Math.min(100, getPorcentaje(r))}%`, background: 'var(--guinda)', borderRadius: 3 }} />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, minWidth: 36 }}>{getPorcentaje(r)}%</span>
+            </div>
+          )},
+        ]}
+        data={rows}
+        keyField="tecnico"
+        loading={isLoading}
+        emptyMessage="Sin datos para el mes seleccionado"
+        pageSize={5}
+      />
     </div>
   )
 }

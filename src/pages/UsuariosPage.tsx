@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { usuariosService } from '../lib/servicios/usuarios'
 import { getApiErrorMessage } from '../lib/axios'
 import { pickArray } from '../lib/normalize'
+import { Table } from '../components/ui/Table'
 import { Plus, Pencil, Trash2, X, Copy, Check, Eye, Power, RefreshCw } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 import { 
@@ -410,51 +411,57 @@ export default function UsuariosPage() {
         />
       </div>
       {feedback && <div style={{ marginBottom: 14 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} /></div>}
-      <div className="table-wrap">
-        <table>
-          <thead><tr><th>#</th><th>Nombre</th><th>Correo</th><th>Código acceso</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-            {isLoading ? Array(4).fill(0).map((_, i) => (
-              <tr key={i}>{Array(7).fill(0).map((_, j) => <td key={j}><div className="skeleton" style={{ height: 18 }} /></td>)}</tr>
-            )) : usuarios.map((u, i) => (
-              <tr key={u.id}>
-                <td style={{ color: 'var(--gray-400)', fontSize: 12 }}>{i + 1}</td>
-                <td style={{ fontWeight: 600 }}>{u.nombre}</td>
-                <td style={{ color: 'var(--gray-500)' }}>{u.correo}</td>
-                <td><code style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--gray-700)' }}>{maskAccessCode(u.codigo_acceso)}</code></td>
-                <td><span className={`badge badge-${(u.rol === 'administrador' || u.rol === 'admin') ? 'guinda' : 'dorado'}`}>{u.rol}</span></td>
-                <td><span className={`badge badge-${u.activo !== false ? 'green' : 'gray'}`}>{u.activo !== false ? 'Activo' : 'Inactivo'}</span></td>
-                <td><div style={{ display: 'flex', gap: 4 }}>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(u)}><Eye size={13} /> Ver</button>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setModal(u)}><Pencil size={13} /> Editar</button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ color: u.activo !== false ? 'var(--warning)' : 'var(--success)' }}
-                    disabled={toggleActivo.isPending}
-                    onClick={() =>
-                      confirm(`¿${u.activo !== false ? 'Desactivar' : 'Activar'} a ${u.nombre}?`) &&
-                      toggleActivo.mutate({ id: u.id, activo: u.activo === false })
-                    }
-                  >
-                    <Power size={13} /> {u.activo !== false ? 'Desactivar' : 'Activar'}
-                  </button>
-                  <button
-                    className="btn btn-ghost btn-sm"
-                    style={{ color: 'var(--danger)' }}
-                    disabled={hardRemove.isPending}
-                    onClick={() =>
-                      confirm(`¿Eliminar permanentemente a ${u.nombre}? Esta acción no se puede deshacer.`) &&
-                      hardRemove.mutate(u.id)
-                    }
-                  >
-                    <Trash2 size={13} /> Eliminar permanente
-                  </button>
-                </div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        columns={[
+          { key: 'index', header: '#', className: 'w-16' },
+          { key: 'nombre', header: 'Nombre' },
+          { key: 'correo', header: 'Correo', truncate: true, tooltip: true },
+          { key: 'codigo_acceso', header: 'Código', render: (u: Usuario) => <code style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: 'var(--gray-700)' }}>{maskAccessCode(u.codigo_acceso)}</code> },
+          { key: 'rol', header: 'Rol', render: (u: Usuario) => <span className={`badge badge-${(u.rol === 'administrador' || u.rol === 'admin') ? 'info' : 'warning'}`}>{u.rol}</span> },
+          { key: 'activo', header: 'Estado', render: (u: Usuario) => <span className={`badge badge-${u.activo !== false ? 'success' : 'gray'}`}>{u.activo !== false ? 'Activo' : 'Inactivo'}</span> },
+        ]}
+        data={usuarios}
+        keyField="id"
+        loading={isLoading}
+        emptyMessage="Sin usuarios"
+        pageSize={5}
+        searchable
+        searchPlaceholder="Buscar por nombre o correo..."
+        renderActions={(u: Usuario) => (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="btn btn-ghost btn-sm" onClick={() => setInfoModal(u)} title="Ver">
+              <Eye size={13} />
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setModal(u)} title="Editar">
+              <Pencil size={13} />
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ color: u.activo !== false ? 'var(--warning)' : 'var(--success)' }}
+              disabled={toggleActivo.isPending}
+              onClick={() =>
+                confirm(`¿${u.activo !== false ? 'Desactivar' : 'Activar'} a ${u.nombre}?`) &&
+                toggleActivo.mutate({ id: u.id, activo: u.activo === false })
+              }
+              title={u.activo !== false ? 'Desactivar' : 'Activar'}
+            >
+              <Power size={13} />
+            </button>
+            <button
+              className="btn btn-ghost btn-sm"
+              style={{ color: 'var(--danger)' }}
+              disabled={hardRemove.isPending}
+              onClick={() =>
+                confirm(`¿Eliminar permanentemente a ${u.nombre}? Esta acción no se puede deshacer.`) &&
+                hardRemove.mutate(u.id)
+              }
+              title="Eliminar permanente"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      />
       {modal && (
         <UsuarioModal
           u={modal === 'new' ? undefined : modal}

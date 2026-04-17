@@ -308,18 +308,18 @@ export default function GestionUsuariosPage() {
         <Table
           columns={[
             { key: 'nombre', header: 'Nombre' },
-            { key: 'correo', header: 'Correo', className: 'max-w-[200px] truncate' },
+            { key: 'correo', header: 'Correo', truncate: true, tooltip: true },
             { 
               key: 'rol', 
               header: 'Rol', 
-              render: (u: Usuario) => <span className="badge badge-primary">{u.rol}</span>
+              render: (u: Usuario) => <span className="badge badge-info">{u.rol}</span>
             },
-            { key: 'telefono', header: 'Teléfono', render: (u: Usuario) => u.telefono || '-' },
+            { key: 'telefono', header: 'Teléfono', render: (u: Usuario) => u.telefono || '—' },
             { 
               key: 'activo', 
               header: 'Estado', 
               render: (u: Usuario) => (
-                <span className={`badge ${u.activo ? 'badge-success' : 'badge-error'}`}>
+                <span className={`badge badge-${u.activo ? 'success' : 'gray'}`}>
                   {u.activo ? 'Activo' : 'Inactivo'}
                 </span>
               )
@@ -329,10 +329,10 @@ export default function GestionUsuariosPage() {
           keyField="id"
           loading={isLoading}
           emptyMessage="Sin usuarios"
-          pagination={{ page: 1, pageSize: 5, total: usuarios.length }}
+          pageSize={5}
           renderActions={(usuario: Usuario) => (
-            <div className="flex gap-2">
-              <button onClick={() => handleEdit(usuario)} className="btn btn-ghost btn-icon btn-sm">
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={() => handleEdit(usuario)} className="btn btn-ghost btn-icon btn-sm" title="Editar">
                 <Pencil size={16} />
               </button>
               <button
@@ -342,7 +342,9 @@ export default function GestionUsuariosPage() {
                   }
                 }}
                 disabled={deleteMutation.isPending}
-                className="btn btn-error btn-sm"
+                className="btn btn-ghost btn-icon btn-sm"
+                style={{ color: 'var(--danger)' }}
+                title="Eliminar"
               >
                 <Trash2 size={16} />
               </button>
