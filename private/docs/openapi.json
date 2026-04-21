@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "CAMPO API (Interno)",
+    "version": "1.0.0",
+    "description": "Contrato de API para CAMPO (interno). Esta versión no se expone públicamente."
+  },
+  "servers": [
+    { "url": "http://localhost:3001/api/v1" }
+  ],
+  "paths": {
+    "/auth/verify-codigo-acceso": {
+      "post": {
+        "summary": "Login",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "correo": { "type": "string", "format": "email" },
+                  "codigo_acceso": { "type": "string" }
+                },
+                "required": ["correo", "codigo_acceso"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "OK" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Logout",
+        "responses": {
+          "200": { "description": "OK" }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": { "summary": "Listar usuarios", "responses": { "200": { "description": "OK" } } },
+      "post": {
+        "summary": "Crear usuario",
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/usuarios/{id}": {
+      "patch": { "summary": "Actualizar usuario", "responses": { "200": { "description": "OK" } } },
+      "delete": { "summary": "Desactivar usuario", "responses": { "200": { "description": "OK" } } }
+    }
+  },
+  "components": { "schemas": {} }
+}

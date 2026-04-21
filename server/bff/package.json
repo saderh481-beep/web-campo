@@ -1,0 +1,14 @@
+{
+  "name": "campo-bff",
+  "version": "1.0.0",
+  "description": "Backend-for-Frontend para CAMPO Web",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^1.15.0",
+    "express": "^4.18.2",
+    "morgan": "^1.10.0"
+  }
+}

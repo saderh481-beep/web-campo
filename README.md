@@ -60,3 +60,10 @@ Incluye:
 - React Router 7
 - TanStack Query 5
 - Axios
+
+## Arquitectura objetivo
+- Monorepo con workspaces para frontend y BFF (gateway modular).
+- BFF en capas (controllers/use-cases/services/repositories) para mejor separación de responsabilidades.
+- Frontend organizado por características con lazy loading y code-splitting.
+- Observabilidad básica (logs estructurados y métricas) desde el inicio, con preparaciones para tracing.
+- Configuración por entorno y seguridad (env vars, CORS, validaciones).

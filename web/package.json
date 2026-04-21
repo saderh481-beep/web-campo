@@ -1,0 +1,11 @@
+{
+  "name": "campo-web",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "echo 'Frontend lives in root; run from there'",
+    "build": "echo 'Frontend build placeholder'"
+  },
+  "dependencies": {}
+}
