@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { bitacorasService } from '../lib/servicios/bitacoras'
+import type { BitacoraDatos } from '../lib/servicios/bitacoras'
 import { getApiErrorMessage } from '../lib/axios'
 import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets'
 import type { AssetItem } from '../lib/assets'
@@ -161,8 +162,8 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     queryKey: ['bitacora', id],
     queryFn: () => bitacorasService.get(id).then(r => r.data),
   })
-  const [editNotas, setEditNotas] = useState(false)
-  const [notas, setNotas] = useState('')
+  const [editMode, setEditMode] = useState(false)
+  const [form, setForm] = useState<BitacoraDatos>({})
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const bit = data
 
@@ -176,14 +177,36 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     .filter(Boolean)
     .join(' · ')
 
-  const saveNotas = useMutation({
-    mutationFn: () => bitacorasService.update(id, { observaciones: notas }),
+  function enterEdit() {
+    setForm({
+      tipo: bit?.tipo,
+      estado: bit?.estado,
+      fecha_inicio: bit?.fecha_inicio,
+      fecha_fin: bit?.fecha_fin,
+      actividades_desc: bit?.actividades_desc ?? bit?.actividades_realizadas ?? bit?.observaciones ?? bit?.notas ?? '',
+      recomendaciones: bit?.recomendaciones ?? '',
+      comentarios_beneficiario: bit?.comentarios_beneficiario ?? '',
+      observaciones_coordinador: bit?.observaciones_coordinador ?? '',
+    })
+    setEditMode(true)
+    setFeedback(null)
+  }
+
+  function cancelEdit() {
+    setEditMode(false)
+    setForm({})
+    setFeedback(null)
+  }
+
+  const saveDatos = useMutation({
+    mutationFn: (data: BitacoraDatos) => bitacorasService.updateDatos(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bitacora', id] })
-      setFeedback({ kind: 'success', message: 'Notas actualizadas correctamente.' })
-      setEditNotas(false)
+      setFeedback({ kind: 'success', message: 'Bitácora actualizada correctamente.' })
+      setEditMode(false)
+      setForm({})
     },
-    onError: () => setFeedback({ kind: 'error', message: 'No se pudieron actualizar las notas.' }),
+    onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudieron guardar los cambios.') }),
   })
 
   const imprimirPdf = useMutation({
@@ -198,15 +221,33 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo descargar el PDF.') }),
   })
 
+  function set<K extends keyof BitacoraDatos>(k: K, v: BitacoraDatos[K]) {
+    setForm(p => ({ ...p, [k]: v }))
+  }
+
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal modal-wide">
         <div className="modal-header">
           <h3>Bitácora #{id}</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <button className="btn btn-secondary btn-sm" onClick={() => openPdfInNewTab(pdfLinks.viewUrl)}>
-              <Eye size={13} /> Ver PDF
-            </button>
+            {!editMode ? (
+              <>
+                <button className="btn btn-outline btn-sm" onClick={enterEdit}>
+                  <Pencil size={13} /> Editar
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => openPdfInNewTab(pdfLinks.viewUrl)}>
+                  <Eye size={13} /> Ver PDF
+                </button>
+              </>
+            ) : (
+              <>
+                <button className="btn btn-primary btn-sm" onClick={() => saveDatos.mutate(form)} disabled={saveDatos.isPending}>
+                  {saveDatos.isPending ? <span className="spinner" /> : <Save size={13} />} Guardar
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={cancelEdit}>Cancelar</button>
+              </>
+            )}
             <button className="btn btn-primary btn-sm" onClick={() => downloadPdf.mutate()} disabled={downloadPdf.isPending}>
               {downloadPdf.isPending ? <><span className="spinner" />Descargando...</> : <><Download size={13} /> Descargar</>}
             </button>
@@ -217,6 +258,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
           </div>
         </div>
         <div className="modal-body modal-body-scroll">
+          {feedback && <div style={{ marginBottom: 12 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
           {isLoading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {[60, 40, 80].map((w, i) => <div key={i} className="skeleton" style={{ height: 20, width: `${w}%` }} />)}
@@ -227,15 +269,39 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                 {[
                   ['Beneficiario', beneficiarioDetalle || '—'],
                   ['Usuario registro', registradoPor ?? '—'],
-                  ['Fecha inicio', formatDateTime(bit.fecha_inicio)],
-                  ['Fecha término', formatDateTime(bit.fecha_fin)],
-                  ['Estado', bit.estado ?? '—'],
-                  ['Tipo', bit.tipo ?? '—'],
+                  ['Fecha inicio', 'fecha_inicio'],
+                  ['Fecha término', 'fecha_fin'],
+                  ['Estado', 'estado'],
+                  ['Tipo', 'tipo'],
                   ['Actividad', bit.actividad ?? '—'],
                 ].map(([l, v]) => (
                   <div key={l}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
-                    <div style={{ fontSize: 13, fontWeight: 500 }}>{v as string}</div>
+                    {editMode && (v === 'fecha_inicio' || v === 'fecha_fin') ? (
+                      <input className="input" type="date" style={{ width: '100%' }}
+                        value={form[v]?.slice(0, 10) ?? (bit[v]?.slice(0, 10) ?? '')}
+                        onChange={e => set(v as keyof BitacoraDatos, e.target.value)} />
+                    ) : editMode && v === 'estado' ? (
+                      <select className="input" style={{ width: '100%' }}
+                        value={form.estado ?? bit.estado ?? ''}
+                        onChange={e => set('estado', e.target.value)}>
+                        <option value="borrador">Borrador</option>
+                        <option value="firmada">Firmada</option>
+                        <option value="cancelada">Cancelada</option>
+                      </select>
+                    ) : editMode && v === 'tipo' ? (
+                      <input className="input" style={{ width: '100%' }}
+                        value={form.tipo ?? bit.tipo ?? ''}
+                        onChange={e => set('tipo', e.target.value)} />
+                    ) : (
+                      <div style={{ fontSize: 13, fontWeight: 500 }}>
+                        {v === 'fecha_inicio' ? formatDateTime(bit.fecha_inicio)
+                          : v === 'fecha_fin' ? formatDateTime(bit.fecha_fin)
+                          : v === 'estado' ? (bit.estado ?? '—')
+                          : v === 'tipo' ? (bit.tipo ?? '—')
+                          : (v as string)}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -296,46 +362,58 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                 </div>
               )}
 
-<div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Notas</div>
-                    {bit.estado === 'borrador' && !editNotas && (
-                      <button className="btn btn-ghost btn-sm" onClick={() => { setNotas(bit.notas ?? bit.observaciones ?? ''); setEditNotas(true) }}>
-                        <Pencil size={12} /> Editar
-                      </button>
-                    )}
-                  </div>
-                  {feedback && <div style={{ marginBottom: 8 }}><FeedbackBanner kind={feedback.kind} message={feedback.message} compact /></div>}
-                  {editNotas ? (
-                    <>
-                      <textarea className="input" rows={4} value={notas} onChange={e => setNotas(e.target.value)} style={{ resize: 'vertical' }} />
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                        <button className="btn btn-primary btn-sm" onClick={() => saveNotas.mutate()} disabled={saveNotas.isPending}>
-                          {saveNotas.isPending ? <span className="spinner" /> : <Save size={12} />} Guardar
-                        </button>
-                        <button className="btn btn-secondary btn-sm" onClick={() => setEditNotas(false)}>Cancelar</button>
-                      </div>
-                    </>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Actividades realizadas</div>
+                </div>
+                {editMode ? (
+                  <textarea className="input" rows={4} value={form.actividades_desc ?? ''} onChange={e => set('actividades_desc', e.target.value)} style={{ resize: 'vertical' }} />
+                ) : (
+                  <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
+                    {bit.actividades_desc ?? bit.actividades_realizadas ?? bit.observaciones ?? bit.notas ?? <em style={{ color: 'var(--gray-300)' }}>Sin registro</em>}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Recomendaciones</div>
+                {editMode ? (
+                  <textarea className="input" rows={3} value={form.recomendaciones ?? ''} onChange={e => set('recomendaciones', e.target.value)} style={{ resize: 'vertical' }} />
+                ) : (
+                  <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
+                    {bit.recomendaciones ?? <em style={{ color: 'var(--gray-300)' }}>Sin recomendaciones</em>}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Comentarios del beneficiario</div>
+                {editMode ? (
+                  <textarea className="input" rows={3} value={form.comentarios_beneficiario ?? ''} onChange={e => set('comentarios_beneficiario', e.target.value)} style={{ resize: 'vertical' }} />
+                ) : (
+                  <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
+                    {bit.comentarios_beneficiario ?? <em style={{ color: 'var(--gray-300)' }}>Sin comentarios</em>}
+                  </p>
+                )}
+              </div>
+
+              {bit.observaciones_coordinador !== undefined && (
+                <div className="card modal-soft-section" style={{ padding: 14, borderLeft: '4px solid var(--dorado)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--dorado-dark)', textTransform: 'uppercase', marginBottom: 8 }}>Observaciones del Coordinador</div>
+                  {editMode ? (
+                    <textarea className="input" rows={3} value={form.observaciones_coordinador ?? ''} onChange={e => set('observaciones_coordinador', e.target.value)} style={{ resize: 'vertical' }} />
                   ) : (
-                    <p style={{ fontSize: 13, color: 'var(--gray-600)', lineHeight: 1.6, background: 'var(--gray-50)', padding: 12, borderRadius: 6 }}>
-                      {bit.notas ?? bit.observaciones ?? bit.actividades_realizadas ?? bit.actividades_desc ?? <em style={{ color: 'var(--gray-300)' }}>Sin notas</em>}
-                    </p>
+                    <p style={{ fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.6 }}>{bit.observaciones_coordinador ?? <em style={{ color: 'var(--gray-300)' }}>Sin observaciones</em>}</p>
                   )}
                 </div>
+              )}
 
-                {bit.observaciones_coordinador && (
-                  <div className="card modal-soft-section" style={{ padding: 14, borderLeft: '4px solid var(--dorado)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--dorado-dark)', textTransform: 'uppercase', marginBottom: 8 }}>Observaciones del Coordinador</div>
-                    <p style={{ fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.6 }}>{bit.observaciones_coordinador}</p>
-                  </div>
-                )}
-
-                {bit.calificaciones && (
-                  <div className="card modal-soft-section" style={{ padding: 14, borderLeft: '4px solid var(--success)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--success)', textTransform: 'uppercase', marginBottom: 8 }}>Calificaciones</div>
-                    <p style={{ fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.6 }}>{bit.calificaciones}</p>
-                  </div>
-                )}
+              {bit.calificaciones && (
+                <div className="card modal-soft-section" style={{ padding: 14, borderLeft: '4px solid var(--success)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--success)', textTransform: 'uppercase', marginBottom: 8 }}>Calificaciones</div>
+                  <p style={{ fontSize: 13, color: 'var(--gray-700)', lineHeight: 1.6 }}>{bit.calificaciones}</p>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -490,8 +568,8 @@ export default function BitacorasPage() {
           const pdfLinks = getPdfLinks(b, b.id)
           return (
             <div style={{ display: 'flex', gap: 4 }}>
-              <button className="btn btn-ghost btn-icon btn-sm" title="Ver detalle" onClick={() => setDetalle(b.id)}>
-                <Eye size={13} />
+              <button className="btn btn-ghost btn-sm" title="Editar bitácora" onClick={() => setDetalle(b.id)}>
+                <Pencil size={13} /> Editar
               </button>
               <button className="btn btn-ghost btn-icon btn-sm" title="Descargar PDF" onClick={() => downloadPdfFromUrl(pdfLinks.downloadUrl)}>
                 <Download size={13} />

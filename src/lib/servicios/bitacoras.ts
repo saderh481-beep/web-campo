@@ -28,6 +28,10 @@ export interface Bitacora {
   observaciones?: string
   observaciones_coordinador?: string
   coordinacion_interinst?: boolean
+  instancia_coordinada?: string
+  proposito_coordinacion?: string
+  coord_inicio?: { x: number; y: number } | null
+  coord_fin?: { x: number; y: number } | null
   pdf_edicion?: { encabezado?: string; pie?: string }
   foto_rostro_url?: string
   firma_url?: string
@@ -37,6 +41,22 @@ export interface Bitacora {
   created_at?: string
   updated_at?: string
   calificaciones?: string
+}
+
+export interface BitacoraDatos {
+  tipo?: string
+  estado?: string
+  fecha_inicio?: string
+  fecha_fin?: string
+  coord_inicio?: { x: number; y: number } | null
+  coord_fin?: { x: number; y: number } | null
+  actividades_desc?: string
+  recomendaciones?: string
+  comentarios_beneficiario?: string
+  coordinacion_interinst?: string
+  instancia_coordinada?: string
+  proposito_coordinacion?: string
+  observaciones_coordinador?: string
 }
 
 export interface PdfEdicion {
@@ -82,6 +102,9 @@ export const bitacorasService = {
   update: (id: string | number, data: { observaciones?: string; actividades_realizadas?: string }) =>
     api.patch<Bitacora>(`/bitacoras/${id}`, data),
   
+  updateDatos: (id: string | number, data: BitacoraDatos) =>
+    api.patch<Bitacora>(`/bitacoras/${id}/datos`, data),
+
   updatePdfConfig: (id: string | number, pdf_edicion: PdfEdicion) =>
     api.patch<Bitacora>(`/bitacoras/${id}/pdf-config`, { pdf_edicion }),
   
