@@ -7,7 +7,7 @@ import { dedupeAssets, firstUrl, isRecord, normalizeAssets } from '../lib/assets
 import type { AssetItem } from '../lib/assets'
 import { pickArray } from '../lib/normalize'
 import { Table } from '../components/ui/Table'
-import { FileText, Download, Eye, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon, Printer, MapPin } from 'lucide-react'
+import { FileText, Download, X, Pencil, Save, Image as ImageIcon, Link as LinkIcon, Printer, MapPin } from 'lucide-react'
 import FeedbackBanner from '../components/common/FeedbackBanner'
 
 interface Bitacora {
@@ -64,22 +64,6 @@ function getPdfLinks(bit: unknown, id: string | number) {
   const viewUrl = firstUrl(bit, ['pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasService.pdfUrl(id)
   const downloadUrl = firstUrl(bit, ['pdf_download_url', 'download_url', 'pdf_url', 'pdf_secure_url', 'reporte_url', 'documento_url', 'archivo_pdf_url']) ?? bitacorasService.pdfDownloadUrl(id)
   return { viewUrl, downloadUrl }
-}
-
-async function openPdfInNewTab(url: string) {
-  const token = localStorage.getItem('campo_auth_token')
-  try {
-    const response = await fetch(url, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Origin': window.location.origin
-      }
-    })
-    if (!response.ok) throw new Error('Error al cargar PDF')
-    const blob = await response.blob()
-    const blobUrl = URL.createObjectURL(blob)
-    window.open(blobUrl, '_blank')
-  } catch { alert('Error al abrir PDF') }
 }
 
 function getBitacoraAssets(bit: unknown): AssetItem[] {
@@ -163,11 +147,10 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     queryFn: () => bitacorasService.get(id).then(r => r.data),
   })
   const [editMode, setEditMode] = useState(false)
-  const [form, setForm] = useState<BitacoraDatos>({})
+  const [form, setForm] = useState<Record<string, string>>({})
   const [feedback, setFeedback] = useState<{ kind: 'success' | 'error'; message: string } | null>(null)
   const bit = data
 
-  const pdfLinks = useMemo(() => getPdfLinks(bit, id), [bit, id])
   const assets = useMemo(() => getBitacoraAssets(bit), [bit])
   const imageAssets = assets.filter((asset) => asset.kind === 'image')
   const fileAssets = assets.filter((asset) => asset.kind !== 'image')
@@ -179,14 +162,16 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
   function enterEdit() {
     setForm({
-      tipo: bit?.tipo,
-      estado: bit?.estado,
-      fecha_inicio: bit?.fecha_inicio,
-      fecha_fin: bit?.fecha_fin,
+      tipo: bit?.tipo ?? '',
+      estado: bit?.estado ?? '',
+      fecha_inicio: bit?.fecha_inicio?.slice(0, 10) ?? '',
+      fecha_fin: bit?.fecha_fin?.slice(0, 10) ?? '',
       actividades_desc: bit?.actividades_desc ?? bit?.actividades_realizadas ?? bit?.observaciones ?? bit?.notas ?? '',
       recomendaciones: bit?.recomendaciones ?? '',
       comentarios_beneficiario: bit?.comentarios_beneficiario ?? '',
       observaciones_coordinador: bit?.observaciones_coordinador ?? '',
+      beneficiario: pickBitacoraText(bit, ['beneficiario_nombre', 'beneficiario']) ?? '',
+      usuario: pickBitacoraText(bit, ['usuario_nombre', 'usuario', 'tecnico_nombre', 'tecnico', 'registrado_por', 'created_by']) ?? '',
     })
     setEditMode(true)
     setFeedback(null)
@@ -199,7 +184,19 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
   }
 
   const saveDatos = useMutation({
-    mutationFn: (data: BitacoraDatos) => bitacorasService.updateDatos(id, data),
+    mutationFn: (data: Record<string, string>) => {
+      const payload: BitacoraDatos = {
+        tipo: data.tipo,
+        estado: data.estado,
+        fecha_inicio: data.fecha_inicio,
+        fecha_fin: data.fecha_fin,
+        actividades_desc: data.actividades_desc,
+        recomendaciones: data.recomendaciones,
+        comentarios_beneficiario: data.comentarios_beneficiario,
+        observaciones_coordinador: data.observaciones_coordinador,
+      }
+      return bitacorasService.updateDatos(id, payload)
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bitacora', id] })
       setFeedback({ kind: 'success', message: 'Bitácora actualizada correctamente.' })
@@ -221,7 +218,7 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     onError: (error: unknown) => setFeedback({ kind: 'error', message: getApiErrorMessage(error, 'No se pudo descargar el PDF.') }),
   })
 
-  function set<K extends keyof BitacoraDatos>(k: K, v: BitacoraDatos[K]) {
+  function set(k: string, v: string) {
     setForm(p => ({ ...p, [k]: v }))
   }
 
@@ -232,14 +229,9 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
           <h3>Bitácora #{id}</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {!editMode ? (
-              <>
-                <button className="btn btn-outline btn-sm" onClick={enterEdit}>
-                  <Pencil size={13} /> Editar
-                </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => openPdfInNewTab(pdfLinks.viewUrl)}>
-                  <Eye size={13} /> Ver PDF
-                </button>
-              </>
+              <button className="btn btn-outline btn-sm" onClick={enterEdit}>
+                <Pencil size={13} /> Editar
+              </button>
             ) : (
               <>
                 <button className="btn btn-primary btn-sm" onClick={() => saveDatos.mutate(form)} disabled={saveDatos.isPending}>
@@ -267,8 +259,8 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 {[
-                  ['Beneficiario', beneficiarioDetalle || '—'],
-                  ['Usuario registro', registradoPor ?? '—'],
+                  ['Beneficiario', 'beneficiario'],
+                  ['Usuario registro', 'usuario'],
                   ['Fecha inicio', 'fecha_inicio'],
                   ['Fecha término', 'fecha_fin'],
                   ['Estado', 'estado'],
@@ -277,10 +269,14 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                 ].map(([l, v]) => (
                   <div key={l}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 2 }}>{l}</div>
-                    {editMode && (v === 'fecha_inicio' || v === 'fecha_fin') ? (
+                    {editMode && (v === 'beneficiario' || v === 'usuario') ? (
+                      <input className="input" style={{ width: '100%' }}
+                        value={form[v] ?? ''}
+                        onChange={e => set(v, e.target.value)} />
+                    ) : editMode && (v === 'fecha_inicio' || v === 'fecha_fin') ? (
                       <input className="input" type="date" style={{ width: '100%' }}
-                        value={form[v]?.slice(0, 10) ?? (bit[v]?.slice(0, 10) ?? '')}
-                        onChange={e => set(v as keyof BitacoraDatos, e.target.value)} />
+                        value={form[v] ?? (bit[v]?.slice(0, 10) ?? '')}
+                        onChange={e => set(v, e.target.value)} />
                     ) : editMode && v === 'estado' ? (
                       <select className="input" style={{ width: '100%' }}
                         value={form.estado ?? bit.estado ?? ''}
@@ -295,11 +291,13 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
                         onChange={e => set('tipo', e.target.value)} />
                     ) : (
                       <div style={{ fontSize: 13, fontWeight: 500 }}>
-                        {v === 'fecha_inicio' ? formatDateTime(bit.fecha_inicio)
+                        {v === 'beneficiario' ? (beneficiarioDetalle || '—')
+                          : v === 'usuario' ? (registradoPor ?? '—')
+                          : v === 'fecha_inicio' ? formatDateTime(bit.fecha_inicio)
                           : v === 'fecha_fin' ? formatDateTime(bit.fecha_fin)
                           : v === 'estado' ? (bit.estado ?? '—')
                           : v === 'tipo' ? (bit.tipo ?? '—')
-                          : (v as string)}
+                          : (v)}
                       </div>
                     )}
                   </div>
