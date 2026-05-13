@@ -126,6 +126,16 @@ function getBitacoraLocation(bit: unknown): string | null {
   if (explicit) return explicit
 
   if (!isRecord(bit)) return null
+
+  const coordInicio = isRecord(bit.coord_inicio) ? bit.coord_inicio as Record<string, unknown> : null
+  const coordFin = isRecord(bit.coord_fin) ? bit.coord_fin as Record<string, unknown> : null
+  if (coordInicio && typeof coordInicio.x === 'number' && typeof coordInicio.y === 'number') {
+    const fin = coordFin && typeof coordFin.x === 'number' && typeof coordFin.y === 'number'
+      ? ` → ${coordFin.x}, ${coordFin.y}`
+      : ''
+    return `${coordInicio.x}, ${coordInicio.y}${fin}`
+  }
+
   const nestedLocation = isRecord(bit.ubicacion) ? bit.ubicacion : null
   const lat = bit.latitud ?? bit.lat ?? nestedLocation?.latitud ?? nestedLocation?.lat
   const lng = bit.longitud ?? bit.lng ?? bit.lon ?? nestedLocation?.longitud ?? nestedLocation?.lng ?? nestedLocation?.lon
@@ -161,6 +171,8 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
     .join(' · ')
 
   function enterEdit() {
+    const ci = isRecord(bit?.coord_inicio) ? bit.coord_inicio as Record<string, unknown> : null
+    const cf = isRecord(bit?.coord_fin) ? bit.coord_fin as Record<string, unknown> : null
     setForm({
       tipo: bit?.tipo ?? '',
       estado: bit?.estado ?? '',
@@ -172,6 +184,8 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
       observaciones_coordinador: bit?.observaciones_coordinador ?? '',
       beneficiario: pickBitacoraText(bit, ['beneficiario_nombre', 'beneficiario']) ?? '',
       usuario: pickBitacoraText(bit, ['usuario_nombre', 'usuario', 'tecnico_nombre', 'tecnico', 'registrado_por', 'created_by']) ?? '',
+      coord_inicio: ci && typeof ci.x === 'number' && typeof ci.y === 'number' ? `${ci.x}, ${ci.y}` : '',
+      coord_fin: cf && typeof cf.x === 'number' && typeof cf.y === 'number' ? `${cf.x}, ${cf.y}` : '',
     })
     setEditMode(true)
     setFeedback(null)
@@ -185,11 +199,17 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
   const saveDatos = useMutation({
     mutationFn: (data: Record<string, string>) => {
+      function parseCoord(v: string): { x: number; y: number } | null {
+        const parts = v.split(',').map(s => parseFloat(s.trim()))
+        return parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) ? { x: parts[0], y: parts[1] } : null
+      }
       const payload: BitacoraDatos = {
         tipo: data.tipo,
         estado: data.estado,
         fecha_inicio: data.fecha_inicio,
         fecha_fin: data.fecha_fin,
+        coord_inicio: parseCoord(data.coord_inicio ?? ''),
+        coord_fin: parseCoord(data.coord_fin ?? ''),
         actividades_desc: data.actividades_desc,
         recomendaciones: data.recomendaciones,
         comentarios_beneficiario: data.comentarios_beneficiario,
@@ -306,10 +326,29 @@ function BitacoraDetalle({ id, onClose }: { id: number | string; onClose: () => 
 
               <div className="card modal-soft-section" style={{ padding: 14 }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: 8 }}>Geolocalización</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray-700)' }}>
-                  <MapPin size={14} />
-                  <span>{bitacoraLocation ?? 'No disponible en este registro.'}</span>
-                </div>
+                {editMode ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <MapPin size={14} />
+                      <span style={{ fontSize: 12, color: 'var(--gray-500)', minWidth: 70 }}>Coord inicio</span>
+                      <input className="input" style={{ flex: 1 }} placeholder="x, y"
+                        value={form.coord_inicio ?? ''}
+                        onChange={e => set('coord_inicio', e.target.value)} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <MapPin size={14} />
+                      <span style={{ fontSize: 12, color: 'var(--gray-500)', minWidth: 70 }}>Coord fin</span>
+                      <input className="input" style={{ flex: 1 }} placeholder="x, y"
+                        value={form.coord_fin ?? ''}
+                        onChange={e => set('coord_fin', e.target.value)} />
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gray-700)' }}>
+                    <MapPin size={14} />
+                    <span>{bitacoraLocation ?? 'No disponible en este registro.'}</span>
+                  </div>
+                )}
               </div>
 
               {imageAssets.length > 0 && (
