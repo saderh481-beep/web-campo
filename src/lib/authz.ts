@@ -133,6 +133,8 @@ export function canViewArchive(role?: string | null): boolean {
   return isAdmin(role)
 }
 
+
+
 export function getRoleHomePath(role?: string | null): string {
   switch (normalizeRole(role)) {
     case 'administrador':

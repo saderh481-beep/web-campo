@@ -14,6 +14,9 @@ export {
   archiveService,
 } from './extra'
 
+export { administradoresService } from './administradores'
+export { coordinadoresService } from './coordinadores'
+
 // NOTA: registroService eliminado — los endpoints de registro público
 // (register, verify-email, resend-verification) no existen en el backend.
 // Ver: src/lib/servicios/registro.ts

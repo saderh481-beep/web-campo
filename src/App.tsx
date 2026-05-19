@@ -14,7 +14,10 @@ import ReportesPage from './pages/ReportesPage'
 import ActividadesPage from './pages/ActividadesPage'
 import AsignacionesPage from './pages/AsignacionesPage'
 import UsuariosPage from './pages/UsuariosPage'
+import AdministradoresPage from './pages/AdministradoresPage'
+import CoordinadoresPage from './pages/CoordinadoresPage'
 import LocalidadesPage from './pages/LocalidadesPage'
+import ZonasPage from './pages/ZonasPage'
 import ConfiguracionesPage from './pages/ConfiguracionesPage'
 import DocumentosPlantillaPage from './pages/DocumentosPlantillaPage'
 import ArchivePage from './pages/ArchivePage'
@@ -128,7 +131,10 @@ export default function App() {
                   <Route path="asignaciones/tecnico-beneficiario" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
                   <Route path="asignaciones/tecnico-actividad" element={<RoleRoute allow={canViewAsignaciones}><AsignacionesPage /></RoleRoute>} />
                   <Route path="usuarios" element={<RoleRoute allow={canManageUsers}><UsuariosPage /></RoleRoute>} />
+                  <Route path="administradores" element={<RoleRoute allow={canManageUsers}><AdministradoresPage /></RoleRoute>} />
+                  <Route path="coordinadores" element={<RoleRoute allow={canViewTecnicos}><CoordinadoresPage /></RoleRoute>} />
                   <Route path="localidades" element={<RoleRoute allow={canViewLocalidades}><LocalidadesPage /></RoleRoute>} />
+                  <Route path="zonas" element={<RoleRoute allow={canViewLocalidades}><ZonasPage /></RoleRoute>} />
                   <Route path="configuraciones" element={<RoleRoute allow={canViewConfiguraciones}><ConfiguracionesPage /></RoleRoute>} />
                   <Route path="documentos-plantilla" element={<RoleRoute allow={canViewDocumentosPlantilla}><DocumentosPlantillaPage /></RoleRoute>} />
                   <Route path="archive" element={<RoleRoute allow={canViewArchive}><ArchivePage /></RoleRoute>} />

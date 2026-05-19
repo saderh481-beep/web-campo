@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal, Home } from 'lucide-react'
+import { LayoutDashboard, Users, UserCheck, BookOpen, ChartBar as FileBarChart, Settings, LogOut, Bell, ChevronRight, Layers, Menu, X, ClipboardList, Link2, MapPin, FileBadge2, Archive, SlidersHorizontal, Home, Building2, Shield } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { canViewActividades, canViewAsignaciones, canViewBeneficiarios, canViewBitacoras, canViewCadenas, canViewDashboard, canViewNotifications, canViewReports, canViewTecnicos, canManageUsers, canViewLocalidades, canViewConfiguraciones, canViewDocumentosPlantilla, canViewArchive } from '../../lib/authz'
 import { notificacionesService } from '../../lib/servicios/extra'
@@ -45,9 +45,12 @@ const MENU_SECTIONS: MenuSection[] = [
     title: "Gestión",
     items: [
       { to: '/usuarios', label: 'Usuarios', icon: Settings, allow: canManageUsers },
+      { to: '/administradores', label: 'Administradores', icon: Shield, allow: canManageUsers },
+      { to: '/coordinadores', label: 'Coordinadores', icon: Users, allow: canViewTecnicos },
       { to: '/tecnicos', label: 'Técnicos', icon: UserCheck, allow: canViewTecnicos },
       { to: '/beneficiarios', label: 'Beneficiarios', icon: Users, allow: canViewBeneficiarios },
       { to: '/localidades', label: 'Localidades', icon: MapPin, allow: canViewLocalidades },
+      { to: '/zonas', label: 'Zonas', icon: Building2, allow: canViewLocalidades },
     ],
   },
   {

@@ -25,6 +25,9 @@ export interface UpdateCoordinadorPayload {
 }
 
 export const coordinadoresService = {
+  /** GET /coordinadores/me — Perfil propio (cualquier rol autenticado) */
+  me: () => api.get<Coordinador>('/coordinadores/me'),
+
   list: () => api.get<Coordinador[]>('/coordinadores'),
   get: (id: string | number) => api.get<Coordinador>(`/coordinadores/${id}`),
   create: (data: CreateCoordinadorPayload) => api.post<Coordinador>('/coordinadores', data),

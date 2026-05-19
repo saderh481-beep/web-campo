@@ -78,7 +78,7 @@ export const tecnicosService = {
    * POST /aplicar-cortes — Bulk suspend expired
    * @returns {"message": "Corte 3 tecnicos", "tecnicos": []}
    */
-  aplicarCortes: () => api.post<{ message: string; tecnicos: { id: string; nombre: string }[] }>('/tecnicos/aplicar-cortes'),
+  aplicarCortes: () => api.post<{ message: string; tecnicos: { id: string; nombre: string }[] }>('/aplicar-cortes'),
 
   /**
    * POST /tecnicos/:id/cerrar-corte — Suspend specific

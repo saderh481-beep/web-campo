@@ -107,7 +107,40 @@ export const beneficiariosService = {
    * GET /beneficiarios/:id/documentos
    */
   getDocumentos: (id: string | number) => api.get<Documento[]>(`/beneficiarios/${id}/documentos`),
-  
-  // Fotos/firma: ver bitacorasService (funcional match)
+
+  /**
+   * DELETE /beneficiarios/:id/force — Hard delete (admin only)
+   */
+  forceRemove: (id: string | number) => api.delete(`/beneficiarios/${id}/force`),
+
+  // ─── Foto rostro ────────────────────────────────────────────────────────
+
+  /** POST /beneficiarios/:id/foto-rostro (admin/coordinador) */
+  subirFotoRostro: (id: string | number, file: File) => {
+    const formData = new FormData()
+    formData.append('archivo', file)
+    return api.post(`/beneficiarios/${id}/foto-rostro`, formData)
+  },
+
+  /** GET /beneficiarios/:id/foto-rostro */
+  getFotoRostro: (id: string | number) => api.get<{ url: string }>(`/beneficiarios/${id}/foto-rostro`),
+
+  /** DELETE /beneficiarios/:id/foto-rostro (admin/coordinador) */
+  eliminarFotoRostro: (id: string | number) => api.delete(`/beneficiarios/${id}/foto-rostro`),
+
+  // ─── Firma ──────────────────────────────────────────────────────────────
+
+  /** POST /beneficiarios/:id/firma (admin/coordinador) */
+  subirFirma: (id: string | number, file: File) => {
+    const formData = new FormData()
+    formData.append('archivo', file)
+    return api.post(`/beneficiarios/${id}/firma`, formData)
+  },
+
+  /** GET /beneficiarios/:id/firma */
+  getFirma: (id: string | number) => api.get<{ url: string }>(`/beneficiarios/${id}/firma`),
+
+  /** DELETE /beneficiarios/:id/firma (admin/coordinador) */
+  eliminarFirma: (id: string | number) => api.delete(`/beneficiarios/${id}/firma`),
 }
 

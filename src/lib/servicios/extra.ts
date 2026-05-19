@@ -1,4 +1,4 @@
-import { api } from '../axios'
+import { api, apiUrl } from '../axios'
 
 export interface Configuracion {
   id: string
@@ -73,6 +73,9 @@ export const configuracionesService = {
 export const notificacionesService = {
   /** GET /notificaciones — Listar notificaciones */
   list: () => api.get<Notificacion[]>('/notificaciones'),
+
+  /** GET /notificaciones/stream — SSE en tiempo real */
+  streamUrl: () => `${apiUrl}/notificaciones/stream`,
 
   /** PATCH /notificaciones/:id/leer — Marcar como leído */
   marcarLeida: (id: string | number) => api.patch<Notificacion>(`/notificaciones/${id}/leer`),

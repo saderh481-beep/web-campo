@@ -24,6 +24,9 @@ export interface UpdateAdministradorPayload {
 }
 
 export const administradoresService = {
+  /** GET /administradores/me — Perfil propio (cualquier rol autenticado) */
+  me: () => api.get<Administrador>('/administradores/me'),
+
   list: () => api.get<Administrador[]>('/administradores'),
   get: (id: string | number) => api.get<Administrador>(`/administradores/${id}`),
   create: (data: CreateAdministradorPayload) => api.post<Administrador>('/administradores', data),
