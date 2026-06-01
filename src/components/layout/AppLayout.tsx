@@ -165,7 +165,7 @@ export default function AppLayout() {
           <img src="/Mesa de trabajo 2_1.svg" alt="Logo CAMPO" style={s.logoImg} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={s.logoName}>CAMPO</div>
-            <div style={s.logoSub}>Secretaría de Desarrollo Agropecuario</div>
+            <div style={s.logoSub}>Secretaria de Agricultura y Desarrollo Rural</div>
             <div style={s.logoGov}>Primero el Pueblo 2022-2028</div>
           </div>
         </div>
